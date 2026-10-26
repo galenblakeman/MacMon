@@ -1,0 +1,2 @@
+# Unified diff assets contain single-space context lines for blank source lines.
+dependencies/moncore/*.patch -whitespace

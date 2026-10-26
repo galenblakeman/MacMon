@@ -1,0 +1,945 @@
+diff --git a/src/MonCore/MonCore.csproj b/src/MonCore/MonCore.csproj
+index b85f9c0..114e400 100644
+--- a/src/MonCore/MonCore.csproj
++++ b/src/MonCore/MonCore.csproj
+@@ -5,6 +5,7 @@
+     <ImplicitUsings>enable</ImplicitUsings>
+     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+     <IsPackable>true</IsPackable>
++    <Version>3.4.1-macos.1</Version>
+     <PackageId>MonCore</PackageId>
+     <Description>Portable monitoring models, history, ranking and sampling orchestration</Description>
+   </PropertyGroup>
+diff --git a/src/MonCore/Monitoring/CaptureRules.cs b/src/MonCore/Monitoring/CaptureRules.cs
+index 5bda3fa..a0e78e8 100644
+--- a/src/MonCore/Monitoring/CaptureRules.cs
++++ b/src/MonCore/Monitoring/CaptureRules.cs
+@@ -76,9 +76,9 @@ public sealed class CaptureRules(IReadOnlyList<CaptureRuleSetting> rules, TimeSp
+ {
+     private readonly CaptureRuleSetting[] _rules = [.. rules.Where(rule => rule.Enabled).Select(r => r.Normalized())];
+     private readonly Dictionary<CaptureMetric, Run> _runs = [];
+-    private readonly Dictionary<(int, long), Run> _processRuns = [];
++    private readonly Dictionary<ProcessLifetimeIdentity, Run> _processRuns = [];
+     private readonly Dictionary<CaptureMetric, double> _lastFired = [];
+-    private readonly List<(int, long)> _absent = [];
++    private readonly List<ProcessLifetimeIdentity> _absent = [];
+ 
+     /// <summary>Feed one live, uncompacted sample; returns the rules it completed.</summary>
+     public IReadOnlyList<CaptureFired> Observe(MonitorSample full)
+@@ -91,7 +91,7 @@ public sealed class CaptureRules(IReadOnlyList<CaptureRuleSetting> rules, TimeSp
+         {
+             if (rule.Metric == CaptureMetric.Process)
+             {
+-                ObserveProcesses(rule, full, valid, moment, ref fired);
++                ObserveProcesses(rule, full, valid || (!full.IsGap && full.IndependentProcessReadings), moment, ref fired);
+                 continue;
+             }
+ 
+@@ -115,10 +115,10 @@ public sealed class CaptureRules(IReadOnlyList<CaptureRuleSetting> rules, TimeSp
+ 
+         foreach (var process in full.Processes)
+         {
+-            var key = (process.ProcessId, process.CreationTicks);
++            var key = process.Identity;
+             if (!_processRuns.TryGetValue(key, out var run)) _processRuns[key] = run = new Run();
+             run.Seen = moment;
+-            if (Step(rule, run, process.CpuPercent * logicalProcessors, full, moment) is { } result)
++            if (Step(rule, run, process.ObservedCpuPercent * logicalProcessors, full, moment) is { } result)
+                 (fired ??= []).Add(result with { Process = process });
+         }
+ 
+diff --git a/src/MonCore/Monitoring/CsvExport.cs b/src/MonCore/Monitoring/CsvExport.cs
+index 095b85c..ada92ce 100644
+--- a/src/MonCore/Monitoring/CsvExport.cs
++++ b/src/MonCore/Monitoring/CsvExport.cs
+@@ -74,17 +74,24 @@ public static class CsvExport
+ 
+     private static void WriteProcesses(TextWriter writer, IReadOnlyList<MonitorSample> samples)
+     {
+-        Row(writer, "timestamp_utc", "pid", "creation_ticks", "parent_pid", "name", "app_name",
++        var portable = samples.Any(sample => sample.IndependentProcessReadings || sample.Processes.Any(process =>
++            process.LifetimeDomain != ProcessLifetimeIdentity.WindowsFileTime || process.StartedAtUtc is not null));
++        string[] columns = ["timestamp_utc", "pid", "creation_ticks", "parent_pid", "name", "app_name",
+             "image_path", "publisher", "cpu_percent", "gpu_percent", "working_set_bytes", "private_bytes",
+-            "io_bytes_per_second", "threads", "handles", "has_app_window", "sample_compacted_processes");
++            "io_bytes_per_second", "threads", "handles", "has_app_window", "sample_compacted_processes"];
++        Row(writer, portable ? [.. columns, "lifetime_domain", "started_at_utc"] : columns);
+         foreach (var sample in samples)
+-            foreach (var process in sample.Processes)
+-                Row(writer, Utc(sample.Timestamp), Number(process.ProcessId), Number(process.CreationTicks),
+-                    Number(process.ParentProcessId), Safe(process.Name), Safe(process.AppName), Safe(process.ImagePath),
+-                    Safe(process.Publisher), Number(process.CpuPercent), Number(process.GpuPercent),
+-                    Number(process.WorkingSetBytes), Number(process.PrivateBytes), Number(process.IoBytesPerSecond),
+-                    Number(process.ThreadCount), Number(process.HandleCount), Bool(process.HasAppWindow),
+-                    Number(sample.CompactedProcesses));
++        foreach (var process in sample.Processes)
++        {
++            string?[] row = [Utc(sample.Timestamp), Number(process.ProcessId), Number(process.CreationTicks),
++                Number(process.ParentProcessId), Safe(process.Name), Safe(process.AppName), Safe(process.ImagePath),
++                Safe(process.Publisher), Number(process.ObservedCpuPercent), Number(process.GpuPercent),
++                Number(process.WorkingSetBytes), Number(process.PrivateBytes), Number(process.IoBytesPerSecond),
++                Number(process.ThreadCount), Number(process.HandleCount), Bool(process.HasAppWindow),
++                Number(sample.CompactedProcesses)];
++            Row(writer, portable ? [.. row, Safe(process.LifetimeDomain.ToString()),
++                process.StartedAtUtc is { } start ? Utc(start) : ""] : row);
++        }
+     }
+ 
+     private static void WriteUsage(TextWriter writer, IReadOnlyList<AppUsage> apps, DateTimeOffset since,
+diff --git a/src/MonCore/Monitoring/MonitorSample.cs b/src/MonCore/Monitoring/MonitorSample.cs
+index 9cda313..a51be59 100644
+--- a/src/MonCore/Monitoring/MonitorSample.cs
++++ b/src/MonCore/Monitoring/MonitorSample.cs
+@@ -17,6 +17,9 @@ public sealed record MonitorSample(
+     bool IsGap = false,
+     long MonotonicTimestamp = 0)
+ {
++    /// <summary>Process observations remain useful when system CPU is unavailable; opt-in preserves Windows semantics.</summary>
++    public bool IndependentProcessReadings { get; init; }
++
+     /// <summary>Resource measurements captured in the same collection pass.</summary>
+     public ResourceSample Resources { get; init; } = new();
+ 
+diff --git a/src/MonCore/Monitoring/MonitorSession.cs b/src/MonCore/Monitoring/MonitorSession.cs
+index e22a7ff..09743ed 100644
+--- a/src/MonCore/Monitoring/MonitorSession.cs
++++ b/src/MonCore/Monitoring/MonitorSession.cs
+@@ -12,7 +12,10 @@ public enum SamplingError
+     ReadingsUnavailable,
+ 
+     /// <summary>Windows cannot report this machine's CPU, such as with more than one processor group.</summary>
+-    CpuUnsupported
++    CpuUnsupported,
++
++    /// <summary>Process enumeration failed; system resources remain useful.</summary>
++    ProcessesUnavailable
+ }
+ 
+ /// <summary>The drives and retention rules one capture uses.</summary>
+@@ -52,7 +55,8 @@ public sealed class MonitorSession(
+     Func<IFrameSource> createSource,
+     Func<SamplingOptions> options,
+     Action<Action> post,
+-    TimeSpan? interval = null)
++    TimeSpan? interval = null,
++    ProcessIdentityPolicy? identityPolicy = null)
+ {
+     private readonly ConcurrentQueue<Pending> _pending = new();
+     private readonly TimeSpan _interval = interval ?? TimeSpan.FromSeconds(1);
+@@ -67,7 +71,7 @@ public sealed class MonitorSession(
+     public ServiceHistory Services { get; } = new();
+ 
+     /// <summary>Per-app totals since WinMon started, from every live full sample.</summary>
+-    public UsageLedger Usage { get; } = new(DateTimeOffset.Now);
++    public UsageLedger Usage { get; } = new(DateTimeOffset.Now, identityPolicy);
+ 
+     /// <summary>The newest compacted sample, the same instance history ends with.</summary>
+     public MonitorSample? Latest { get; private set; }
+diff --git a/src/MonCore/Monitoring/ProcessPins.cs b/src/MonCore/Monitoring/ProcessPins.cs
+index 98fcb2b..2e1486c 100644
+--- a/src/MonCore/Monitoring/ProcessPins.cs
++++ b/src/MonCore/Monitoring/ProcessPins.cs
+@@ -11,8 +11,9 @@ public enum PinnedProcessState
+ public sealed record PinnedProcess(ProcessUsage Usage, PinnedProcessState State);
+ 
+ /// <summary>Pins in insertion order. Individual pins identify one process lifetime.</summary>
+-public sealed class ProcessPins
++public sealed class ProcessPins(ProcessIdentityPolicy? identityPolicy = null)
+ {
++    private readonly ProcessIdentityPolicy _identityPolicy = identityPolicy ?? ProcessIdentityPolicy.Windows;
+     private sealed record Pin(ProcessUsage Usage, bool Grouped);
+ 
+     private readonly List<Pin> _pins = [];
+@@ -33,7 +34,9 @@ public sealed class ProcessPins
+         [
+             .. _pins.Select(pin => new SavedProcessPin(
+                 pin.Usage.ProcessId, pin.Usage.CreationTicks, pin.Usage.Name, pin.Usage.ImagePath,
+-                pin.Usage.AppName, pin.Usage.HasAppWindow, pin.Grouped))
++                pin.Usage.AppName, pin.Usage.HasAppWindow, pin.Grouped)
++            { LifetimeDomain = pin.Usage.LifetimeDomain, StartedAtUtc = pin.Usage.StartedAtUtc,
++                IdentityPolicyId = _identityPolicy.Id })
+         ];
+     }
+ 
+@@ -45,9 +48,11 @@ public sealed class ProcessPins
+         foreach (var pin in saved ?? [])
+         {
+             if (pin is null || pin.ProcessId < 0 || pin.CreationTicks < 0 ||
+-                string.IsNullOrWhiteSpace(pin.Name)) continue;
++                string.IsNullOrWhiteSpace(pin.Name) || !Enum.IsDefined(pin.LifetimeDomain) ||
++                pin.Grouped && pin.IdentityPolicyId != _identityPolicy.Id) continue;
+             var usage = new ProcessUsage(pin.ProcessId, pin.CreationTicks, pin.Name, 0)
+             {
++                LifetimeDomain = pin.LifetimeDomain, StartedAtUtc = pin.StartedAtUtc,
+                 ImagePath = pin.ImagePath ?? "", AppName = pin.AppName ?? "", HasAppWindow = pin.HasAppWindow
+             };
+             if (!Contains(usage, pin.Grouped)) _pins.Add(new Pin(usage, pin.Grouped));
+@@ -55,9 +60,9 @@ public sealed class ProcessPins
+         // ReSharper restore ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract, NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
+     }
+ 
+-    public static SavedProcessPin[] Normalize(IEnumerable<SavedProcessPin>? saved)
++    public static SavedProcessPin[] Normalize(IEnumerable<SavedProcessPin>? saved, ProcessIdentityPolicy? identityPolicy = null)
+     {
+-        var pins = new ProcessPins();
++        var pins = new ProcessPins(identityPolicy);
+         pins.Restore(saved);
+         return pins.Snapshot();
+     }
+@@ -94,7 +99,7 @@ public sealed class ProcessPins
+         {
+             var observed = newest?.Processes.FirstOrDefault(p => Matches(pin, p, grouped));
+             var current = observed is null ? null : averages.FirstOrDefault(p => Matches(pin, p, grouped)) ?? observed;
+-            var state = newest is null || newest.IsGap || newest.TotalCpuPercent is null
++            var state = newest is null || newest.IsGap || (newest.TotalCpuPercent is null && !newest.IndependentProcessReadings)
+                 ? PinnedProcessState.Unavailable
+                 : current is not null
+                     ? PinnedProcessState.Present
+@@ -106,7 +111,7 @@ public sealed class ProcessPins
+             // Missing data must never expose the saved pin's stale readings as current measurements.
+             var usage = current ?? pin.Usage with
+             {
+-                CpuPercent = 0, GpuPercent = null, WorkingSetBytes = null, PrivateBytes = null,
++                CpuPercent = 0, CpuAvailable = false, GpuPercent = null, WorkingSetBytes = null, PrivateBytes = null,
+                 IoBytesPerSecond = null, ThreadCount = null, HandleCount = null
+             };
+             result.Add(new PinnedProcess(usage, state));
+@@ -115,12 +120,12 @@ public sealed class ProcessPins
+         return [.. result];
+     }
+ 
+-    private static bool Matches(Pin pin, ProcessUsage process, bool grouped)
++    private bool Matches(Pin pin, ProcessUsage process, bool grouped)
+     {
+         return pin.Grouped == grouped &&
+                (grouped
+-                   ? StringComparer.OrdinalIgnoreCase.Equals(ProcessRanking.GroupKey(pin.Usage),
+-                       ProcessRanking.GroupKey(process))
+-                   : pin.Usage.ProcessId == process.ProcessId && pin.Usage.CreationTicks == process.CreationTicks);
++                   ? _identityPolicy.Comparer.Equals(_identityPolicy.ExecutableKey(pin.Usage),
++                       _identityPolicy.ExecutableKey(process))
++                   : pin.Usage.Identity == process.Identity);
+     }
+ }
+\ No newline at end of file
+diff --git a/src/MonCore/Monitoring/ProcessRanking.cs b/src/MonCore/Monitoring/ProcessRanking.cs
+index 71d9293..52419a6 100644
+--- a/src/MonCore/Monitoring/ProcessRanking.cs
++++ b/src/MonCore/Monitoring/ProcessRanking.cs
+@@ -1,4 +1,5 @@
+ using System.Diagnostics;
++using System.Runtime.InteropServices;
+ 
+ namespace WinMon.Monitoring;
+ 
+@@ -51,10 +52,12 @@ public sealed record ProcessRanking(IReadOnlyList<ProcessUsage> Processes, doubl
+     /// <param name="includeInactive">Include observed processes even without activity or a reading in the sort column, for search.</param>
+     /// <returns>The ranking, empty when the last sample is a gap or has no CPU reading.</returns>
+     public static ProcessRanking Rank(IReadOnlyList<MonitorSample> history, int windowSeconds = DefaultWindowSeconds,
+-        ProcessSort sort = ProcessSort.Cpu, bool grouped = false, bool includeInactive = false)
++        ProcessSort sort = ProcessSort.Cpu, bool grouped = false, bool includeInactive = false,
++        ProcessIdentityPolicy? identityPolicy = null)
+     {
+         ArgumentNullException.ThrowIfNull(history);
+         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(windowSeconds);
++        var policy = identityPolicy ?? ProcessIdentityPolicy.Windows;
+         var window = new List<MonitorSample>(windowSeconds + 1);
+         var first = WindowStart(history, windowSeconds);
+         for (var i = history.Count - 1; i >= first; i--) window.Add(history[i]);
+@@ -64,26 +67,28 @@ public sealed record ProcessRanking(IReadOnlyList<ProcessUsage> Processes, doubl
+         // every refresh. Cleared again on exit so they do not keep samples alive.
+         var newest = _scratchNewest ??= [];
+         var totals = _scratchTotals ??= [];
+-        var groups = grouped
+-            ? _scratchGroups ??= new Dictionary<string, List<Member>>(StringComparer.OrdinalIgnoreCase)
+-            : null;
++        if (grouped && (_scratchGroups is null || !ReferenceEquals(_scratchGroups.Comparer, policy.Comparer)))
++            _scratchGroups = new Dictionary<string, List<Member>>(policy.Comparer);
++        var groups = grouped ? _scratchGroups : null;
+         try
+         {
+             // Memory and counts are point-in-time readings: exclude processes that exited earlier in the window.
+-            foreach (var process in window[0].Processes) newest.Add((process.ProcessId, process.CreationTicks));
++            foreach (var process in window[0].Processes) newest.Add(process.Identity);
+             // Newest first: the first entry seen for a process carries its latest name and memory.
+             foreach (var sample in window)
+             foreach (var process in sample.Processes)
+             {
+-                var key = (process.ProcessId, process.CreationTicks);
+-                totals.TryGetValue(key, out var total);
+-                totals[key] = new WindowTotals(total.Latest ?? process,
+-                    total.Cpu + process.CpuPercent,
++                var key = process.Identity;
++                // Update in place: a second hash lookup per process would magnify the identity checks' cost.
++                ref var total = ref CollectionsMarshal.GetValueRefOrAddDefault(totals, key, out _);
++                total = new WindowTotals(total.Latest ?? process,
++                    total.GpuLatest ?? (process.GpuPercent is not null ? process : null),
++                    total.Cpu + (process.CpuAvailable ? process.CpuPercent : 0),
+                     total.Io + (process.IoBytesPerSecond ?? 0),
+-                    total.IoCount + (process.IoBytesPerSecond is null ? 0 : 1),
+                     total.Gpu + (process.GpuPercent ?? 0),
+-                    total.GpuCount + (process.GpuPercent is null ? 0 : 1),
+-                    total.GpuLatest ?? (process.GpuPercent is not null ? process : null));
++                    total.CpuUnavailable + (process.CpuAvailable ? 0 : 1),
++                    total.IoCount + (process.IoBytesPerSecond is null ? 0 : 1),
++                    total.GpuCount + (process.GpuPercent is null ? 0 : 1));
+             }
+ 
+             var measuredCpu = 0d;
+@@ -91,7 +96,8 @@ public sealed record ProcessRanking(IReadOnlyList<ProcessUsage> Processes, doubl
+             foreach (var (key, total) in totals)
+             {
+                 var latest = total.Latest!;
+-                var cpu = total.Cpu / window.Count;
++                var cpuCount = window.Count - total.CpuUnavailable;
++                var cpu = cpuCount > 0 ? total.Cpu / cpuCount : 0;
+                 measuredCpu += cpu;
+                 // Like CPU, intervals without an entry are idle (compacted) and count as zero.
+                 double? io = total.IoCount > 0 ? total.Io / window.Count : null;
+@@ -99,7 +105,7 @@ public sealed record ProcessRanking(IReadOnlyList<ProcessUsage> Processes, doubl
+                 // Groups need every member, but only each group's busiest member becomes a row.
+                 if (groups is not null)
+                 {
+-                    var groupKey = GroupKey(latest);
++                    var groupKey = policy.ExecutableKey(latest);
+                     if (!groups.TryGetValue(groupKey, out var members))
+                     {
+                         members = _spareMembers?.TryPop(out var spare) == true ? spare : [];
+@@ -107,16 +113,18 @@ public sealed record ProcessRanking(IReadOnlyList<ProcessUsage> Processes, doubl
+                     }
+ 
+                     members.Add(new Member(latest, cpu, io, gpu, total.GpuLatest?.GpuId ?? "",
+-                        total.GpuLatest?.GpuEngine ?? "", newest.Contains(key)));
++                        total.GpuLatest?.GpuEngine ?? "", newest.Contains(key), cpuCount > 0));
+                     continue;
+                 }
+ 
+                 // Individually, skip processes the sort drops before copying them.
++                if (!includeInactive && sort == ProcessSort.Cpu && cpuCount == 0) continue;
+                 if (!includeInactive && !Listed(sort, cpu, io, gpu, latest.WorkingSetBytes, newest.Contains(key),
+                         latest.ThreadCount, latest.HandleCount)) continue;
+                 individual.Add(latest with
+                 {
+                     CpuPercent = cpu,
++                    CpuAvailable = cpuCount > 0,
+                     IoBytesPerSecond = io,
+                     GpuPercent = gpu,
+                     GpuId = total.GpuLatest?.GpuId ?? "",
+@@ -136,11 +144,11 @@ public sealed record ProcessRanking(IReadOnlyList<ProcessUsage> Processes, doubl
+                     ProcessSort.Io => p.IoBytesPerSecond ?? 0,
+                     ProcessSort.Threads => p.ThreadCount ?? 0,
+                     ProcessSort.Handles => p.HandleCount ?? 0,
+-                    _ => p.CpuPercent
++                    _ => p.ObservedCpuPercent ?? double.NegativeInfinity
+                 })
+                 .ThenBy(p => p.ProcessId)
+                 .ToArray();
+-            return new ProcessRanking(ranked, window.Average(s => s.TotalCpuPercent!.Value), window.Count)
++            return new ProcessRanking(ranked, window.Average(s => s.TotalCpuPercent), window.Count)
+                 { MeasuredCpuPercent = measuredCpu };
+         }
+         finally
+@@ -174,7 +182,7 @@ public sealed record ProcessRanking(IReadOnlyList<ProcessUsage> Processes, doubl
+         for (var i = history.Count - 1; i >= 0; i--)
+         {
+             var sample = history[i];
+-            if (Moment(sample) < start || sample.IsGap || sample.TotalCpuPercent is null) break;
++            if (Moment(sample) < start || sample.IsGap || (sample.TotalCpuPercent is null && !sample.IndependentProcessReadings)) break;
+             if (i < history.Count - 1 && Moment(history[i + 1]) - Moment(sample) > GapSeconds) break;
+             first = i;
+         }
+@@ -182,17 +190,18 @@ public sealed record ProcessRanking(IReadOnlyList<ProcessUsage> Processes, doubl
+         return first;
+     }
+ 
+-    [ThreadStatic] private static HashSet<(int, long)>? _scratchNewest;
+-    [ThreadStatic] private static Dictionary<(int, long), WindowTotals>? _scratchTotals;
++    [ThreadStatic] private static HashSet<ProcessLifetimeIdentity>? _scratchNewest;
++    [ThreadStatic] private static Dictionary<ProcessLifetimeIdentity, WindowTotals>? _scratchTotals;
+ 
+     private record struct WindowTotals(
+         ProcessUsage? Latest,
++        ProcessUsage? GpuLatest,
+         double Cpu,
+         double Io,
+-        int IoCount,
+         double Gpu,
+-        int GpuCount,
+-        ProcessUsage? GpuLatest);
++        int CpuUnavailable,
++        int IoCount,
++        int GpuCount);
+ 
+     /// <summary>Whether a process or group has a reading in the sort column; missing readings never become zero.</summary>
+     private static bool Listed(ProcessSort sort, double cpu, double? io, double? gpu, ulong? memory, bool current,
+@@ -211,9 +220,9 @@ public sealed record ProcessRanking(IReadOnlyList<ProcessUsage> Processes, doubl
+ 
+     /// <summary>Executable identity for grouping: the full path, or the name when the path is unreadable.</summary>
+     /// <remarks>A path always contains a backslash and a name never does, so the two kinds cannot collide.</remarks>
+-    public static string GroupKey(ProcessUsage process)
++    public static string GroupKey(ProcessUsage process, ProcessIdentityPolicy? identityPolicy = null)
+     {
+-        return process.ImagePath.Length > 0 ? process.ImagePath : process.Name;
++        return (identityPolicy ?? ProcessIdentityPolicy.Windows).ExecutableKey(process);
+     }
+ 
+     [ThreadStatic] private static Dictionary<string, List<Member>>? _scratchGroups;
+@@ -227,7 +236,8 @@ public sealed record ProcessRanking(IReadOnlyList<ProcessUsage> Processes, doubl
+         double? Gpu,
+         string GpuId,
+         string GpuEngine,
+-        bool Current);
++        bool Current,
++        bool CpuAvailable);
+ 
+     /// <summary>Combine window averages by executable. CPU and I/O add up; GPU members may use different
+     /// engines, so a group reports its busiest member; memory sums the private bytes of current members.</summary>
+@@ -241,6 +251,7 @@ public sealed record ProcessRanking(IReadOnlyList<ProcessUsage> Processes, doubl
+             Member? gpu = null;
+             double cpu = 0, io = 0;
+             var hasIo = false;
++            var allCpu = true;
+             ulong workingSet = 0, privateBytes = 0;
+             bool hasWorkingSet = false, hasPrivate = false, allThreads = true, allHandles = true;
+             long threads = 0, handles = 0;
+@@ -256,6 +267,7 @@ public sealed record ProcessRanking(IReadOnlyList<ProcessUsage> Processes, doubl
+                 if (member.Gpu is { } percent && (gpu is null || percent.CompareTo(gpu.Value.Gpu!.Value) > 0))
+                     gpu = member;
+                 cpu += member.Cpu;
++                allCpu &= member.CpuAvailable;
+                 if (member.Io is { } rate)
+                 {
+                     io += rate;
+@@ -293,6 +305,7 @@ public sealed record ProcessRanking(IReadOnlyList<ProcessUsage> Processes, doubl
+             rows.Add(busiest.Latest with
+             {
+                 CpuPercent = cpu,
++                CpuAvailable = allCpu,
+                 IoBytesPerSecond = hasIo ? io : null,
+                 GpuPercent = gpu?.Gpu,
+                 GpuEngine = gpu?.GpuEngine ?? "",
+diff --git a/src/MonCore/Monitoring/ProcessRetention.cs b/src/MonCore/Monitoring/ProcessRetention.cs
+index 5f610e4..431a781 100644
+--- a/src/MonCore/Monitoring/ProcessRetention.cs
++++ b/src/MonCore/Monitoring/ProcessRetention.cs
+@@ -34,7 +34,7 @@ public static class ProcessRetention
+         ProcessUsage[] kept =
+         [
+             .. sample.Processes.Where(p => retain?.Invoke(p) == true || p.HasHadAppWindow || p.HasAppWindow == true ||
+-                                           p.CpuPercent > 0 || p.IoBytesPerSecond > 0 || p.GpuPercent is not null ||
++                                           !p.CpuAvailable || p.CpuPercent > 0 || p.IoBytesPerSecond > 0 || p.GpuPercent is not null ||
+                                            p.WorkingSetBytes >= threshold || p.ThreadCount >= threadThreshold ||
+                                            p.HandleCount >= handleThreshold)
+         ];
+diff --git a/src/MonCore/Monitoring/ProcessSelection.cs b/src/MonCore/Monitoring/ProcessSelection.cs
+index c28fe7d..9488dd9 100644
+--- a/src/MonCore/Monitoring/ProcessSelection.cs
++++ b/src/MonCore/Monitoring/ProcessSelection.cs
+@@ -1,15 +1,15 @@
+ namespace WinMon.Monitoring;
+ 
+ /// <summary>A selected lifetime (or executable group), independent of the ranked row slots.</summary>
+-public sealed class ProcessSelection
++public sealed class ProcessSelection(ProcessIdentityPolicy? identityPolicy = null)
+ {
+-    private ProcessPins _target = new();
++    private ProcessPins _target = new(identityPolicy);
+     public bool Grouped { get; private set; }
+     public bool HasSelection => _target.Count(Grouped) > 0;
+ 
+     public void Select(ProcessUsage process, bool grouped)
+     {
+-        _target = new ProcessPins();
++        _target = new ProcessPins(identityPolicy);
+         Grouped = grouped;
+         _target.Toggle(process, grouped);
+     }
+@@ -28,7 +28,7 @@ public sealed class ProcessSelection
+         ProcessSort sort)
+     {
+         return Resolve(samples, grouped, historical,
+-            () => ProcessRanking.Rank(samples, sort: sort, grouped: grouped, includeInactive: true));
++            () => ProcessRanking.Rank(samples, sort: sort, grouped: grouped, includeInactive: true, identityPolicy: identityPolicy));
+     }
+ 
+     /// <param name="samples">The samples ending at the live or selected moment.</param>
+@@ -38,7 +38,7 @@ public sealed class ProcessSelection
+     public PinnedProcess? Resolve(IReadOnlyList<MonitorSample> samples, bool grouped, bool historical,
+         Func<ProcessRanking> inclusive)
+     {
+-        if (grouped != Grouped) _target = new ProcessPins();
++        if (grouped != Grouped) _target = new ProcessPins(identityPolicy);
+         return HasSelection
+             ? _target.Resolve(samples.LastOrDefault(), inclusive().Processes, grouped, historical).Single()
+             : null;
+diff --git a/src/MonCore/Monitoring/ProcessUsage.cs b/src/MonCore/Monitoring/ProcessUsage.cs
+index 19b5b80..b3f005a 100644
+--- a/src/MonCore/Monitoring/ProcessUsage.cs
++++ b/src/MonCore/Monitoring/ProcessUsage.cs
+@@ -4,7 +4,7 @@ namespace WinMon.Monitoring;
+ /// Describes CPU consumed by a process during one sampling interval.
+ /// </summary>
+ /// <param name="ProcessId">Identifies the process for the sampled interval.</param>
+-/// <param name="CreationTicks">Identifies this specific lifetime of the process.</param>
++/// <param name="CreationTicks">Legacy name for the opaque lifetime start token; its units are defined by LifetimeDomain.</param>
+ /// <param name="Name">Provides the executable name captured during the sample.</param>
+ /// <param name="CpuPercent">Provides CPU consumed as a percentage of total machine capacity.</param>
+ public sealed record ProcessUsage(
+@@ -15,6 +15,19 @@ public sealed record ProcessUsage(
+     ulong? WorkingSetBytes = null,
+     double? IoBytesPerSecond = null)
+ {
++    /// <summary>Clock domain of the opaque start token. Existing Windows constructors preserve FILETIME identity.</summary>
++    public ProcessLifetimeDomain LifetimeDomain { get; init; } = ProcessLifetimeIdentity.WindowsFileTime;
++
++    public ProcessLifetimeIdentity Identity => new(ProcessId, CreationTicks, LifetimeDomain);
++
++    /// <summary>Optional UTC timestamp for display. Never infer time units from an opaque identity token.</summary>
++    public DateTimeOffset? StartedAtUtc { get; init; }
++
++    /// <summary>False when this interval lacks CPU attribution. CpuPercent then holds a legacy placeholder, not zero usage.</summary>
++    public bool CpuAvailable { get; init; } = true;
++
++    public double? ObservedCpuPercent => CpuAvailable ? CpuPercent : null;
++
+     /// <summary>Observed parent PID; ancestry must also be checked against process creation times.</summary>
+     public int ParentProcessId { get; init; }
+ 
+diff --git a/src/MonCore/Monitoring/RestartHistory.cs b/src/MonCore/Monitoring/RestartHistory.cs
+index 3a364e8..9203964 100644
+--- a/src/MonCore/Monitoring/RestartHistory.cs
++++ b/src/MonCore/Monitoring/RestartHistory.cs
+@@ -73,6 +73,14 @@ public static class RestartHistory
+         UsageLedgerState? usage, RestartClock clock, Func<string, Stream>? createTemporary = null,
+         long maxBytes = long.MaxValue)
+     {
++        // Format 1 carries Windows FILETIME identities and cannot preserve portable domains or availability.
++        // Refuse before opening a temporary file; keep existing Windows bytes and files unchanged.
++        if (samples.Any(sample => sample.IndependentProcessReadings || sample.Processes.Any(process =>
++                process.LifetimeDomain != ProcessLifetimeIdentity.WindowsFileTime || !process.CpuAvailable ||
++                process.StartedAtUtc is not null)) ||
++            usage is not null && (usage.IdentityPolicyId != ProcessIdentityPolicy.Windows.Id ||
++                usage.Lifetimes.Any(lifetime => lifetime.LifetimeDomain != ProcessLifetimeIdentity.WindowsFileTime)))
++            return false;
+         var start = clock.Timestamp();
+         var directory = Path.GetDirectoryName(path) ?? ".";
+         var temporary = Path.Combine(directory, $".{Path.GetFileName(path)}.{Guid.NewGuid():N}.tmp");
+diff --git a/src/MonCore/Monitoring/SavedProcessPin.cs b/src/MonCore/Monitoring/SavedProcessPin.cs
+index 5b180d9..9a0317c 100644
+--- a/src/MonCore/Monitoring/SavedProcessPin.cs
++++ b/src/MonCore/Monitoring/SavedProcessPin.cs
+@@ -8,4 +8,9 @@ public sealed record SavedProcessPin(
+     string ImagePath = "",
+     string AppName = "",
+     bool? HasAppWindow = null,
+-    bool Grouped = false);
+\ No newline at end of file
++    bool Grouped = false)
++{
++    public ProcessLifetimeDomain LifetimeDomain { get; init; } = ProcessLifetimeIdentity.WindowsFileTime;
++    public DateTimeOffset? StartedAtUtc { get; init; }
++    public string IdentityPolicyId { get; init; } = ProcessIdentityPolicy.Windows.Id;
++}
+\ No newline at end of file
+diff --git a/src/MonCore/Monitoring/UsageLedger.cs b/src/MonCore/Monitoring/UsageLedger.cs
+index 0b3978b..977e09c 100644
+--- a/src/MonCore/Monitoring/UsageLedger.cs
++++ b/src/MonCore/Monitoring/UsageLedger.cs
+@@ -29,7 +29,10 @@ public sealed record UsageLedgerState(
+     double MachineBusyTicks,
+     double AttributedTicks,
+     IReadOnlyList<UsageAppState> Apps,
+-    IReadOnlyList<UsageLifetimeState> Lifetimes);
++    IReadOnlyList<UsageLifetimeState> Lifetimes)
++{
++    public string IdentityPolicyId { get; init; } = ProcessIdentityPolicy.Windows.Id;
++}
+ 
+ /// <summary>One executable's saved totals; see <see cref="AppUsage"/>.</summary>
+ public sealed record UsageAppState(
+@@ -46,7 +49,10 @@ public sealed record UsageAppState(
+     int Lifetimes);
+ 
+ /// <summary>A counted lifetime, its app as an index into <see cref="UsageLedgerState.Apps"/>, and its absences.</summary>
+-public readonly record struct UsageLifetimeState(int ProcessId, long CreationTicks, int App, int Absences);
++public readonly record struct UsageLifetimeState(int ProcessId, long CreationTicks, int App, int Absences)
++{
++    public ProcessLifetimeDomain LifetimeDomain { get; init; } = ProcessLifetimeIdentity.WindowsFileTime;
++}
+ 
+ /// <summary>
+ /// Totals CPU time, I/O and GPU time per executable from live, uncompacted samples, for the Usage tab.
+@@ -57,7 +63,7 @@ public readonly record struct UsageLifetimeState(int ProcessId, long CreationTic
+ /// A lifetime is identified by (PID, creation time), which is unique for the boot, and is retired only after
+ /// <see cref="RetireAfterAbsences"/> consecutive valid samples without it. Gaps do not advance that count.
+ /// </remarks>
+-public sealed class UsageLedger(DateTimeOffset since)
++public sealed class UsageLedger(DateTimeOffset since, ProcessIdentityPolicy? identityPolicy = null)
+ {
+     /// <summary>Consecutive valid samples a lifetime may be missing from before it is forgotten.</summary>
+     public const int RetireAfterAbsences = 300;
+@@ -68,9 +74,10 @@ public sealed class UsageLedger(DateTimeOffset since)
+     /// <summary>The key of the row holding executables beyond <see cref="MaxApps"/>; never a group key.</summary>
+     public const string OtherAppsKey = "\0other";
+ 
+-    private readonly Dictionary<string, Entry> _apps = new(StringComparer.OrdinalIgnoreCase);
+-    private readonly Dictionary<(int, long), Lifetime> _lifetimes = [];
+-    private readonly List<(int, long)> _retired = [];
++    private readonly ProcessIdentityPolicy _identityPolicy = identityPolicy ?? ProcessIdentityPolicy.Windows;
++    private readonly Dictionary<string, Entry> _apps = new((identityPolicy ?? ProcessIdentityPolicy.Windows).Comparer);
++    private readonly Dictionary<ProcessLifetimeIdentity, Lifetime> _lifetimes = [];
++    private readonly List<ProcessLifetimeIdentity> _retired = [];
+     private long _generation;
+     private double _machineBusyTicks;
+     private double _attributedTicks;
+@@ -106,10 +113,10 @@ public sealed class UsageLedger(DateTimeOffset since)
+         _generation++;
+         _snapshot = null;
+         var key = SampleKey.Of(full);
+-        _machineBusyTicks += full.TotalCpuPercent!.Value / 100 * full.IntervalCpuTicks;
++        _machineBusyTicks += (full.TotalCpuPercent ?? 0) / 100 * full.IntervalCpuTicks;
+         foreach (var process in full.Processes)
+         {
+-            var id = (process.ProcessId, process.CreationTicks);
++            var id = process.Identity;
+             if (!_lifetimes.TryGetValue(id, out var lifetime))
+             {
+                 // Hash the path once per lifetime, not once per second.
+@@ -118,9 +125,19 @@ public sealed class UsageLedger(DateTimeOffset since)
+                 lifetime.Entry.Lifetimes++;
+             }
+ 
++            // exec can replace an executable without changing its PID/start identity. Portable policies must
++            // reassign future usage instead of attributing the replacement to the previous executable.
++            if (!ReferenceEquals(_identityPolicy, ProcessIdentityPolicy.Windows) &&
++                !_identityPolicy.Comparer.Equals(lifetime.Entry.Key, _identityPolicy.ExecutableKey(process)))
++            {
++                lifetime = new Lifetime(EntryFor(process));
++                _lifetimes[id] = lifetime;
++                lifetime.Entry.Lifetimes++;
++            }
++
+             lifetime.Seen = _generation;
+             lifetime.Absences = 0;
+-            var cpu = process.CpuPercent / 100 * full.IntervalCpuTicks;
++            var cpu = process.CpuAvailable ? process.CpuPercent / 100 * full.IntervalCpuTicks : 0;
+             _attributedTicks += cpu;
+             lifetime.Entry.Observe(process, _generation, key, cpu, full.IntervalSeconds);
+         }
+@@ -153,9 +170,9 @@ public sealed class UsageLedger(DateTimeOffset since)
+         return new UsageLedgerState(Since, _machineBusyTicks, _attributedTicks,
+             [.. entries.Select(entry => entry.ToState())],
+             [
+-                .. _lifetimes.Select(pair => new UsageLifetimeState(pair.Key.Item1, pair.Key.Item2,
+-                    index[pair.Value.Entry], pair.Value.Absences))
+-            ]);
++                .. _lifetimes.Select(pair => new UsageLifetimeState(pair.Key.ProcessId, pair.Key.StartToken,
++                    index[pair.Value.Entry], pair.Value.Absences) { LifetimeDomain = pair.Key.Domain })
++            ]) { IdentityPolicyId = _identityPolicy.Id };
+     }
+ 
+     /// <summary>Replace everything with a saved state, so lifetimes still running are not counted again.</summary>
+@@ -164,6 +181,8 @@ public sealed class UsageLedger(DateTimeOffset since)
+     public void Restore(UsageLedgerState state)
+     {
+         ArgumentNullException.ThrowIfNull(state);
++        if (state.IdentityPolicyId != _identityPolicy.Id)
++            throw new ArgumentException("Saved usage uses a different executable identity policy.", nameof(state));
+         var entries = state.Apps.Select(Entry.FromState).ToArray();
+         // Developer-facing argument validation; this message is not displayed in the UI.
+         // ReSharper disable once LocalizableElement
+@@ -172,7 +191,7 @@ public sealed class UsageLedger(DateTimeOffset since)
+         Reset(state.Since);
+         foreach (var entry in entries) _apps[entry.Key] = entry;
+         foreach (var lifetime in state.Lifetimes)
+-            _lifetimes[(lifetime.ProcessId, lifetime.CreationTicks)] =
++            _lifetimes[new ProcessLifetimeIdentity(lifetime.ProcessId, lifetime.CreationTicks, lifetime.LifetimeDomain)] =
+                 new Lifetime(entries[lifetime.App]) { Seen = _generation, Absences = lifetime.Absences };
+         _machineBusyTicks = state.MachineBusyTicks;
+         _attributedTicks = state.AttributedTicks;
+@@ -180,7 +199,7 @@ public sealed class UsageLedger(DateTimeOffset since)
+ 
+     private Entry EntryFor(ProcessUsage process)
+     {
+-        var key = ProcessRanking.GroupKey(process);
++        var key = _identityPolicy.ExecutableKey(process);
+         if (_apps.TryGetValue(key, out var entry)) return entry;
+         if (_apps.Count - (_apps.ContainsKey(OtherAppsKey) ? 1 : 0) >= MaxApps)
+         {
+diff --git a/tests/MonCore.Tests/RestartHistoryTests.cs b/tests/MonCore.Tests/RestartHistoryTests.cs
+index 489c9df..6bf4157 100644
+--- a/tests/MonCore.Tests/RestartHistoryTests.cs
++++ b/tests/MonCore.Tests/RestartHistoryTests.cs
+@@ -463,7 +463,10 @@ public sealed class RestartHistoryTests
+     private static IEnumerable<PropertyInfo> Settable(Type type)
+     {
+         return type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+-            .Where(property => property.SetMethod is not null);
++            // Format-1 fixtures cover Windows fields. Portable metadata is deliberately rejected by Save
++            // and covered by PortableIdentityTests rather than silently added to this binary format.
++            .Where(property => property.SetMethod is not null && property.Name is not
++                (nameof(ProcessUsage.LifetimeDomain) or nameof(ProcessUsage.StartedAtUtc) or nameof(ProcessUsage.CpuAvailable)));
+     }
+ 
+     private static object? Default(Type type)
+diff --git a/src/MonCore/Monitoring/ProcessIdentityPolicy.cs b/src/MonCore/Monitoring/ProcessIdentityPolicy.cs
+new file mode 100644
+index 0000000..b517a4a
+--- /dev/null
++++ b/src/MonCore/Monitoring/ProcessIdentityPolicy.cs
+@@ -0,0 +1,62 @@
++namespace WinMon.Monitoring;
++
++/// <summary>A PID plus an opaque start token in an explicitly named clock domain. Valid only on the originating machine/boot.</summary>
++public readonly record struct ProcessLifetimeIdentity
++{
++    public ProcessLifetimeIdentity(int processId, long startToken, ProcessLifetimeDomain domain)
++    {
++        ProcessId = processId;
++        StartToken = startToken;
++        Domain = domain;
++    }
++
++    // Field order keeps the identity at 16 bytes, matching the old PID/start tuple's size.
++    public long StartToken { get; }
++    public int ProcessId { get; }
++    public ProcessLifetimeDomain Domain { get; }
++    public const ProcessLifetimeDomain WindowsFileTime = ProcessLifetimeDomain.WindowsFileTime;
++    public const ProcessLifetimeDomain UnixMicroseconds = ProcessLifetimeDomain.UnixMicroseconds;
++
++    public bool Equals(ProcessLifetimeIdentity other) => ProcessId == other.ProcessId &&
++        StartToken == other.StartToken && Domain == other.Domain;
++
++    public override int GetHashCode() => Domain == WindowsFileTime
++        ? HashCode.Combine(ProcessId, StartToken) : HashCode.Combine(ProcessId, StartToken, Domain);
++}
++
++/// <summary>Explicit interpretation of an adapter's opaque lifetime token; never compare tokens across domains.</summary>
++public enum ProcessLifetimeDomain
++{
++    WindowsFileTime,
++    UnixMicroseconds
++}
++
++/// <summary>Adapter-selected executable keys and equality, shared by ranking, pins, selection and usage.</summary>
++public sealed class ProcessIdentityPolicy
++{
++    public ProcessIdentityPolicy(string id, StringComparer comparer, Func<ProcessUsage, string> executableKey)
++    {
++        ArgumentException.ThrowIfNullOrWhiteSpace(id);
++        ArgumentNullException.ThrowIfNull(comparer);
++        ArgumentNullException.ThrowIfNull(executableKey);
++        Id = id;
++        Comparer = comparer;
++        ExecutableKey = executableKey;
++    }
++
++    public string Id { get; }
++    public StringComparer Comparer { get; }
++    public Func<ProcessUsage, string> ExecutableKey { get; }
++
++    /// <summary>Preserves the original Windows path/name grouping and comparison behavior.</summary>
++    public static ProcessIdentityPolicy Windows { get; } = new("windows", StringComparer.OrdinalIgnoreCase,
++        process => process.ImagePath.Length > 0 ? process.ImagePath : process.Name);
++
++    /// <summary>
++    /// Conservative exact-path policy: distinct case spellings never merge. Unreadable paths group only by lifetime.
++    /// Adapters may instead supply canonical file identities for volumes where aliases should merge.
++    /// </summary>
++    public static ProcessIdentityPolicy ExactPaths { get; } = new("exact-paths", StringComparer.Ordinal,
++        process => process.ImagePath.Length > 0 ? "path:" + process.ImagePath :
++            $"lifetime:{process.LifetimeDomain}:{process.ProcessId}:{process.CreationTicks}");
++}
+diff --git a/tests/MonCore.Tests/PortableIdentityTests.cs b/tests/MonCore.Tests/PortableIdentityTests.cs
+new file mode 100644
+index 0000000..9492a9d
+--- /dev/null
++++ b/tests/MonCore.Tests/PortableIdentityTests.cs
+@@ -0,0 +1,187 @@
++using NUnit.Framework;
++using WinMon.Monitoring;
++
++namespace WinMon.Tests;
++
++[TestFixture]
++public sealed class PortableIdentityTests
++{
++    private static readonly ProcessIdentityPolicy Exact = ProcessIdentityPolicy.ExactPaths;
++    private static ProcessUsage Mac(int pid, long token, string path, double cpu = 2) =>
++        new(pid, token, "app", cpu, 100) { LifetimeDomain = ProcessLifetimeIdentity.UnixMicroseconds, ImagePath = path };
++    private static MonitorSample Sample(params ProcessUsage[] processes) =>
++        new(DateTimeOffset.UnixEpoch, 50, processes, 0)
++        { IntervalSeconds = 1, IntervalCpuTicks = 80_000_000, IndependentProcessReadings = true };
++
++    [Test]
++    public void WindowsDefaultsStillGroupPathsIgnoringCase()
++    {
++        var a = new ProcessUsage(1, 1, "app", 2) { ImagePath = @"C:\App.exe" };
++        var b = a with { ProcessId = 2, ImagePath = @"c:\app.exe" };
++        Assert.That(ProcessRanking.Rank([Sample(a, b)], grouped: true).Processes, Has.Count.EqualTo(1));
++    }
++
++    [Test]
++    public void ExactPathsKeepCaseDistinctAcrossRankingPinsSelectionAndUsage()
++    {
++        var a = Mac(1, 1, "/Apps/App");
++        var b = Mac(2, 2, "/Apps/app");
++        var sample = Sample(a, b);
++        var rank = ProcessRanking.Rank([sample], grouped: true, identityPolicy: Exact);
++        var pins = new ProcessPins(Exact);
++        pins.Toggle(a, true);
++        var selection = new ProcessSelection(Exact);
++        selection.Select(a, true);
++        var ledger = new UsageLedger(DateTimeOffset.Now, Exact);
++        ledger.Add(sample);
++        Assert.Multiple(() =>
++        {
++            Assert.That(rank.Processes, Has.Count.EqualTo(2));
++            Assert.That(pins.Contains(b, true), Is.False);
++            Assert.That(pins.RetentionSnapshot()!(b), Is.False);
++            Assert.That(selection.Contains(b, true), Is.False);
++            Assert.That(ledger.Apps, Has.Count.EqualTo(2));
++        });
++    }
++
++    [Test]
++    public void SwitchingPoliciesOnSameThreadDoesNotReuseWrongGroupingComparer()
++    {
++        var sample = Sample(Mac(1, 1, "/App"), Mac(2, 2, "/app"));
++        Assert.That(ProcessRanking.Rank([sample], grouped: true).Processes, Has.Count.EqualTo(1));
++        Assert.That(ProcessRanking.Rank([sample], grouped: true, identityPolicy: Exact).Processes, Has.Count.EqualTo(2));
++        Assert.That(ProcessRanking.Rank([sample], grouped: true).Processes, Has.Count.EqualTo(1));
++    }
++
++    [Test]
++    public void UnreadablePathsNeverMergeDifferentLifetimesWithSameName()
++    {
++        Assert.That(ProcessRanking.Rank([Sample(Mac(1, 1, ""), Mac(2, 2, ""))],
++            grouped: true, identityPolicy: Exact).Processes, Has.Count.EqualTo(2));
++    }
++
++    [Test]
++    public void LifetimeDomainAndStartTokenProtectRankingPinsAndSelectionFromPidReuse()
++    {
++        var old = Mac(1, 100, "/app");
++        var reused = old with { CreationTicks = 101 };
++        var windows = old with { LifetimeDomain = ProcessLifetimeIdentity.WindowsFileTime };
++        var pins = new ProcessPins(Exact);
++        pins.Toggle(old, false);
++        var selection = new ProcessSelection(Exact);
++        selection.Select(old, false);
++        var ledger = new UsageLedger(DateTimeOffset.Now, Exact);
++        ledger.Add(Sample(old, reused, windows));
++        Assert.Multiple(() =>
++        {
++            Assert.That(ProcessRanking.Rank([Sample(old, reused, windows)], includeInactive: true).Processes,
++                Has.Count.EqualTo(3));
++            Assert.That(pins.Contains(reused, false), Is.False);
++            Assert.That(pins.Contains(windows, false), Is.False);
++            Assert.That(selection.Contains(reused, false), Is.False);
++            Assert.That(ledger.RememberedLifetimes, Is.EqualTo(3));
++        });
++    }
++
++    [Test]
++    public void ExecReassignsFutureUsageWithoutChangingTheProcessLifetime()
++    {
++        var first = Mac(1, 100, "/first");
++        var ledger = new UsageLedger(DateTimeOffset.Now, Exact);
++        ledger.Add(Sample(first));
++        ledger.Add(Sample(first with { ImagePath = "/second" }));
++        Assert.That(ledger.RememberedLifetimes, Is.EqualTo(1));
++        Assert.That(ledger.Apps, Has.Count.EqualTo(2));
++        Assert.That(ledger.Apps.Single(app => app.ImagePath == "/second").Running, Is.EqualTo(1));
++        Assert.That(ledger.Apps.Single(app => app.ImagePath == "/first").Running, Is.Zero);
++    }
++
++    [Test]
++    public void PinAndUsageSnapshotsKeepPortableDomainsAndRejectDifferentUsagePolicy()
++    {
++        var process = Mac(1, 100, "/app") with { StartedAtUtc = DateTimeOffset.UnixEpoch };
++        var pins = new ProcessPins(Exact);
++        pins.Toggle(process, false);
++        var restored = new ProcessPins(Exact);
++        restored.Restore(pins.Snapshot());
++        Assert.That(restored.Contains(process, false), Is.True);
++        Assert.That(restored.Snapshot()[0].StartedAtUtc, Is.EqualTo(process.StartedAtUtc));
++        var ledger = new UsageLedger(DateTimeOffset.Now, Exact);
++        ledger.Add(Sample(process));
++        var next = new UsageLedger(DateTimeOffset.Now, Exact);
++        next.Restore(ledger.Export());
++        next.Add(Sample(process));
++        Assert.That(next.Apps.Single().Lifetimes, Is.EqualTo(1));
++        Assert.Throws<ArgumentException>(() => new UsageLedger(DateTimeOffset.Now).Restore(ledger.Export()));
++    }
++
++    [Test]
++    public void MissingProcessCpuDoesNotBecomeZeroOrDisappearDuringCompaction()
++    {
++        var missing = Mac(1, 1, "/app") with { CpuAvailable = false, WorkingSetBytes = null };
++        var sample = Sample(missing);
++        var rank = ProcessRanking.Rank([sample], sort: ProcessSort.Memory, includeInactive: true);
++        Assert.That(rank.Processes[0].ObservedCpuPercent, Is.Null);
++        var valid = Sample(missing with { CpuAvailable = true, CpuPercent = 10 }) with
++        { Timestamp = sample.Timestamp.AddSeconds(1) };
++        Assert.That(ProcessRanking.Rank([sample, valid], includeInactive: true).Processes[0].ObservedCpuPercent,
++            Is.EqualTo(10));
++        var compact = ProcessRetention.Compact(Sample(Enumerable.Range(1, 60)
++            .Select(i => missing with { ProcessId = i }).ToArray()));
++        Assert.That(compact.Processes, Has.Count.EqualTo(60));
++    }
++
++    [Test]
++    public void MissingSystemCpuDoesNotInvalidateIndependentProcessReadings()
++    {
++        var sample = Sample(Mac(1, 1, "/app")) with { TotalCpuPercent = null };
++        var ranking = ProcessRanking.Rank([sample], includeInactive: true);
++        Assert.That(ranking.Processes, Has.Count.EqualTo(1));
++        Assert.That(ranking.TotalCpuPercent, Is.Null);
++        Assert.That(ProcessRanking.Rank([sample with { IndependentProcessReadings = false }]).Processes, Is.Empty);
++    }
++
++    [Test]
++    public void CaptureRulesBreakOnUnknownCpuAndNeverCarryRunsAcrossDomains()
++    {
++        var rules = new CaptureRules([new(CaptureMetric.Process, true, 1, 2)], TimeSpan.Zero, 8);
++        var process = Mac(1, 100, "/app");
++        Assert.That(rules.Observe(Sample(process)), Is.Empty);
++        Assert.That(rules.Observe(Sample(process with { CpuAvailable = false }) with
++            { Timestamp = DateTimeOffset.UnixEpoch.AddSeconds(1) }), Is.Empty);
++        Assert.That(rules.Observe(Sample(process) with
++            { Timestamp = DateTimeOffset.UnixEpoch.AddSeconds(2) }), Is.Empty);
++        Assert.That(rules.Observe(Sample(process with { LifetimeDomain = ProcessLifetimeIdentity.WindowsFileTime }) with
++            { Timestamp = DateTimeOffset.UnixEpoch.AddSeconds(3) }), Is.Empty);
++    }
++
++    [Test]
++    public void PortableCsvCarriesIdentityDomainAndLeavesUnknownCpuEmpty()
++    {
++        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".csv");
++        try
++        {
++            CsvExport.Write(path, CsvExportKind.ProcessSamples,
++                [Sample(Mac(1, 100, "/app") with { CpuAvailable = false })], [], DateTimeOffset.Now, 0, 0);
++            var lines = File.ReadAllLines(path);
++            Assert.That(lines[0], Does.EndWith("lifetime_domain,started_at_utc"));
++            Assert.That(lines[1].Split(',')[8], Is.Empty);
++            Assert.That(lines[1], Does.Contain(ProcessLifetimeIdentity.UnixMicroseconds.ToString()));
++        }
++        finally { File.Delete(path); }
++    }
++
++    [Test]
++    public void LegacyHistoryRefusesPortableSamplesWithoutOverwritingExistingFile()
++    {
++        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".bin");
++        File.WriteAllText(path, "existing");
++        try
++        {
++            Assert.That(RestartHistory.Save(path, "test", "test", [Sample(Mac(1, 1, "/app"))],
++                null, RestartClock.System), Is.False);
++            Assert.That(File.ReadAllText(path), Is.EqualTo("existing"));
++        }
++        finally { File.Delete(path); }
++    }
++}

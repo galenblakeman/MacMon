@@ -1,0 +1,13 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="MacMon.App" Name="MacMon" RequestedThemeVariant="Dark">
+  <Application.Styles>
+    <FluentTheme />
+    <Style Selector="TextBlock.label"><Setter Property="Foreground" Value="#9BAAB9" /></Style>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="#17222E" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="20" />
+    </Style>
+  </Application.Styles>
+</Application>

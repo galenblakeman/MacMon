@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+    <PackageReference Include="MonCore" Version="[3.4.1-macos.1]" />
+    <ProjectReference Include="../MonCore.MacOS/MonCore.MacOS.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+    <MonCoreBenchmarkVersion Condition="'$(MonCoreBenchmarkVersion)' == ''">3.4.1-macos.1</MonCoreBenchmarkVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MonCore" Version="$(MonCoreBenchmarkVersion)" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MacMon/MacMon.csproj" />
+    <Project Path="src/MonCore.MacOS/MonCore.MacOS.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MonCore.MacOS.Tests/MonCore.MacOS.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "MonCore": {
+        "type": "Direct",
+        "requested": "[3.4.1-macos.1, 3.4.1-macos.1]",
+        "resolved": "3.4.1-macos.1",
+        "contentHash": "jJir0NZ0jGCgqVkT2y/bZiNBN7rySew6IHtWXysYnsptPTxZdfhRpf3QHfEEQmXAJV4iV07bqKpOo2a3VNsIQw=="
+      }
+    },
+    "net10.0/osx-arm64": {},
+    "net10.0/osx-x64": {}
+  }
+}
