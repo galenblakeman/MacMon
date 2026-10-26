@@ -15,6 +15,10 @@ public sealed partial class MainWindow : Window
     private readonly MonitorSession _session;
     private readonly MacFrameSource _source = new();
     private Task? _sampling;
+    private Task? _startup;
+    private readonly string _historyPath = Path.Combine(MacPaths.AppSupport, "history.mmh.gz");
+    private readonly HistoryProvenance _historyOrigins;
+    private bool _historyWritable = true;
     private readonly CaptureReportWriter _reportWriter;
     private readonly List<MacCaptureRecord> _captures = [];
     private MacCaptureOptions _captureOptions = MacCaptureOptions.Default;
@@ -42,11 +46,17 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        _historyOrigins = new HistoryProvenance(_bootId);
         MachineLabel.Text = $"{Environment.MachineName} · {Environment.ProcessorCount} logical cores";
         _session = new MonitorSession(() => _source,
             () => new SamplingOptions(Retain: _retain),
             action => Dispatcher.UIThread.Post(action), identityPolicy: MacFrameSource.IdentityPolicy);
         _session.Recorded += Update;
+        PropertyChanged += (_, change) =>
+        {
+            if ((change.Property == WindowStateProperty || change.Property == IsVisibleProperty) &&
+                IsVisible && WindowState != WindowState.Minimized) Update();
+        };
         _reportWriter = new CaptureReportWriter((record, error) => Dispatcher.UIThread.Post(() =>
         {
             if (_closing) return;
@@ -103,17 +113,21 @@ public sealed partial class MainWindow : Window
         PinSelection.Click += (_, _) =>
         {
             var selected = _selection.Resolve(LiveHistory(), Grouped, _inspection.IsHistorical, Sort);
-            if (selected is null) return;
+            if (selected is null || !_historyOrigins.CanPin(TrailHistory().LastOrDefault(), Grouped, _inspection.IsHistorical)) return;
             _pins.Toggle(selected.Usage, Grouped);
             UpdateRetention();
             UpdateProcesses();
         };
         ActivityChart.CaptureSelected += SelectCapture;
         Chart.CaptureSelected += SelectCapture;
-        ActivityChart.SampleSelected += sample => { _inspection.Select(sample); Update(); };
-        Chart.SampleSelected += sample => { _inspection.Select(sample); Update(); };
-        CaptureMode.Click += (_, _) => { if (_session.Latest is { } sample) _inspection.Select(sample); Update(); };
-        LiveMode.Click += (_, _) => { _inspection.Live(); Update(); };
+        ActivityChart.SampleSelected += InspectSample;
+        Chart.SampleSelected += InspectSample;
+        CaptureMode.Click += (_, _) => { if (_session.Latest is { } sample) InspectSample(sample); };
+        LiveMode.Click += (_, _) =>
+        {
+            if (!_historyOrigins.SameBoot(TrailHistory().LastOrDefault(), _session.LatestFull)) ClearSelection();
+            _inspection.Live(); Update();
+        };
         HistoryRange.SelectionChanged += (_, _) =>
         {
             _session.History.Resize(RangeSeconds);
@@ -128,12 +142,13 @@ public sealed partial class MainWindow : Window
         RevealExecutable.Click += (_, _) => RevealSelectedExecutable();
         EndProcess.Click += async (_, _) => await EndSelectedProcesses();
         ApplyPreferences();
-        Opened += (_, _) => _sampling = _session.Run(_shutdown.Token);
+        Opened += (_, _) => _startup = StartAsync();
         Closing += OnClosing;
     }
 
     private void Update()
     {
+        if (_session is null || !IsVisible || WindowState == WindowState.Minimized) return;
         var sample = _session.Latest;
         if (sample is null)
         {
@@ -175,6 +190,14 @@ public sealed partial class MainWindow : Window
         StatusLabel.Text = _session.Error is null
             ? $"Updated {sample.Timestamp:HH:mm:ss} · macOS {Environment.OSVersion.Version}"
             : "Some readings are unavailable · retrying…";
+        if (!_session.HasLiveSample)
+        {
+            CpuValue.Text = MemoryValue.Text = DiskValue.Text = "—";
+            KernelValue.Text = "Waiting for a live CPU interval…";
+            MemoryDetails.Text = "Waiting for live memory readings…";
+            NetworkValue.Text = StorageValue.Text = "Waiting for live activity readings…";
+            StatusLabel.Text = "Restored history · waiting for live readings…";
+        }
         if (_operationStatus.Length > 0) StatusLabel.Text += $" · {_operationStatus}";
     }
 
@@ -250,7 +273,7 @@ public sealed partial class MainWindow : Window
             selected.Usage.ProcessId > 1 && (Grouped
                 ? selected.Usage.MemberIds.Count > 0 && selected.Usage.MemberIds.All(pid => pid > 1 && pid != Environment.ProcessId)
                 : selected.Usage.ProcessId != Environment.ProcessId);
-        PinSelection.IsEnabled = selected is not null;
+        PinSelection.IsEnabled = selected is not null && _historyOrigins.CanPin(TrailHistory().LastOrDefault(), Grouped, _inspection.IsHistorical);
         PinSelection.Content = selected is not null && _pins.Contains(selected.Usage, Grouped) ? "Unpin selected" : "Pin selected";
         SelectionLabel.Text = selected is null ? "Select a process to inspect its lifetime and path."
             : selected.State != PinnedProcessState.Present
@@ -269,7 +292,8 @@ public sealed partial class MainWindow : Window
 
     private IReadOnlyList<MonitorSample> TrailHistory()
     {
-        return _inspection.DisplayHistory(_session.History.Samples, _session.LatestFull);
+        return !_inspection.IsHistorical && !_session.HasLiveSample ? [] :
+            _inspection.DisplayHistory(_session.History.Samples, _session.LatestFull);
     }
 
     private IReadOnlyList<MonitorSample> LiveHistory()
@@ -279,7 +303,7 @@ public sealed partial class MainWindow : Window
 
     private async Task Export(CsvExportKind kind)
     {
-        var samples = CsvExport.SelectSamples(_session.History.Samples, RangeSeconds).ToArray();
+        var samples = HistoryInspection.VisibleSamples(_session.History.Samples, RangeSeconds).ToArray();
         var apps = _session.Usage.Apps.ToArray();
         var since = _session.Usage.Since;
         var machine = _session.Usage.MachineBusyTicks;
@@ -346,7 +370,7 @@ public sealed partial class MainWindow : Window
     private void SelectCapture(MacCaptureRecord record)
     {
         var sample = _session.History.Samples.FirstOrDefault(record.Peak.Matches);
-        if (sample is not null) { _inspection.Select(sample); DataTabs.SelectedIndex = 0; Update(); }
+        if (sample is not null) { DataTabs.SelectedIndex = 0; InspectSample(sample); }
         else OpenReport(record);
         OpenCaptureReport.IsEnabled = record.State == "Saved";
     }
@@ -446,6 +470,9 @@ public sealed partial class MainWindow : Window
         ProcessSortBox.SelectedIndex = _preferences.ProcessSort; UsageSortBox.SelectedIndex = _preferences.UsageSort;
         DataTabs.SelectedIndex = _preferences.DataTab; HistoryRange.SelectedIndex = _preferences.HistoryRange;
         AlwaysOnTop.IsChecked = _preferences.AlwaysOnTop;
+        KeepHistoryAcrossRestarts.IsChecked = _preferences.KeepHistory;
+        KeepHistoryAcrossRestarts.IsEnabled = loaded.CanSave;
+        _session.History.Resize(RangeSeconds);
         _source.NetworkInterfaceId = _preferences.NetworkId;
         _captureOptions = _preferences.Captures;
         _captureRules = new(_captureOptions.Rules, TimeSpan.FromSeconds(_captureOptions.CooldownSeconds), Environment.ProcessorCount);
@@ -457,11 +484,50 @@ public sealed partial class MainWindow : Window
         BootId = _bootId, Grouped = Grouped, PinnedOnly = PinnedOnly.IsChecked == true,
         Pins = _pins.Snapshot(), ProcessSort = ProcessSortBox.SelectedIndex, UsageSort = UsageSortBox.SelectedIndex,
         DataTab = DataTabs.SelectedIndex, HistoryRange = HistoryRange.SelectedIndex, NetworkId = _source.NetworkInterfaceId,
-        AlwaysOnTop = Topmost, Captures = _captureOptions,
+        AlwaysOnTop = Topmost, Captures = _captureOptions, KeepHistory = KeepHistoryAcrossRestarts.IsChecked == true,
         Width = WindowState == WindowState.Normal ? Width : _preferences.Width,
         Height = WindowState == WindowState.Normal ? Height : _preferences.Height,
         DashboardRatio = MainLayout.RowDefinitions[1].Height.Value / Math.Max(0.01, MainLayout.RowDefinitions[3].Height.Value)
     };
+
+    private async Task StartAsync()
+    {
+        var keep = KeepHistoryAcrossRestarts.IsChecked == true;
+        var range = RangeSeconds;
+        var restored = await Task.Run(() => keep
+            ? MacHistoryStore.Load(_historyPath, range, DateTimeOffset.UtcNow, Stopwatch.GetTimestamp()) : new HistoryLoadResult([]));
+        var reports = await Task.Run(() => MacCaptureReports.LoadRecords(Path.Combine(MacPaths.AppSupport, "Captures")));
+        if (_closing) return;
+        _historyWritable = restored.CanSave;
+        _historyOrigins.Restore(restored.Entries);
+        _session.SetHistoryClockOffset(restored.ClockOffset);
+        // Restore the bounded history as a batch; redraw once instead of rebuilding every intermediate view.
+        _session.Recorded -= Update;
+        try { foreach (var entry in restored.Entries) _session.Record(entry.Sample); }
+        finally { _session.Recorded += Update; }
+        if (restored.Entries.LastOrDefault() is { } latest)
+        {
+            _inspection.Select(latest.Sample);
+            _operationStatus = $"Restored {restored.Entries.Count} history samples; Usage starts fresh.";
+        }
+        if (restored.Error is not null) _operationStatus = restored.Error;
+        _captures.AddRange(reports.Select(record => record with { Peak = restored.ResolvePeak(record.Peak) }));
+        RefreshCaptures();
+        Update();
+        _sampling = _session.Run(_shutdown.Token);
+    }
+
+    private void ClearSelection()
+    {
+        _selection = new ProcessSelection(MacFrameSource.IdentityPolicy);
+        UpdateRetention();
+    }
+
+    private void InspectSample(MonitorSample sample)
+    {
+        if (!_historyOrigins.SameBoot(TrailHistory().LastOrDefault(), sample)) ClearSelection();
+        _inspection.Select(sample); Update();
+    }
 
     private async void OnClosing(object? sender, WindowClosingEventArgs args)
     {
@@ -474,15 +540,28 @@ public sealed partial class MainWindow : Window
         _session.Recorded -= Update;
         _session.LiveSampleRecorded -= ObserveCaptures;
         await _shutdown.CancelAsync();
+        if (_startup is not null) await _startup;
         if (_sampling is not null) await _sampling;
         await _reportWriter.Complete();
         if (_termination is not null) await _termination;
         if (_preferencesWritable)
         {
             var snapshot = PreferencesSnapshot().Normalized(_bootId);
-            try { await Task.Run(() => MacPreferenceStore.Save(_preferencesPath, snapshot)); }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-            { await new ProcessDialog("Settings could not be saved", $"{ex.Message}\nThe app will close without saving these settings.").ShowDialog<bool>(this); }
+            var history = _historyOrigins.Snapshot(_session.History.Samples);
+            try
+            {
+                await Task.Run(() =>
+                {
+                    if (_historyWritable)
+                    {
+                        if (snapshot.KeepHistory) MacHistoryStore.Save(_historyPath, history);
+                        else if (File.Exists(_historyPath)) File.Delete(_historyPath);
+                    }
+                    MacPreferenceStore.Save(_preferencesPath, snapshot);
+                });
+            }
+            catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
+            { await new ProcessDialog("Settings or history could not be saved", $"{ex.Message}\nThe app will close without saving these settings.").ShowDialog<bool>(this); }
         }
         _shutdown.Dispose();
         _shutdownComplete = true;

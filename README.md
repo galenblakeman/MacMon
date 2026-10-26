@@ -6,7 +6,7 @@ MacMon provides live system CPU usage, a two-minute CPU/memory chart, estimated 
 
 Network throughput follows the chosen interface (Automatic prefers an active Ethernet/Wi-Fi interface). Storage read/write rates aggregate all readable block-storage drivers, separately from the data volume’s free space. A second history plot shows network and storage total throughput on an automatic bytes-per-second scale. Process Disk I/O measures disk reads/writes only.
 
-Click the chart or choose Capture to inspect retained process observations while recording and top readouts stay live. Choose 2, 10, 30 or 60 minutes to adjust the chart and retention limit; memory bounds can shorten retained history. Export resources or retained process samples as local CSV for the selected chart range. Historical samples can omit idle processes; pressure/compressed details stay live.
+Click the chart or choose Capture to inspect retained process observations while recording and top readouts stay live. Choose 2, 10, 30 or 60 minutes to adjust the chart and retention limit; memory bounds can shorten retained history. Export resources or retained process samples as local CSV for the selected chart range. Historical samples can omit idle processes; pressure/compressed details stay live. Enable **Keep history across restarts** to save bounded history on clean exit and reopen it in Capture mode; Usage totals begin fresh. Saved reports remain available across restarts.
 
 The Usage tab totals observed CPU time and disk I/O by executable for this session, including exited apps. Search, sort, reset or export those totals independently of the chart range. Missing intervals are excluded.
 
@@ -31,8 +31,10 @@ bash tools/package-app.sh
 open artifacts/osx-arm64/MacMon.app
 ```
 
-The bundle is ad-hoc signed for development. Developer ID signing, notarization and distribution are future work. Intel packaging accepts `osx-x64`; it has not been validated on Intel hardware.
+The bundle and versioned ZIP/checksum are ad-hoc signed for development. Close the running packaged app before rebuilding its bundle. Intel packaging accepts `osx-x64`; execution still requires validation on Intel hardware.
+
+For distribution, `bash tools/package-release.sh RUNTIME 'Developer ID Application: …' KEYCHAIN_PROFILE` verifies a clean committed checkout, signs with hardened runtime, submits for notarization, staples and assesses the app, then creates a ZIP/checksum and release manifest. This command uploads the app to Apple. A Developer ID Application certificate/private key and a configured `notarytool` keychain profile are required. Actual Developer ID notarization remains unverified on this machine; see the development notes.
 
 Select a process for Properties, Copy details, Reveal in Finder and a confirmed termination request. Termination uses a captured process generation, protects system/other-user/MacMon targets, and excludes processes started after confirmation opens. Historical views disable termination. Always on top, ranking/grouping, pins, history range, network selection, capture rules, pane ratio and window size restore on restart. Preferences live at `~/Library/Application Support/MacMon/settings.json`; invalid files are preserved and defaults are used.
 
-GPU, launchd and saved history are not implemented yet. See [development notes](docs/DEVELOPMENT.md) for contracts, verification and remaining work.
+GPU and launchd remain separate research work; unavailable metrics are not synthesized. See [development notes](docs/DEVELOPMENT.md) for contracts, verification and remaining work.

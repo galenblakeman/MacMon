@@ -2,6 +2,13 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 runtime="${1:-osx-arm64}"
+if [[ $# -gt 0 ]]; then shift; fi
+identity="-"
+if [[ $# -gt 0 ]]; then
+    if [[ $# -ne 2 || "$1" != "--identity" ]]; then echo "Expected optional --identity CERTIFICATE." >&2; exit 1; fi
+    identity="$2"
+fi
+python3 tools/sign-app.py --check-identity "$identity"
 case "$runtime" in
     osx-arm64|osx-x64) ;;
     *) echo "Expected osx-arm64 or osx-x64." >&2; exit 1 ;;
@@ -14,23 +21,18 @@ trap 'rm -rf "$stage_root"' EXIT
 bundle="$stage_root/MacMon.app"
 mkdir -p "$bundle/Contents/MacOS"
 dotnet publish src/MacMon/MacMon.csproj -c Release -r "$runtime" --self-contained true \
-    -m:1 -p:UseSharedCompilation=false -o "$bundle/Contents/MacOS"
-cat > "$bundle/Contents/Info.plist" <<'PLIST'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-  <key>CFBundleName</key><string>MacMon</string>
-  <key>CFBundleDisplayName</key><string>MacMon</string>
-  <key>CFBundleIdentifier</key><string>com.galenblakeman.macmon</string>
-  <key>CFBundleExecutable</key><string>MacMon</string>
-  <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>0.1.0</string>
-  <key>CFBundleVersion</key><string>1</string>
-  <key>NSHighResolutionCapable</key><true/>
-  <key>LSMinimumSystemVersion</key><string>13.0</string>
-</dict></plist>
-PLIST
-codesign --force --deep --sign - "$bundle"
+    -m:1 -p:UseSharedCompilation=false -p:DebugType=None -p:DebugSymbols=false -o "$bundle/Contents/MacOS"
+app_version="$(dotnet msbuild src/MacMon/MacMon.csproj -getProperty:Version -nologo)"
+bundle_build="$(dotnet msbuild src/MacMon/MacMon.csproj -getProperty:MacMonBundleBuild -nologo)"
+python3 - "$bundle/Contents/Info.plist" "$app_version" "$bundle_build" <<'PY'
+import plistlib, sys
+with open(sys.argv[1], "wb") as stream:
+    plistlib.dump(dict(CFBundleName="MacMon", CFBundleDisplayName="MacMon",
+        CFBundleIdentifier="com.galenblakeman.macmon", CFBundleExecutable="MacMon",
+        CFBundlePackageType="APPL", CFBundleShortVersionString=sys.argv[2],
+        CFBundleVersion=sys.argv[3], NSHighResolutionCapable=True, LSMinimumSystemVersion="13.0"), stream)
+PY
+python3 tools/sign-app.py "$bundle" "$identity" packaging/MacMon.entitlements
 host_arch="$(uname -m)"
 if [[ "$runtime" == "osx-arm64" && "$host_arch" == "arm64" ]] || \
    [[ "$runtime" == "osx-x64" && "$host_arch" == "x86_64" ]]; then
@@ -38,6 +40,14 @@ if [[ "$runtime" == "osx-arm64" && "$host_arch" == "arm64" ]] || \
 else
     echo "Native bundle smoke skipped: $runtime differs from host $host_arch."
 fi
+archive_kind="dev"
+if [[ "$identity" != "-" ]]; then archive_kind="signed"; fi
+archive="MacMon-$app_version-$runtime-$archive_kind.zip"
+ditto -c -k --sequesterRsrc --keepParent "$bundle" "$stage_root/$archive"
+(cd "$stage_root" && shasum -a 256 "$archive" > "$archive.sha256")
 rm -rf "$destination_bundle"
 mv "$bundle" "$destination_bundle"
-echo "Local development app: $PWD/$destination_bundle"
+mv "$stage_root/$archive" "artifacts/$runtime/$archive"
+mv "$stage_root/$archive.sha256" "artifacts/$runtime/$archive.sha256"
+echo "Packaged app: $PWD/$destination_bundle (identity: $identity)"
+echo "Archive: $PWD/artifacts/$runtime/$archive"

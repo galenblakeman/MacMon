@@ -85,7 +85,7 @@ public sealed class CpuChart : Control
 
     private bool MarkerVisible(MacCaptureRecord capture)
     {
-        if (_samples.Count == 0 || ShowActivity != (capture.Metric == CaptureMetric.Network)) return false;
+        if (_samples.Count == 0 || capture.Peak.MonotonicTimestamp <= 0 || ShowActivity != (capture.Metric == CaptureMetric.Network)) return false;
         var age = (_samples[^1].MonotonicTimestamp - capture.Peak.MonotonicTimestamp) / (double)Stopwatch.Frequency;
         return age >= 0 && age <= RangeSeconds;
     }

@@ -9,6 +9,10 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.Contains("--history-benchmark")) return HistoryBenchmark.Run();
+        if (args.Length == 3 && args[0] == "--measure-process" && int.TryParse(args[1], out var pid) &&
+            int.TryParse(args[2], out var seconds) && pid > 1 && seconds is >= 1 and <= 300)
+            return HistoryBenchmark.MeasureProcess(pid, seconds);
         if (args.Contains("--collector-benchmark")) return CollectorBenchmark.Run();
         if (args.Contains("--presentation-benchmark")) return PresentationBenchmark.Run();
         if (args.Contains("--smoke")) return Smoke();

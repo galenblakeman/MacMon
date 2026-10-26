@@ -96,6 +96,8 @@ public sealed class UsageCaptureTests
                 Assert.That(File.Exists(second.ReportPath), Is.True);
                 Assert.That(File.Exists(foreign), Is.True);
                 Assert.That(File.Exists(winmon), Is.True);
+                Assert.That(MacCaptureReports.LoadRecords(directory).Single().Id, Is.EqualTo(second.Id));
+                Assert.That(MacCaptureReports.LoadRecords(directory).Single().ReportPath, Is.EqualTo(second.ReportPath));
             });
         }
         finally { Directory.Delete(directory, true); }

@@ -20,6 +20,13 @@ public sealed class HistoryInspection
         return index < 0 ? [] : retained.Take(index + 1).ToArray();
     }
 
+    public static IReadOnlyList<MonitorSample> VisibleSamples(IReadOnlyList<MonitorSample> samples, int rangeSeconds)
+    {
+        if (samples.Count == 0) return [];
+        var end = samples[^1].MonotonicTimestamp;
+        return samples.Where(sample => (end - sample.MonotonicTimestamp) / (double)Stopwatch.Frequency <= rangeSeconds).ToArray();
+    }
+
     public static MonitorSample? Nearest(IReadOnlyList<MonitorSample> samples, int rangeSeconds, double fraction)
     {
         if (samples.Count == 0 || !double.IsFinite(fraction)) return null;

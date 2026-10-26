@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Channels;
 using WinMon.Monitoring;
 
@@ -68,6 +69,9 @@ public static class MacCaptureReports
         var temporary = record.ReportPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
         {
+            if (text.StartsWith(OwnershipMarker + "\n", StringComparison.Ordinal))
+                text = OwnershipMarker + "\nMacMon metadata: " + JsonSerializer.Serialize(record with { ReportPath = "", State = "Saved" }) +
+                    "\n" + text[(OwnershipMarker.Length + 1)..];
             using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
             using (var writer = new StreamWriter(stream, new UTF8Encoding(false)))
             { writer.Write(text); writer.Flush(); stream.Flush(true); }
@@ -77,6 +81,35 @@ public static class MacCaptureReports
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 
+    public static IReadOnlyList<MacCaptureRecord> LoadRecords(string directory)
+    {
+        var records = new List<MacCaptureRecord>();
+        if (!Directory.Exists(directory)) return records;
+        try
+        {
+            foreach (var path in Directory.EnumerateFiles(directory, "MacMon-capture-*.txt").OrderDescending(StringComparer.Ordinal).Take(500))
+            {
+                try
+                {
+                    if (new FileInfo(path).Length > 1_048_576 || (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) continue;
+                    using var reader = File.OpenText(path);
+                    if (reader.ReadLine() != OwnershipMarker || reader.ReadLine() is not { } metadata ||
+                        !metadata.StartsWith("MacMon metadata: ", StringComparison.Ordinal)) continue;
+                    var record = JsonSerializer.Deserialize<MacCaptureRecord>(metadata[17..]);
+                    if (record is null || record.Id == Guid.Empty || record.Label is null || record.Label.Length > 256 ||
+                        !MacCaptureOptions.SupportedMetrics.Contains(record.Metric)) continue;
+                    var expected = $"MacMon-capture-{record.Peak.Timestamp.UtcDateTime:yyyyMMddTHHmmssfffZ}-{record.Id:N}.txt";
+                    if (Path.GetFileName(path) != expected) continue;
+                    records.Add(record with { ReportPath = path, State = "Saved" });
+                    if (records.Count == 200) break;
+                }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or ArgumentException) { }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        return records;
+    }
+
     private static void Prune(string directory, int retain)
     {
         var owned = new List<string>();
@@ -84,7 +117,7 @@ public static class MacCaptureReports
         {
             var name = Path.GetFileNameWithoutExtension(path);
             var suffix = name[(name.LastIndexOf('-') + 1)..];
-            if (!Guid.TryParseExact(suffix, "N", out _) || (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) continue;
+            if (new FileInfo(path).Length > 1_048_576 || !Guid.TryParseExact(suffix, "N", out _) || (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) continue;
             using var reader = File.OpenText(path);
             if (reader.ReadLine() == OwnershipMarker) owned.Add(path);
         }
