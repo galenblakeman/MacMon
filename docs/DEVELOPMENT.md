@@ -351,3 +351,25 @@ small heights and when secondary tools are expanded.
 Verification: 119 Mac tests, three release-workflow tests, zero build warnings,
 and native resource/launchd smoke passed. Headless shell renders cover minimum
 and default sizes, both themes, card placement, chart sizing and data-pane space.
+
+### UI parity slice 6 — chart presentation
+
+One resource-history surface now supports Overlay, Small Multiples, Heatmap and
+Focus. Four color-matched checkboxes control visible series; Focus selects a
+visible metric and hiding it selects the next available metric. All-hidden is an
+explicit empty state. Layout, metric mask and focus persist in version-1 settings
+and survive Settings edits and compact-mode transitions. Old settings default
+to Overlay/all metrics.
+
+CPU/memory retain 0–100% scales. Network receive+send and aggregate storage
+read+write have independent binary throughput scales, labeled in bytes/s; overlay
+height is relative to each labeled scale. Null, non-finite and interval-gap values
+are missing, rather than zero. Lines break across collector gaps and network
+source changes. Heatmap cells cover at most one observed second. Capture markers
+follow the visible metric. Settings appearance previews use the same renderer.
+
+Verification: 123 Mac tests, three release-workflow tests and native resource/
+launchd smoke passed with zero warnings. Rendered all four modes in both themes
+with all/single/no metrics, missing observations and selected timestamps; inspected
+Small Multiples and Heatmap output. Scale/persistence tests include expired peaks,
+unknown settings, hidden focus and preservation through Settings edits.

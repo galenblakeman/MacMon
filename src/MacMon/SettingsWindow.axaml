@@ -38,8 +38,8 @@
                       <local:ResourceGauge Grid.Column="3" x:Name="PreviewStorage" Title="Storage" ReadoutSize="16" Fill="{DynamicResource StorageText}" />
                     </Grid>
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
-                      <local:CpuChart x:Name="PreviewChart" Height="60" />
-                      <local:CpuChart Grid.Column="1" x:Name="PreviewActivity" Height="60" ShowActivity="True" />
+                      <local:CpuChart x:Name="PreviewChart" Height="60" VisibleMetrics="3" />
+                      <local:CpuChart Grid.Column="1" x:Name="PreviewActivity" Height="60" VisibleMetrics="12" />
                     </Grid>
                     <TextBlock Text="CPU / memory · network / storage" Foreground="{DynamicResource MacMutedBrush}" FontSize="12" />
                   </StackPanel>

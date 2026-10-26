@@ -15,6 +15,9 @@ public sealed record MacPreferences
     public int DataTab { get; init; }
     public int JobSort { get; init; }
     public int JobFilter { get; init; }
+    public ResourceChartMode ChartMode { get; init; }
+    public int VisibleMetrics { get; init; } = 15;
+    public int FocusMetric { get; init; }
     public int HistoryRange { get; init; }
     public string? NetworkId { get; init; }
     public bool CompactMode { get; init; }
@@ -34,6 +37,8 @@ public sealed record MacPreferences
     {
         BootId = bootId, Theme = Appearance.NormalizeTheme(Theme), Palette = Appearance.NormalizePalette(Palette),
         GaugeStyle = ResourceGauge.NormalizeStyle(GaugeStyle),
+        ChartMode = Enum.IsDefined(ChartMode) ? ChartMode : ResourceChartMode.Overlay,
+        VisibleMetrics = VisibleMetrics & 15, FocusMetric = ResourceCharts.Focus(VisibleMetrics & 15, FocusMetric),
         ProcessSort = Math.Clamp(ProcessSort, 0, 3), UsageSort = Math.Clamp(UsageSort, 0, 2),
         DataTab = Math.Clamp(DataTab, 0, 2), JobSort = Math.Clamp(JobSort, 0, 2), JobFilter = Math.Clamp(JobFilter, 0, 2), HistoryRange = Math.Clamp(HistoryRange, 0, 3),
         CompactWidth = double.IsFinite(CompactWidth) ? Math.Clamp(CompactWidth, WindowViewState.CompactMinimumWidth, 2400) : 1000,

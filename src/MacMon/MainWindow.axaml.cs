@@ -144,9 +144,9 @@ public sealed partial class MainWindow : Window
             UpdateRetention();
             UpdateProcesses();
         };
-        ActivityChart.CaptureSelected += SelectCapture;
+        InitializeCharts();
         Chart.CaptureSelected += SelectCapture;
-        ActivityChart.SampleSelected += InspectSample;
+
         Chart.SampleSelected += InspectSample;
         CaptureMode.Click += (_, _) => { if (_session.Latest is { } sample) InspectSample(sample); };
         LiveMode.Click += (_, _) =>
@@ -157,7 +157,7 @@ public sealed partial class MainWindow : Window
         HistoryRange.SelectionChanged += (_, _) =>
         {
             _session.History.Resize(RangeSeconds);
-            Chart.RangeSeconds = ActivityChart.RangeSeconds = RangeSeconds;
+            Chart.RangeSeconds = RangeSeconds;
             Update();
         };
         ExportResources.Click += async (_, _) => await Export(CsvExportKind.ResourceHistory);
@@ -209,10 +209,10 @@ public sealed partial class MainWindow : Window
         var display = TrailHistory();
         var captured = display.LastOrDefault();
         Chart.SelectedTimestamp = _inspection.IsHistorical ? captured?.MonotonicTimestamp : null;
-        ActivityChart.SelectedTimestamp = Chart.SelectedTimestamp;
+
         Chart.Update(_session.History.Samples);
-        ActivityChart.Update(_session.History.Samples);
-        ActivityScale.Text = $"Network · storage · max {Rate(ActivityChart.ActivityMaximum)}";
+        UpdateChartLabels();
+
         CaptureStatus.Text = !_inspection.IsHistorical ? $"Live · recording · {_session.History.Samples.Count} retained samples" : captured is null
             ? "Capture expired from retained history · return to Live or select another moment"
             : $"Captured {captured.Timestamp:yyyy-MM-dd HH:mm:ss zzz} · CPU {captured.TotalCpuPercent?.ToString("F1") ?? "—"}% · memory {GiB(captured.Resources.UsedMemoryBytes)} · network ↓ {Rate(captured.Resources.ReceiveBytesPerSecond)} ↑ {Rate(captured.Resources.SendBytesPerSecond)} · retained process observations";
@@ -409,7 +409,7 @@ public sealed partial class MainWindow : Window
         CapturesList.SelectedItem = _captures.FirstOrDefault(record => record.Id == selected);
         _refreshingCaptures = false;
         OpenCaptureReport.IsEnabled = CapturesList.SelectedItem is MacCaptureRecord { State: "Saved" };
-        Chart.Captures = ActivityChart.Captures = _captures.ToArray();
+        Chart.Captures = _captures.ToArray();
     }
 
     private void SelectCapture(MacCaptureRecord record)
@@ -559,6 +559,7 @@ public sealed partial class MainWindow : Window
         GroupProcesses.IsChecked = _preferences.Grouped; PinnedOnly.IsChecked = _preferences.PinnedOnly;
         ProcessSortBox.SelectedIndex = _preferences.ProcessSort; UsageSortBox.SelectedIndex = _preferences.UsageSort;
         JobsView.SortIndex = _preferences.JobSort; JobsView.FilterIndex = _preferences.JobFilter;
+        RestoreCharts();
         DataTabs.SelectedIndex = _preferences.DataTab; HistoryRange.SelectedIndex = _preferences.HistoryRange;
         AlwaysOnTop.IsChecked = _preferences.AlwaysOnTop;
         _keepHistory = _preferences.KeepHistory;
@@ -577,6 +578,7 @@ public sealed partial class MainWindow : Window
         _viewState.ObserveSize(ClientSize, IsVisible && WindowState == WindowState.Normal);
         return _viewState.ApplyTo(_preferences with
         {
+            ChartMode = Chart.Mode, VisibleMetrics = Chart.VisibleMetrics, FocusMetric = Chart.FocusMetric,
             BootId = _bootId, Grouped = Grouped, PinnedOnly = PinnedOnly.IsChecked == true,
             Pins = _pins.Snapshot(), ProcessSort = ProcessSortBox.SelectedIndex, UsageSort = UsageSortBox.SelectedIndex,
             DataTab = DataTabs.SelectedIndex, JobSort = JobsView.SortIndex, JobFilter = JobsView.FilterIndex, HistoryRange = HistoryRange.SelectedIndex, NetworkId = _source.NetworkInterfaceId,

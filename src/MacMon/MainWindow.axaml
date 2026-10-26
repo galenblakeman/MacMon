@@ -39,33 +39,32 @@
     </Grid>
     <Border Grid.Row="2" Classes="card" Padding="12">
       <Grid RowDefinitions="Auto,*,Auto" RowSpacing="6">
-        <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="Resource history" FontSize="14" FontWeight="SemiBold" />
-          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
-            <TextBlock Text="0–100%" Classes="label" VerticalAlignment="Center" />
-            <ComboBox x:Name="HistoryRange" SelectedIndex="0" AutomationProperties.Name="History range">
-              <ComboBoxItem Content="2 minutes" />
-              <ComboBoxItem Content="10 minutes" />
-              <ComboBoxItem Content="30 minutes" />
-              <ComboBoxItem Content="60 minutes" />
-            </ComboBox>
-          </StackPanel>
+        <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
+          <TextBlock Text="Resource history" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <ComboBox Grid.Column="1" x:Name="ChartModeBox" SelectedIndex="0" AutomationProperties.Name="Chart layout">
+            <ComboBoxItem Content="Overlay" /><ComboBoxItem Content="Small multiples" /><ComboBoxItem Content="Heatmap" /><ComboBoxItem Content="Focus" />
+          </ComboBox>
+          <ComboBox Grid.Column="2" x:Name="FocusMetricBox" SelectedIndex="0" AutomationProperties.Name="Focus metric" IsVisible="False">
+            <ComboBoxItem Content="CPU" /><ComboBoxItem Content="Memory" /><ComboBoxItem Content="Network" /><ComboBoxItem Content="Storage" />
+          </ComboBox>
+          <ComboBox Grid.Column="3" x:Name="HistoryRange" SelectedIndex="0" AutomationProperties.Name="History range">
+            <ComboBoxItem Content="2 minutes" /><ComboBoxItem Content="10 minutes" /><ComboBoxItem Content="30 minutes" /><ComboBoxItem Content="60 minutes" />
+          </ComboBox>
         </Grid>
-        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="16" Height="112">
-          <Grid RowDefinitions="Auto,*" RowSpacing="6">
-            <TextBlock Text="CPU · memory · 0–100%" Classes="label" FontSize="12" />
-            <local:CpuChart Grid.Row="1" x:Name="Chart" />
-          </Grid>
-          <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="6">
-            <TextBlock x:Name="ActivityScale" Text="Network · storage · auto scale" Classes="label" FontSize="12" />
-            <local:CpuChart Grid.Row="1" x:Name="ActivityChart" ShowActivity="True" />
-          </Grid>
+        <Grid Grid.Row="1" RowDefinitions="Auto,*" RowSpacing="4">
+          <UniformGrid Columns="4">
+            <CheckBox x:Name="CpuVisible" Content="CPU · 0–100%" Foreground="{DynamicResource CpuText}" IsChecked="True" FontSize="11" />
+            <CheckBox x:Name="MemoryVisible" Content="Memory · 0–100%" Foreground="{DynamicResource MemoryText}" IsChecked="True" FontSize="11" />
+            <CheckBox x:Name="NetworkVisible" Content="Network · bytes/s" Foreground="{DynamicResource NetworkText}" IsChecked="True" FontSize="11" />
+            <CheckBox x:Name="StorageVisible" Content="Storage · bytes/s" Foreground="{DynamicResource StorageText}" IsChecked="True" FontSize="11" />
+          </UniformGrid>
+          <local:CpuChart Grid.Row="1" x:Name="Chart" Height="180" />
         </Grid>
         <StackPanel Grid.Row="2" Spacing="6">
           <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
             <Button x:Name="LiveMode" Content="Live" />
             <Button Grid.Column="1" x:Name="CaptureMode" Content="Capture" />
-            <TextBlock Grid.Column="2" Text="Click either chart to inspect" Classes="label" VerticalAlignment="Center" FontSize="12" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="2" Text="Click the chart to inspect" Classes="label" VerticalAlignment="Center" FontSize="12" TextWrapping="Wrap" />
             <Button Grid.Column="3" x:Name="ExportResources" Content="Export resources" />
             <Button Grid.Column="4" x:Name="ExportProcesses" Content="Export processes" />
           </Grid>

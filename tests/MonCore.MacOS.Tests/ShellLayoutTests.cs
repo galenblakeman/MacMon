@@ -13,6 +13,28 @@ namespace MonCore.MacOS.Tests;
 public sealed class ShellLayoutTests
 {
     [AvaloniaTest]
+    public void FocusAndVisibilityControlsStayConsistentWhenMetricsAreHidden()
+    {
+        var main = new MainWindow();
+        var mode = main.FindControl<ComboBox>("ChartModeBox")!;
+        var focus = main.FindControl<ComboBox>("FocusMetricBox")!;
+        var chart = main.FindControl<CpuChart>("Chart")!;
+        foreach (var name in new[] { "CpuVisible", "MemoryVisible", "NetworkVisible", "StorageVisible" })
+            main.FindControl<CheckBox>(name)!.IsChecked = false;
+        Assert.That(chart.VisibleMetrics, Is.Zero);
+        mode.SelectedIndex = 3;
+        focus.SelectedIndex = 2;
+        Assert.That(chart.VisibleMetrics, Is.EqualTo(4));
+        Assert.That(chart.FocusMetric, Is.EqualTo(2));
+        Assert.That(chart.Mode, Is.EqualTo(ResourceChartMode.Focus));
+        main.FindControl<CheckBox>("StorageVisible")!.IsChecked = true;
+        main.FindControl<CheckBox>("NetworkVisible")!.IsChecked = false;
+        Assert.That(chart.FocusMetric, Is.EqualTo(3));
+        Assert.That(focus.SelectedIndex, Is.EqualTo(3));
+        Assert.That(chart.VisibleMetrics, Is.EqualTo(8));
+    }
+
+    [AvaloniaTest]
     public void FullShellKeepsFourCardsAndDataPaneAtSupportedSizes()
     {
         var app = (App)Application.Current!;
