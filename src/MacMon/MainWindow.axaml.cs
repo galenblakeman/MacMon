@@ -48,6 +48,10 @@ public sealed partial class MainWindow : Window
     private int RangeSeconds => HistoryRange.SelectedIndex switch { 1 => 600, 2 => 1800, 3 => 3600, _ => 120 };
     private bool Grouped => GroupProcesses.IsChecked == true;
 
+    private WindowViewState _viewState = new(new MacPreferences());
+    private bool _switchingView;
+    private bool CompactMode => _viewState.CompactMode;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -74,11 +78,23 @@ public sealed partial class MainWindow : Window
         ResourceCards.SizeChanged += (_, _) => ResourceCards.Columns = ResourceCards.Bounds.Width < 840 ? 2 : 4;
         _session.LiveSampleRecorded += ObserveCaptures;
         _session.LiveSampleRecorded += JobsView.ObserveLiveSample;
+        EnterCompactView.Click += (_, _) => SetCompactView(true);
+        CompactPanel.FullViewRequested += () => SetCompactView(false);
+        CompactPanel.SettingsRequested += async () => await ShowSettings();
+        CompactPanel.TopmostChanged += value => AlwaysOnTop.IsChecked = value;
+        SizeChanged += (_, _) =>
+        {
+            if (!_switchingView && IsVisible) _viewState.ObserveSize(new(Width, Height), WindowState == WindowState.Normal);
+        };
         OpenSettings.Click += async (_, _) => await ShowSettings();
         ConfigureCaptures.Click += async (_, _) => await ShowSettings(3);
         KeyDown += async (_, args) =>
         {
-            if (args.Key == Key.OemComma && args.KeyModifiers == KeyModifiers.Meta)
+            if (args.Key == Key.M && args.KeyModifiers == (KeyModifiers.Meta | KeyModifiers.Shift))
+            { args.Handled = true; SetCompactView(!CompactMode); }
+            else if (args.Key == Key.Escape && CompactMode)
+            { args.Handled = true; SetCompactView(false); }
+            else if (args.Key == Key.OemComma && args.KeyModifiers == KeyModifiers.Meta)
             { args.Handled = true; await ShowSettings(); }
         };
         CapturesList.SelectionChanged += (_, _) =>
@@ -92,7 +108,7 @@ public sealed partial class MainWindow : Window
         UsageSortBox.SelectionChanged += (_, _) => UpdateUsage();
         ResetUsage.Click += (_, _) => { _session.Usage.Reset(DateTimeOffset.Now); UpdateUsage(); };
         ExportUsage.Click += async (_, _) => await Export(CsvExportKind.UsageTotals);
-        DataTabs.SelectionChanged += (_, args) => { if (args.Source == DataTabs) { UpdateProcesses(); UpdateUsage(); JobsView.SetActive(DataTabs.SelectedIndex == 2); } };
+        DataTabs.SelectionChanged += (_, args) => { if (args.Source == DataTabs) { UpdateProcesses(); UpdateUsage(); JobsView.SetActive(!CompactMode && DataTabs.SelectedIndex == 2); } };
         NetworkAdapter.ItemsSource = new[] { new MacNetworkChoice("", "Automatic · active Ethernet/Wi-Fi") };
         NetworkAdapter.SelectedIndex = 0;
         NetworkAdapter.SelectionChanged += (_, _) =>
@@ -143,13 +159,13 @@ public sealed partial class MainWindow : Window
         };
         ExportResources.Click += async (_, _) => await Export(CsvExportKind.ResourceHistory);
         ExportProcesses.Click += async (_, _) => await Export(CsvExportKind.ProcessSamples);
-        AlwaysOnTop.IsCheckedChanged += (_, _) => Topmost = AlwaysOnTop.IsChecked == true;
+        AlwaysOnTop.IsCheckedChanged += (_, _) => { Topmost = AlwaysOnTop.IsChecked == true; CompactPanel.AlwaysOnTop = Topmost; };
         ShowProperties.Click += async (_, _) => await ShowProcessDetails();
         CopyProcessDetails.Click += async (_, _) => await CopyProcess();
         RevealExecutable.Click += (_, _) => RevealSelectedExecutable();
         EndProcess.Click += async (_, _) => await EndSelectedProcesses();
         ApplyPreferences();
-        Opened += (_, _) => _startup = StartAsync();
+        Opened += (_, _) => { FitWindowToScreen(); _startup = StartAsync(); };
         Closing += OnClosing;
     }
 
@@ -159,6 +175,15 @@ public sealed partial class MainWindow : Window
     {
         if (_session is null || !IsVisible || WindowState == WindowState.Minimized) return;
         var sample = _session.Latest;
+        if (CompactMode)
+        {
+            if (sample is not null && _session.HasLiveSample) UpdateResourceGauges(sample);
+            else ClearGauges();
+            CompactPanel.Status = sample is null ? "Readings unavailable · retrying…" : !_session.HasLiveSample
+                ? "Restored history · waiting for live readings…" : _session.Error is not null
+                ? "Some readings are unavailable · retrying…" : $"Live · updated {sample.Timestamp:HH:mm:ss} · peak markers show the last 2 minutes";
+            return;
+        }
         if (sample is null)
         {
             ClearGauges();
@@ -174,11 +199,7 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        var readings = _gaugeHistory.Readings;
-        CpuGauge.Update(readings[0], sample.Resources.CpuKernelPercent is { } kernel ? $"Machine capacity · {kernel:F1}% system" : "Machine capacity · baseline pending");
-        MemoryGauge.Update(readings[1], $"{GiB(sample.Resources.UsedMemoryBytes)} / {GiB(sample.Resources.TotalMemoryBytes)} physical\nPressure: {_source.Memory.Pressure} · compressed {GiB(_source.Memory.CompressedBytes)}");
-        NetworkGauge.Update(readings[2], $"{sample.Resources.NetworkName} · receive + send\n↓ {Rate(sample.Resources.ReceiveBytesPerSecond)} · ↑ {Rate(sample.Resources.SendBytesPerSecond)}");
-        StorageGauge.Update(readings[3], $"All block drivers · read + write\nR {Rate(sample.Resources.SecondaryDiskReadBytesPerSecond)} · W {Rate(sample.Resources.SecondaryDiskWriteBytesPerSecond)}");
+        UpdateResourceGauges(sample);
         DiskValue.Text = GiB(sample.Resources.DiskFreeBytes);
         DiskTotal.Text = $"of {GiB(sample.Resources.DiskTotalBytes)}";
         UpdateActivity(sample);
@@ -206,9 +227,22 @@ public sealed partial class MainWindow : Window
         if (_operationStatus.Length > 0) StatusLabel.Text += $" · {_operationStatus}";
     }
 
+    private ResourceGauge[] VisibleGauges => CompactMode ? CompactPanel.Gauges : [CpuGauge, MemoryGauge, NetworkGauge, StorageGauge];
+    private void UpdateResourceGauges(MonitorSample sample)
+    {
+        var r = sample.Resources;
+        string[] descriptions = [
+            r.CpuKernelPercent is { } kernel ? $"Machine capacity · {kernel:F1}% system" : "Machine capacity · baseline pending",
+            $"{GiB(r.UsedMemoryBytes)} / {GiB(r.TotalMemoryBytes)} physical\nPressure: {_source.Memory.Pressure} · compressed {GiB(_source.Memory.CompressedBytes)}",
+            $"{r.NetworkName} · receive + send\n↓ {Rate(r.ReceiveBytesPerSecond)} · ↑ {Rate(r.SendBytesPerSecond)}",
+            $"All block drivers · read + write\nR {Rate(r.SecondaryDiskReadBytesPerSecond)} · W {Rate(r.SecondaryDiskWriteBytesPerSecond)}"];
+        var gauges = VisibleGauges;
+        for (var index = 0; index < gauges.Length; index++) gauges[index].Update(_gaugeHistory.Readings[index], descriptions[index]);
+    }
+
     private void ClearGauges()
     {
-        foreach (var gauge in new[] { CpuGauge, MemoryGauge, NetworkGauge, StorageGauge })
+        foreach (var gauge in VisibleGauges)
             gauge.Update(GaugeReading.Empty, "Waiting for live readings…");
     }
 
@@ -240,7 +274,7 @@ public sealed partial class MainWindow : Window
 
     private void UpdateProcesses()
     {
-        if (_session is null || DataTabs.SelectedIndex != 0) return;
+        if (_session is null || CompactMode || DataTabs.SelectedIndex != 0) return;
         var display = TrailHistory();
         if (display.LastOrDefault() is not { } sample)
         {
@@ -339,7 +373,7 @@ public sealed partial class MainWindow : Window
 
     private void UpdateUsage()
     {
-        if (_session is null || DataTabs.SelectedIndex != 1) return;
+        if (_session is null || CompactMode || DataTabs.SelectedIndex != 1) return;
         UsageList.ItemsSource = UsagePresentation.Rows(_session.Usage, UsageSearch.Text ?? "", (UsageSort)Math.Max(0, UsageSortBox.SelectedIndex));
         UsageStatus.Text = $"Live totals since {_session.Usage.Since:yyyy-MM-dd HH:mm:ss zzz} · un-attributed CPU {TimeSpan.FromTicks(_session.Usage.NotAttributedCpuTicks).TotalSeconds:F1} s\n" +
             "Includes exited apps. Busy share uses observed machine CPU time. Missing intervals are excluded; disk I/O excludes network. Capture/chart range does not change these totals.";
@@ -470,6 +504,7 @@ public sealed partial class MainWindow : Window
             networks.Add(new(id, $"{id} · disconnected"));
         var window = new SettingsWindow(PreferencesSnapshot(), networks, section ?? _settingsSection,
             _preferencesWritable, SaveSettings);
+        if (CompactMode) window.WindowStartupLocation = WindowStartupLocation.CenterScreen;
         try { await window.ShowDialog(this); }
         finally { _settingsSection = window.Section; _settingsOpen = false; }
     }
@@ -528,18 +563,18 @@ public sealed partial class MainWindow : Window
         _captureOptions = _preferences.Captures;
         _captureRules = new(_captureOptions.Rules, TimeSpan.FromSeconds(_captureOptions.CooldownSeconds), Environment.ProcessorCount);
         UpdateRetention();
+        _viewState = new(_preferences with { Width = Width, Height = Height });
+        ApplyViewLayout();
     }
 
-    private MacPreferences PreferencesSnapshot() => _preferences with
+    private MacPreferences PreferencesSnapshot() => _viewState.ApplyTo(_preferences with
     {
         BootId = _bootId, Grouped = Grouped, PinnedOnly = PinnedOnly.IsChecked == true,
         Pins = _pins.Snapshot(), ProcessSort = ProcessSortBox.SelectedIndex, UsageSort = UsageSortBox.SelectedIndex,
         DataTab = DataTabs.SelectedIndex, JobSort = JobsView.SortIndex, JobFilter = JobsView.FilterIndex, HistoryRange = HistoryRange.SelectedIndex, NetworkId = _source.NetworkInterfaceId,
         AlwaysOnTop = Topmost, Captures = _captureOptions, KeepHistory = _keepHistory,
-        Width = WindowState == WindowState.Normal ? Width : _preferences.Width,
-        Height = WindowState == WindowState.Normal ? Height : _preferences.Height,
         DashboardRatio = MainLayout.RowDefinitions[1].Height.Value / Math.Max(0.01, MainLayout.RowDefinitions[3].Height.Value)
-    };
+    });
 
     private async Task StartAsync()
     {

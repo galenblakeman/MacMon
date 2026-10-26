@@ -23,6 +23,8 @@ public sealed class ResourceGauge : UserControl
     public IBrush Marker { get => GetValue(MarkerProperty); set => SetValue(MarkerProperty, value); }
     public static readonly StyledProperty<double> ReadoutSizeProperty = AvaloniaProperty.Register<ResourceGauge, double>(nameof(ReadoutSize), 25);
     public double ReadoutSize { get => GetValue(ReadoutSizeProperty); set => SetValue(ReadoutSizeProperty, value); }
+    public static readonly StyledProperty<bool> IsCompactProperty = AvaloniaProperty.Register<ResourceGauge, bool>(nameof(IsCompact));
+    public bool IsCompact { get => GetValue(IsCompactProperty); set => SetValue(IsCompactProperty, value); }
     public static readonly StyledProperty<string> TitleProperty = AvaloniaProperty.Register<ResourceGauge, string>(nameof(Title), "");
     public string Title { get => GetValue(TitleProperty); set => SetValue(TitleProperty, value); }
     private readonly TextBlock _title = new() { FontWeight = FontWeight.SemiBold };
@@ -50,11 +52,14 @@ public sealed class ResourceGauge : UserControl
         if (_marks is null) return;
         if (change.Property == GaugeStyleProperty) { _marks.Children.Clear(); _gauge = null; }
         if (change.Property == GaugeStyleProperty || change.Property == FillProperty || change.Property == TrackProperty ||
-            change.Property == ReadoutSizeProperty || change.Property == MarkerProperty || change.Property == TitleProperty) Refresh();
+            change.Property == IsCompactProperty || change.Property == ReadoutSizeProperty || change.Property == MarkerProperty || change.Property == TitleProperty) Refresh();
     }
     private void Refresh()
     {
-        _value.FontSize = ReadoutSize;
+        Height = IsCompact ? 110 : 174;
+        _marks.Height = IsCompact ? 38 : 62;
+        _details.IsVisible = !IsCompact;
+        _value.FontSize = IsCompact ? 20 : ReadoutSize;
         _title.Text = Title; _value.Text = _reading.Text; _value.Foreground = Fill;
         _scale.Text = _reading.Value is null ? "Unavailable" : $"{_reading.Scale} · peak 2m";
         _details.Text = _description;

@@ -1,0 +1,19 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:MacMon" x:Class="MacMon.CompactView">
+  <Grid Margin="12" RowDefinitions="Auto,*,Auto" RowSpacing="6">
+    <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="10">
+      <TextBlock Text="MacMon" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+      <TextBlock Grid.Column="1" Text="Live" Classes="label" Margin="0,2,0,0" VerticalAlignment="Center" />
+      <CheckBox Grid.Column="2" x:Name="CompactOnTop" Content="Always on top" VerticalAlignment="Center" />
+      <Button Grid.Column="3" x:Name="CompactSettings" Content="Settings…" ToolTip.Tip="Settings (⌘,)" />
+      <Button Grid.Column="4" x:Name="ExpandView" Content="Full view" ToolTip.Tip="Full view (⌘⇧M or Escape)" />
+    </Grid>
+    <UniformGrid Grid.Row="1" Columns="4">
+      <Border Classes="card" Padding="8" Margin="0,0,6,0"><local:ResourceGauge x:Name="Cpu" Title="CPU" IsCompact="True" Fill="{DynamicResource CpuText}" /></Border>
+      <Border Classes="card" Padding="8" Margin="0,0,6,0"><local:ResourceGauge x:Name="Memory" Title="Memory" IsCompact="True" Fill="{DynamicResource MemoryText}" /></Border>
+      <Border Classes="card" Padding="8" Margin="0,0,6,0"><local:ResourceGauge x:Name="Network" Title="Network" IsCompact="True" Fill="{DynamicResource NetworkText}" /></Border>
+      <Border Classes="card" Padding="8"><local:ResourceGauge x:Name="Storage" Title="Storage" IsCompact="True" Fill="{DynamicResource StorageText}" /></Border>
+    </UniformGrid>
+    <TextBlock Grid.Row="2" x:Name="LiveStatus" Text="Waiting for live readings…" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" />
+  </Grid>
+</UserControl>

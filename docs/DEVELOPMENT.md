@@ -218,7 +218,7 @@ values into them. Native ranges are replaced rather than mutating render-thread 
 The [MicroGauge dependency](../dependencies/microgauge/README.md) introduces
 SkiaSharp 4.150.1; real Skia pixel tests verify fills/needles and peak marks, including
 unavailable/None states. Packaged smoke checks exercise the native host and collectors.
-Compact view remains a separate subsequent slice.
+Compact view follows in UI parity slice 3 below.
 
 Validation for this slice: 106 MacMon tests, eight upstream Avalonia tests, and three
 Python release-workflow tests pass; the release build has no warnings. Real Skia
@@ -246,3 +246,43 @@ from NuGet.org; the release build has no warnings, all 106 MacMon tests and thre
 Python release-workflow tests pass, and native collector/launchd smoke checks pass.
 The real Skia tests exercise published assemblies across every style, theme and
 palette, including zero/unavailable values, peak marks and control reattachment.
+
+## UI parity slice 3: compact live view
+
+Version 0.6.0/build 7 adds a four-metric compact strip to the existing window.
+Compact view and Command-Shift-M enter it; Full view, Escape or Command-Shift-M
+return to the dashboard. Settings/Command-comma and Always on top remain available.
+Compact gauges use the same readings, two-minute peak history, scope, units, gauge
+style and palette as full view. Tooltips and accessible names retain the expanded
+measurement details. All four styles reserve the same height, including None and
+unavailable readings. The strip is 224 DIPs high with a 720-DIP minimum width.
+
+There is still one MonitorSession and one native collector. Sampling, usage accounting,
+automatic capture rules, reports and bounded history continue in compact mode.
+Chart/table presentation and launchd inventory refreshes pause while hidden. Returning
+to full view refreshes the visible data and resumes Jobs when that tab is selected.
+Process filters, pins, selected tab, chart inspection and dashboard splitter ratio are
+preserved; compact readings stay live even while the full chart inspects a capture.
+
+WindowViewState keeps normal full-window dimensions separately from compact width.
+Both sizes and compact mode persist on clean shutdown, and Settings merges preserve
+them. Maximized/minimized bounds do not replace normal dimensions; entering compact
+returns to a normal window. Transitions fit the window inside the current display's
+working area. Settings opens centered on screen from the short strip so its footer
+remains reachable. Old preferences default to full view.
+
+Tests cover independent size restoration, settings merges, preference round trips,
+invalid dimensions, control actions and unavailable readouts. Real Skia rendering
+covers all styles, themes and palettes at widths 720 and 1000, with explicit numeric
+readout-fit assertions and accessible Full view controls. Native checks cover button
+and keyboard round trips, retained capture inspection, shared Always on top, Settings
+accessibility, compact restart at width 720, and recovery of the saved full dimensions.
+
+A 30-second visible compact run on the development Mac averaged 0.340% of total
+machine CPU (0.519% peak), with 204.8 MiB peak resident memory. This is a single-host
+observation, not a comparative performance guarantee. Native QA restored the prior
+full mode, dimensions, Ocean/Bar appearance and Always on top preference afterward.
+
+Release validation passes all 110 MacMon tests and three Python release-workflow
+tests with zero build warnings, plus native collector/launchd smoke checks and
+strict development-bundle signature verification.
