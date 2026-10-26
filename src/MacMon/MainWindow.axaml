@@ -218,6 +218,7 @@
             <TextBlock Grid.Row="3" x:Name="UsageStatus" Classes="label" FontSize="12" TextWrapping="Wrap" />
           </Grid>
         </TabItem>
+        <TabItem Header="Jobs"><local:LaunchdView x:Name="JobsView" /></TabItem>
       </TabControl>
     </Border>
     <StackPanel Grid.Row="4" Spacing="6">

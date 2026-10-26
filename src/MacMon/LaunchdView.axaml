@@ -1,0 +1,47 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:MacMon" x:Class="MacMon.LaunchdView">
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="8" Margin="0,8,0,0">
+    <Grid ColumnDefinitions="*,210,145,Auto" ColumnSpacing="10">
+      <TextBlock Text="launchd jobs · read only" FontSize="18" VerticalAlignment="Center" />
+      <TextBox Grid.Column="1" x:Name="JobSearch" PlaceholderText="Search label, PID or process" AutomationProperties.Name="Search jobs" />
+      <ComboBox Grid.Column="2" x:Name="JobFilter" SelectedIndex="0" HorizontalAlignment="Stretch" AutomationProperties.Name="Filter jobs">
+        <ComboBoxItem Content="All loaded" /><ComboBoxItem Content="Running" /><ComboBoxItem Content="Not running" />
+      </ComboBox>
+      <Button Grid.Column="3" x:Name="RefreshJobs" Content="Refresh" />
+    </Grid>
+    <Grid Grid.Row="1" ColumnDefinitions="*,145,Auto,Auto" ColumnSpacing="10">
+      <TextBlock x:Name="JobScope" Text="Current bootstrap context · not yet read" Classes="label" TextWrapping="Wrap" FontSize="12" VerticalAlignment="Center" />
+      <ComboBox Grid.Column="1" x:Name="JobSort" SelectedIndex="0" HorizontalAlignment="Stretch" AutomationProperties.Name="Sort jobs">
+        <ComboBoxItem Content="Label" /><ComboBoxItem Content="Running first" /><ComboBoxItem Content="PID" />
+      </ComboBox>
+      <Button Grid.Column="2" x:Name="JobDetails" Content="Details" IsEnabled="False" />
+      <Button Grid.Column="3" x:Name="CopyJob" Content="Copy details" IsEnabled="False" />
+    </Grid>
+    <Grid Grid.Row="2" ColumnDefinitions="*,145,65,95,150" Margin="10,0">
+      <TextBlock Text="Label" Classes="label" />
+      <TextBlock Grid.Column="1" Text="Observed state" Classes="label" />
+      <TextBlock Grid.Column="2" Text="PID" Classes="label" />
+      <TextBlock Grid.Column="3" Text="Last exit" Classes="label" />
+      <TextBlock Grid.Column="4" Text="Observed process" Classes="label" />
+    </Grid>
+    <Grid Grid.Row="3">
+      <ListBox x:Name="JobList" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Loaded launchd jobs">
+        <ListBox.Styles><Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style></ListBox.Styles>
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="local:LaunchdRow">
+            <Grid ColumnDefinitions="*,145,65,95,150" Margin="0,3" ToolTip.Tip="{Binding Label}">
+              <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+              <TextBlock Grid.Column="1" Text="{Binding State}" FontSize="12" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="2" Text="{Binding Pid}" />
+              <TextBlock Grid.Column="3" Text="{Binding ExitStatus}" />
+              <TextBlock Grid.Column="4" Text="{Binding ProcessName}" TextTrimming="CharacterEllipsis" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+      <TextBlock x:Name="JobEmpty" Text="Choose Refresh to read loaded jobs." Classes="label" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" TextWrapping="Wrap" />
+    </Grid>
+    <TextBlock Grid.Row="4" x:Name="JobStatus" Text="Live job inventory is separate from chart Capture and history. Other domains and disabled state are not inventoried."
+               Classes="label" FontSize="12" TextWrapping="Wrap" MaxHeight="54" />
+  </Grid>
+</UserControl>

@@ -66,6 +66,7 @@ public sealed partial class MainWindow : Window
             RefreshCaptures();
         }));
         _session.LiveSampleRecorded += ObserveCaptures;
+        _session.LiveSampleRecorded += JobsView.ObserveLiveSample;
         ConfigureCaptures.Click += async (_, _) =>
         {
             var options = await new AutoCaptureWindow(_captureOptions).ShowDialog<MacCaptureOptions?>(this);
@@ -85,7 +86,7 @@ public sealed partial class MainWindow : Window
         UsageSortBox.SelectionChanged += (_, _) => UpdateUsage();
         ResetUsage.Click += (_, _) => { _session.Usage.Reset(DateTimeOffset.Now); UpdateUsage(); };
         ExportUsage.Click += async (_, _) => await Export(CsvExportKind.UsageTotals);
-        DataTabs.SelectionChanged += (_, args) => { if (args.Source == DataTabs) { UpdateProcesses(); UpdateUsage(); } };
+        DataTabs.SelectionChanged += (_, args) => { if (args.Source == DataTabs) { UpdateProcesses(); UpdateUsage(); if (DataTabs.SelectedIndex == 2) JobsView.Activate(); } };
         NetworkAdapter.ItemsSource = new[] { new MacNetworkChoice("", "Automatic · active Ethernet/Wi-Fi") };
         NetworkAdapter.SelectedIndex = 0;
         NetworkAdapter.SelectionChanged += (_, _) =>
@@ -539,6 +540,8 @@ public sealed partial class MainWindow : Window
         _session.Close();
         _session.Recorded -= Update;
         _session.LiveSampleRecorded -= ObserveCaptures;
+        _session.LiveSampleRecorded -= JobsView.ObserveLiveSample;
+        await JobsView.Stop();
         await _shutdown.CancelAsync();
         if (_startup is not null) await _startup;
         if (_sampling is not null) await _sampling;
