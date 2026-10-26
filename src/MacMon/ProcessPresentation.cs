@@ -15,7 +15,7 @@ public static class ProcessPresentation
         ? new(Policy.ExecutableKey(process), default) : new(null, process.Identity);
 
     public static ProcessRow[] Rows(IReadOnlyList<MonitorSample> history, MonitorSample latest,
-        bool grouped, ProcessSort sort, string search, ProcessPins pins, bool pinnedOnly)
+        bool grouped, ProcessSort sort, string search, ProcessPins pins, bool pinnedOnly, bool historical = false)
     {
         var identities = new Dictionary<ProcessLifetimeIdentity, (string Path, Key Key)>();
         Key KeyOf(ProcessUsage process)
@@ -34,7 +34,7 @@ public static class ProcessPresentation
         // MonCore's grouped memory sort uses Windows private bytes. Mac rows explicitly show resident sums.
         if (grouped && sort == ProcessSort.Memory)
             live = live.OrderByDescending(process => process.WorkingSetBytes).ThenBy(process => process.ProcessId);
-        var pinned = pins.Resolve(latest, ranking.Processes, grouped, false);
+        var pinned = pins.Resolve(latest, ranking.Processes, grouped, historical);
         var rows = pinned.Select(pin => new ProcessRow(pin.Usage, true, pin.State, grouped))
             .Concat(pinnedOnly ? [] : live.Where(process => !pins.Contains(process, grouped))
                 .Select(process => new ProcessRow(process, false, PinnedProcessState.Present, grouped)))

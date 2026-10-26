@@ -4,6 +4,8 @@ macOS resource monitor built with C# and Avalonia, using WinMon's portable MonCo
 
 MacMon provides live system CPU usage, a two-minute CPU/memory chart, estimated physical-memory usage, live memory pressure and available space on the data volume. The process list shows CPU averaged over five seconds, resident memory and thread counts. Switch between individual processes and executable groups, pin rows, filter to pins, and follow 30-second trends for the selected CPU/memory/thread metric. Grouped memory shows a resident sum that can count shared pages more than once. Search by name or PID, sort by CPU/memory/threads, and select a row to inspect its start time and executable path. Individual selection and pins follow a process lifetime, so a reused PID cannot inherit them. Group pins follow the exact executable path; pins currently last for this session.
 
+Click the chart or choose Capture to inspect retained process observations while recording and top readouts stay live. Choose 2, 10, 30 or 60 minutes to adjust the chart and retention limit; memory bounds can shorten retained history. Export resources or retained process samples as local CSV for the selected chart range. Historical samples can omit idle processes; pressure/compressed details stay live.
+
 Sampling, ranking, selection and bounded history run through MonCore. Baselines, failed readings and wake gaps appear as unavailable CPU readings instead of zero. macOS may deny access to some processes; the list reports unavailable readings and retries without requesting elevated privileges.
 
 Requires macOS, Python 3 for local-package normalization, and the .NET 10 SDK (validated with 10.0.401).

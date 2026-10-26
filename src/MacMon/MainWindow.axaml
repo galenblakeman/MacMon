@@ -3,7 +3,7 @@
         xmlns:local="using:MacMon"
         x:Class="MacMon.MainWindow" Title="MacMon" Width="1000" Height="900"
         MinWidth="800" MinHeight="760" Background="#0E1721">
-  <Grid Margin="28" RowDefinitions="Auto,Auto,180,*,Auto" RowSpacing="18">
+  <Grid Margin="28" RowDefinitions="Auto,Auto,220,*,Auto" RowSpacing="18">
     <Grid ColumnDefinitions="*,Auto">
       <StackPanel Spacing="6">
         <TextBlock Text="MacMon" FontSize="30" FontWeight="SemiBold" />
@@ -38,13 +38,27 @@
       <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
         <Grid ColumnDefinitions="*,Auto">
           <TextBlock Text="CPU and memory history" FontSize="18" FontWeight="SemiBold" />
-          <TextBlock Grid.Column="1" Text="0–100%" Classes="label" />
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
+            <TextBlock Text="0–100%" Classes="label" VerticalAlignment="Center" />
+            <ComboBox x:Name="HistoryRange" SelectedIndex="0" AutomationProperties.Name="History range">
+              <ComboBoxItem Content="2 minutes" />
+              <ComboBoxItem Content="10 minutes" />
+              <ComboBoxItem Content="30 minutes" />
+              <ComboBoxItem Content="60 minutes" />
+            </ComboBox>
+          </StackPanel>
         </Grid>
         <local:CpuChart Grid.Row="1" x:Name="Chart" />
-        <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
-          <TextBlock Text="Last 2 minutes · CPU teal · memory purple" Classes="label" />
-          <TextBlock Grid.Column="1" Text="Live" Foreground="#6DE3CB" />
-        </Grid>
+        <StackPanel Grid.Row="2" Spacing="6">
+          <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
+            <Button x:Name="LiveMode" Content="Live" />
+            <Button Grid.Column="1" x:Name="CaptureMode" Content="Capture" />
+            <TextBlock Grid.Column="2" Text="CPU teal · memory purple · click chart to inspect" Classes="label" VerticalAlignment="Center" FontSize="12" TextWrapping="Wrap" />
+            <Button Grid.Column="3" x:Name="ExportResources" Content="Export resources" />
+            <Button Grid.Column="4" x:Name="ExportProcesses" Content="Export processes" />
+          </Grid>
+          <TextBlock x:Name="CaptureStatus" Text="Live · recording" Classes="label" FontSize="12" TextWrapping="Wrap" />
+        </StackPanel>
       </Grid>
     </Border>
     <Border Grid.Row="3" Classes="card">
@@ -109,7 +123,7 @@
       </Grid>
     </Border>
     <StackPanel Grid.Row="4" Spacing="6">
-      <TextBlock x:Name="StatusLabel" Text="Starting native collector…" Classes="label" />
+      <TextBlock x:Name="StatusLabel" Text="Starting native collector…" Classes="label" TextWrapping="Wrap" />
       <TextBlock Text="CPU is a share of total machine capacity · — means unavailable · resident memory includes shared pages"
                  Classes="label" FontSize="12" TextWrapping="Wrap" />
     </StackPanel>

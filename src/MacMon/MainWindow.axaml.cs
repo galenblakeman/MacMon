@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Threading;
+using Avalonia.Platform.Storage;
 using MonCore.MacOS;
 using WinMon.Monitoring;
 
@@ -14,7 +15,10 @@ public sealed partial class MainWindow : Window
     private ProcessSelection _selection = new(MacFrameSource.IdentityPolicy);
     private volatile Func<ProcessUsage, bool>? _retain;
     private bool _refreshingRows;
+    private string _operationStatus = "";
     private readonly ProcessPins _pins = new(MacFrameSource.IdentityPolicy);
+    private readonly HistoryInspection _inspection = new();
+    private int RangeSeconds => HistoryRange.SelectedIndex switch { 1 => 600, 2 => 1800, 3 => 3600, _ => 120 };
     private bool Grouped => GroupProcesses.IsChecked == true;
 
     public MainWindow()
@@ -44,12 +48,23 @@ public sealed partial class MainWindow : Window
         PinnedOnly.IsCheckedChanged += (_, _) => UpdateProcesses();
         PinSelection.Click += (_, _) =>
         {
-            var selected = _selection.Resolve(LiveHistory(), Grouped, false, Sort);
+            var selected = _selection.Resolve(LiveHistory(), Grouped, _inspection.IsHistorical, Sort);
             if (selected is null) return;
             _pins.Toggle(selected.Usage, Grouped);
             UpdateRetention();
             UpdateProcesses();
         };
+        Chart.SampleSelected += sample => { _inspection.Select(sample); Update(); };
+        CaptureMode.Click += (_, _) => { if (_session.Latest is { } sample) _inspection.Select(sample); Update(); };
+        LiveMode.Click += (_, _) => { _inspection.Live(); Update(); };
+        HistoryRange.SelectionChanged += (_, _) =>
+        {
+            _session.History.Resize(RangeSeconds);
+            Chart.RangeSeconds = RangeSeconds;
+            Update();
+        };
+        ExportResources.Click += async (_, _) => await Export(CsvExportKind.ResourceHistory);
+        ExportProcesses.Click += async (_, _) => await Export(CsvExportKind.ProcessSamples);
         Opened += (_, _) => _sampling = _session.Run(_shutdown.Token);
         Closed += OnClosed;
     }
@@ -57,7 +72,7 @@ public sealed partial class MainWindow : Window
     private void Update()
     {
         var sample = _session.Latest;
-        if (sample is null || _session.Error == SamplingError.ReadingsUnavailable)
+        if (sample is null)
         {
             CpuValue.Text = MemoryValue.Text = DiskValue.Text = "—";
             KernelValue.Text = "Waiting for a fresh CPU interval…";
@@ -77,15 +92,22 @@ public sealed partial class MainWindow : Window
         KernelValue.Text = sample.Resources.CpuKernelPercent is { } kernel
             ? $"{kernel:F1}% system CPU" : "Waiting for a fresh CPU interval…";
         MemoryValue.Text = sample.Resources.MemoryPercent is { } percent ? $"{percent:F1}%" : "—";
-        MemoryDetails.Text = $"{GiB(sample.Resources.UsedMemoryBytes)} used / {GiB(sample.Resources.TotalMemoryBytes)} installed\n" +
+        MemoryDetails.Text = sample.Resources.TotalMemoryBytes is null ? "Memory readings unavailable" : $"{GiB(sample.Resources.UsedMemoryBytes)} used / {GiB(sample.Resources.TotalMemoryBytes)} installed\n" +
             $"Pressure: {_source.Memory.Pressure} · compressed {GiB(_source.Memory.CompressedBytes)}";
         DiskValue.Text = GiB(sample.Resources.DiskFreeBytes);
         DiskTotal.Text = $"of {GiB(sample.Resources.DiskTotalBytes)}";
+        var display = TrailHistory();
+        var captured = display.LastOrDefault();
+        Chart.SelectedTimestamp = _inspection.IsHistorical ? captured?.MonotonicTimestamp : null;
         Chart.Update(_session.History.Samples);
+        CaptureStatus.Text = !_inspection.IsHistorical ? $"Live · recording · {_session.History.Samples.Count} retained samples" : captured is null
+            ? "Capture expired from retained history · return to Live or select another moment"
+            : $"Captured {captured.Timestamp:yyyy-MM-dd HH:mm:ss zzz} · CPU {captured.TotalCpuPercent?.ToString("F1") ?? "—"}% · memory {GiB(captured.Resources.UsedMemoryBytes)} · retained process observations";
         UpdateProcesses();
         StatusLabel.Text = _session.Error is null
             ? $"Updated {sample.Timestamp:HH:mm:ss} · macOS {Environment.OSVersion.Version}"
             : "Some readings are unavailable · retrying…";
+        if (_operationStatus.Length > 0) StatusLabel.Text += $" · {_operationStatus}";
     }
 
     private ProcessSort Sort => ProcessSortBox.SelectedIndex switch
@@ -97,10 +119,23 @@ public sealed partial class MainWindow : Window
 
     private void UpdateProcesses()
     {
-        if (_session?.LatestFull is not { } sample) return;
+        if (_session is null) return;
+        var display = TrailHistory();
+        if (display.LastOrDefault() is not { } sample)
+        {
+            _refreshingRows = true;
+            ProcessList.ItemsSource = Array.Empty<ProcessRow>();
+            _refreshingRows = false;
+            EmptyProcessLabel.IsVisible = true;
+            EmptyProcessLabel.Text = "Selected capture is no longer retained";
+            PinSelection.IsEnabled = false;
+            ProcessCountLabel.Text = "Capture expired";
+            SelectionLabel.Text = "Return to Live or select another moment.";
+            return;
+        }
         ResidentHeader.Text = Grouped ? "Resident sum*" : "Resident";
         var rows = ProcessPresentation.Rows(TrailHistory(), sample, Grouped, Sort,
-            ProcessSearchBox.Text ?? "", _pins, PinnedOnly.IsChecked == true);
+            ProcessSearchBox.Text ?? "", _pins, PinnedOnly.IsChecked == true, _inspection.IsHistorical);
         _refreshingRows = true;
         ProcessList.ItemsSource = rows;
         ProcessList.SelectedItem = rows.FirstOrDefault(row => _selection.Contains(row.Process, Grouped));
@@ -116,7 +151,7 @@ public sealed partial class MainWindow : Window
 
     private void UpdateSelection()
     {
-        var selected = _selection.Resolve(LiveHistory(), Grouped, false, Sort);
+        var selected = _selection.Resolve(LiveHistory(), Grouped, _inspection.IsHistorical, Sort);
         PinSelection.IsEnabled = selected is not null;
         PinSelection.Content = selected is not null && _pins.Contains(selected.Usage, Grouped) ? "Unpin selected" : "Pin selected";
         SelectionLabel.Text = selected is null ? "Select a process to inspect its lifetime and path."
@@ -136,17 +171,34 @@ public sealed partial class MainWindow : Window
 
     private IReadOnlyList<MonitorSample> TrailHistory()
     {
-        var history = _session.History.Samples;
-        return _session.LatestFull is { } full ? [.. history.SkipLast(1), full] : history;
+        return _inspection.DisplayHistory(_session.History.Samples, _session.LatestFull);
     }
 
     private IReadOnlyList<MonitorSample> LiveHistory()
     {
-        // Retain compacted history, but use the full current frame so every live idle process remains visible.
-        var compacted = _session.History.Samples;
-        return _session.LatestFull is { } full
-            ? [.. compacted.TakeLast(ProcessRanking.DefaultWindowSeconds + 1).SkipLast(1), full]
-            : compacted;
+        return TrailHistory().TakeLast(ProcessRanking.DefaultWindowSeconds + 1).ToArray();
+    }
+
+    private async Task Export(CsvExportKind kind)
+    {
+        var samples = CsvExport.SelectSamples(_session.History.Samples, RangeSeconds).ToArray();
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = kind == CsvExportKind.ResourceHistory ? "Export resource history" : "Export retained process samples",
+            SuggestedFileName = $"MacMon-{kind}-{DateTime.Now:yyyyMMdd-HHmmss}.csv",
+            DefaultExtension = "csv",
+            FileTypeChoices = [new FilePickerFileType("CSV") { Patterns = ["*.csv"] }]
+        });
+        if (file is null) return;
+        var path = file.TryGetLocalPath();
+        if (path is null) { _operationStatus = "Choose a local file for export."; return; }
+        try
+        {
+            await Task.Run(() => CsvExport.Write(path, kind, samples, [], DateTimeOffset.Now, 0, 0));
+            _operationStatus = $"Exported {samples.Length} retained samples to {path}";
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        { _operationStatus = $"Export failed: {ex.Message}"; }
     }
 
     private static string GiB(ulong? bytes) => bytes is { } value ? $"{value / 1073741824d:F1} GiB" : "—";

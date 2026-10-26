@@ -9,6 +9,17 @@ namespace MacMon;
 public sealed class CpuChart : Control
 {
     private IReadOnlyList<MonitorSample> _samples = [];
+    public int RangeSeconds { get; set; } = 120;
+    public long? SelectedTimestamp { get; set; }
+    public event Action<MonitorSample>? SampleSelected;
+
+    protected override void OnPointerPressed(Avalonia.Input.PointerPressedEventArgs e)
+    {
+        base.OnPointerPressed(e);
+        if (Bounds.Width <= 0 || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        if (HistoryInspection.Nearest(_samples, RangeSeconds, e.GetPosition(this).X / Bounds.Width) is { } sample)
+            SampleSelected?.Invoke(sample);
+    }
 
     public void Update(IReadOnlyList<MonitorSample> samples)
     {
@@ -29,6 +40,13 @@ public sealed class CpuChart : Control
         var now = _samples[^1].MonotonicTimestamp;
         DrawSeries(context, width, height, now, sample => sample.TotalCpuPercent, "#6DE3CB", true);
         DrawSeries(context, width, height, now, sample => sample.Resources.MemoryPercent, "#BD9AFF", false);
+        if (SelectedTimestamp is { } selected)
+        {
+            var age = (now - selected) / (double)Stopwatch.Frequency;
+            if (age is >= 0 && age <= RangeSeconds)
+                context.DrawLine(new Pen(Brushes.White, 1), new Point(width * (1 - age / RangeSeconds), 0),
+                    new Point(width * (1 - age / RangeSeconds), height));
+        }
     }
 
     private void DrawSeries(DrawingContext context, double width, double height, long now,
@@ -40,14 +58,14 @@ public sealed class CpuChart : Control
         foreach (var sample in _samples)
         {
             var age = (now - sample.MonotonicTimestamp) / (double)Stopwatch.Frequency;
-            if (age > 120) continue;
+            if (age > RangeSeconds) continue;
             if ((interval && sample.IsGap) || value(sample) is not { } cpu)
             {
                 previous = null;
                 continue;
             }
 
-            var point = new Point(width * (1 - age / 120), height * (1 - Math.Clamp(cpu, 0, 100) / 100));
+            var point = new Point(width * (1 - age / RangeSeconds), height * (1 - Math.Clamp(cpu, 0, 100) / 100));
             if (previous is { } start &&
                 (sample.MonotonicTimestamp - previousTime) / (double)Stopwatch.Frequency <= 2.5)
                 context.DrawLine(line, start, point);
