@@ -9,6 +9,7 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.Contains("--launchd-smoke")) return LaunchdSmoke().GetAwaiter().GetResult();
         if (args.Contains("--history-benchmark")) return HistoryBenchmark.Run();
         if (args.Length == 3 && args[0] == "--measure-process" && int.TryParse(args[1], out var pid) &&
             int.TryParse(args[2], out var seconds) && pid > 1 && seconds is >= 1 and <= 300)
@@ -17,6 +18,16 @@ internal static class Program
         if (args.Contains("--presentation-benchmark")) return PresentationBenchmark.Run();
         if (args.Contains("--smoke")) return Smoke();
         return AppBuilder.Configure<App>().UsePlatformDetect().StartWithClassicDesktopLifetime(args);
+    }
+
+    private static async Task<int> LaunchdSmoke()
+    {
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
+        var snapshot = await new MacLaunchdReader().Read();
+        Console.WriteLine($"{snapshot.Context?.Display ?? "Context unavailable"}; jobs={snapshot.Jobs.Count}; " +
+            $"reported running={snapshot.Jobs.Count(job => job.ReportedPid is not null)}; lifetime matched={snapshot.Jobs.Count(job => job.ObservedIdentity is not null)}; " +
+            $"elapsed={System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds:F1} ms; error={snapshot.Error ?? "none"}");
+        return snapshot.Available ? 0 : 1;
     }
 
     private static int Smoke()
