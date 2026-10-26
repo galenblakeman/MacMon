@@ -19,9 +19,9 @@ public sealed class ResourceChartTests
     public void AxisTicksMatchResourceUnitsAndWinMonNetworkPrecision()
     {
         foreach (var metric in new[] { 0, 1, 4 })
-            Assert.That(ResourceCharts.AxisLabels(metric, 100), Is.EqualTo(new[] { "100%", "75%", "50%", "25%", "0%" }));
-        Assert.That(ResourceCharts.AxisLabels(2, 125000), Is.EqualTo(new[] { "1 Mbps", "750 Kbps", "500 Kbps", "250 Kbps", "0 Kbps" }));
-        Assert.That(ResourceCharts.AxisLabel(2, 154250), Is.EqualTo("1.23 Mbps"));
+            Assert.That(ResourceCharts.AxisLabels(metric, 100), Is.EqualTo(new[] { "100.0%", "75.0%", "50.0%", "25.0%", "0.0%" }));
+        Assert.That(ResourceCharts.AxisLabels(2, 125000), Is.EqualTo(new[] { "1.0 Mbps", "750.0 Kbps", "500.0 Kbps", "250.0 Kbps", "0.0 Kbps" }));
+        Assert.That(ResourceCharts.AxisLabel(2, 154250), Is.EqualTo("1.2 Mbps"));
         var sample = Samples()[0];
         foreach (var (bytes, bits) in new[] { (0d, 1e6), (187500d, 2e6), (312500d, 5e6), (2300000d, 20e6) })
         {

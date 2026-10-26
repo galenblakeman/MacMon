@@ -57,7 +57,7 @@ public sealed class LaunchdPresentationTests
         Assert.That(friendly.ProcessDescription, Does.Contain(app.Id.Label));
         Assert.That(rows[0].Cpu, Is.EqualTo("4.0%"));
         Assert.That(rows[0].Resident, Is.EqualTo("1.0 MiB"));
-        Assert.That(rows[0].Io, Is.EqualTo("2.00 MiB/s"));
+        Assert.That(rows[0].Io, Is.EqualTo("2.0 MiB/s"));
         Assert.That(rows[0].Trail.Values, Is.EqualTo(new double?[] { 1, 4, null, 4 }));
         foreach (var fresh in new[] { true, false })
         {

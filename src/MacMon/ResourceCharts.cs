@@ -51,11 +51,11 @@ public static class ResourceCharts
     public static string Scale(int metric, double maximum) => IsPercent(metric) ? "0–100%" : $"0–{(metric == 2 ? ResourceGaugeHistory.NetworkRate(maximum) : ResourceGaugeHistory.Rate(maximum))}";
     public static string AxisLabel(int metric, double value)
     {
-        if (IsPercent(metric)) return $"{value:0}%";
+        if (IsPercent(metric)) return $"{value:F1}%";
         if (metric != 2) return ResourceGaugeHistory.Rate(value);
         var bits = value * 8;
         var (number, unit) = bits >= 1e9 ? (bits / 1e9, "Gbps") : bits >= 1e6 ? (bits / 1e6, "Mbps") : (bits / 1e3, "Kbps");
-        return number.ToString(number < 10 ? "0.##" : number < 100 ? "0.#" : "0") + " " + unit;
+        return number.ToString("F1") + " " + unit;
     }
     public static string[] AxisLabels(int metric, double maximum, int divisions = 4) =>
         Enumerable.Range(0, divisions + 1).Select(i => AxisLabel(metric, maximum * (1 - i / (double)divisions))).ToArray();

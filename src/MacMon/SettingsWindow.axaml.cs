@@ -67,7 +67,6 @@ public sealed partial class SettingsWindow : Window
             PaletteChoice.SelectedItem = Appearance.DefaultPalette(theme);
             UpdatePreview();
         };
-        DefaultPalette.Click += (_, _) => PaletteChoice.SelectedItem = Appearance.DefaultPalette(ThemeChoice.SelectedItem as string);
         PaletteChoice.SelectionChanged += (_, _) => UpdatePreview();
         GaugeChoice.SelectionChanged += (_, _) => UpdatePreview();
         ActualThemeVariantChanged += (_, _) => UpdatePreview();
@@ -96,7 +95,7 @@ public sealed partial class SettingsWindow : Window
         PreviewCpu.Update(new(24, 67, 100, "24.0%", "0–100%"), UiText.Get("Speed unavailable"));
         PreviewMemory.Update(new(62, 72, 100, "62.0%", "0–100%"), "9.9 / 16.0 GiB");
         PreviewNetwork.Update(new(4.2 * 1048576, 8 * 1048576, 16 * 1048576, ResourceGaugeHistory.NetworkRate(4.2 * 1048576), "0–" + ResourceGaugeHistory.NetworkRate(16 * 1048576)), "↑ 800.0 Kbps");
-        PreviewStorage.Update(new(18, 32, 100, "18.0%", "0–100%"), "18 MiB/s");
+        PreviewStorage.Update(new(18, 32, 100, "18.0%", "0–100%"), "18.0 MiB/s");
         PreviewChart.RangeSeconds = PreviewActivity.RangeSeconds = 24;
         PreviewChart.Update(samples); PreviewActivity.Update(samples);
         UpdatePreview();

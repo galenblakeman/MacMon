@@ -221,7 +221,7 @@ public sealed partial class MainWindow : Window
         var r = sample.Resources;
         var usedMemory = (r.UsedMemoryBytes / 1073741824d)?.ToString("F1") ?? "—";
         string[] descriptions = [
-            r.CpuClockMhz is > 0 ? $"{r.CpuClockMhz.Value / 1000:F2} GHz" : "Speed unavailable",
+            r.CpuClockMhz is > 0 ? $"{r.CpuClockMhz.Value / 1000:F1} GHz" : "Speed unavailable",
             $"{usedMemory} / {GiB(r.TotalMemoryBytes)}\nPressure: {_source.Memory.Pressure} · compressed {GiB(_source.Memory.CompressedBytes)}",
             $"{r.NetworkName} · download\n↑ {ResourceGaugeHistory.NetworkRate(r.SendBytesPerSecond)}",
             $"{r.DiskName} · read + write\n{Rate(ResourceCharts.DiskRate(r, false))}",

@@ -48,6 +48,7 @@ public sealed class SettingsWindowTests
                     {
                         var text = input.GetVisualDescendants().OfType<TextBox>().First();
                         Assert.That(text.Bounds.Width, Is.GreaterThanOrEqualTo(40), input.Name);
+                        Assert.That(text.Text, Does.Match(@"^\d+[.,]\d$"), input.Name);
                     }
                 }
                 if (directory is not null) frame!.Save(Path.Combine(directory, $"settings-es-{section}.png"), PngBitmapEncoderOptions.Default);
@@ -91,8 +92,7 @@ public sealed class SettingsWindowTests
         Get<ComboBox>(window, "ThemeChoice").SelectedItem = "Candy";
         Assert.That(Get<ComboBox>(window, "PaletteChoice").SelectedItem, Is.EqualTo("Candy"));
         Get<ComboBox>(window, "PaletteChoice").SelectedItem = "Ocean";
-        Click(window, "DefaultPalette");
-        Assert.That(Get<ComboBox>(window, "PaletteChoice").SelectedItem, Is.EqualTo("Candy"));
+        Assert.That(window.FindControl<Button>("DefaultPalette"), Is.Null);
         Get<ComboBox>(window, "ThemeChoice").SelectedItem = "Crystal";
         Assert.That(Get<ComboBox>(window, "PaletteChoice").SelectedItem, Is.EqualTo("Cool Tech"));
         window.Close();
@@ -129,7 +129,6 @@ public sealed class SettingsWindowTests
                     Get<ComboBox>(window, "PaletteChoice").IsDropDownOpen = false;
                     Dispatcher.UIThread.RunJobs();
                 }
-                Click(window, "DefaultPalette");
                 Dispatcher.UIThread.RunJobs();
             }
         }

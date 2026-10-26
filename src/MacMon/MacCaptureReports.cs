@@ -36,8 +36,8 @@ public static class MacCaptureReports
         var rows = capture.Peak.Processes.OrderByDescending(process => sort == ProcessSort.Memory
             ? process.WorkingSetBytes ?? 0 : process.ObservedCpuPercent ?? -1).Take(20).ToArray();
         return OwnershipMarker + "\n" +
-            $"Rule: {capture.Rule.Metric} above {capture.Rule.Threshold.ToString(CultureInfo.InvariantCulture)} for {capture.Rule.Seconds} consecutive readings\n" +
-            $"Peak value: {capture.PeakValue.ToString("F2", CultureInfo.InvariantCulture)}\n" +
+            $"Rule: {capture.Rule.Metric} above {capture.Rule.Threshold.ToString("F1", CultureInfo.InvariantCulture)} for {capture.Rule.Seconds} consecutive readings\n" +
+            $"Peak value: {capture.PeakValue.ToString("F1", CultureInfo.InvariantCulture)}\n" +
             (capture.Process is { } process ? $"Triggering process: {Clean(process.Name)} · PID {process.ProcessId}\n" : "") +
             Text(capture.Peak, rows, "Top 20 observed processes at the peak; interval readings, without five-second averaging.");
     }
@@ -131,7 +131,7 @@ public static class MacCaptureReports
         foreach (var path in owned.OrderDescending(StringComparer.Ordinal).Skip(Math.Max(1, retain))) File.Delete(path);
     }
 
-    private static string Number(double? value) => value?.ToString("F2", CultureInfo.InvariantCulture) ?? "—";
+    private static string Number(double? value) => value?.ToString("F1", CultureInfo.InvariantCulture) ?? "—";
     private static string Clean(string value) => value.Replace('\r', ' ').Replace('\n', ' ').Replace('\t', ' ');
 }
 

@@ -26,11 +26,7 @@
           <StackPanel x:Name="AppearancePage" Spacing="14" IsVisible="False">
             <TextBlock Text="{local:Loc &quot;Appearance&quot;}" FontSize="21" FontWeight="SemiBold" />
             <Grid ColumnDefinitions="150,*" ColumnSpacing="12"><TextBlock Text="{local:Loc &quot;Theme&quot;}" Classes="label" VerticalAlignment="Center" /><ComboBox Grid.Column="1" x:Name="ThemeChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Theme&quot;}" /></Grid>
-            <Grid ColumnDefinitions="150,*" ColumnSpacing="12"><TextBlock Text="{local:Loc &quot;Chart palette&quot;}" Classes="label" VerticalAlignment="Top" Margin="0,5,0,0" />
-            <Grid Grid.Column="1" RowDefinitions="Auto,Auto" RowSpacing="6">
-              <ComboBox x:Name="PaletteChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Chart palette&quot;}" />
-              <Button Grid.Row="1" HorizontalAlignment="Left" x:Name="DefaultPalette" local:ButtonIcon.Kind="Live" Content="{local:Loc &quot;Use theme palette&quot;}" />
-            </Grid></Grid>
+            <Grid ColumnDefinitions="150,*" ColumnSpacing="12"><TextBlock Text="{local:Loc &quot;Chart palette&quot;}" Classes="label" VerticalAlignment="Center" /><ComboBox Grid.Column="1" x:Name="PaletteChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Chart palette&quot;}" /></Grid>
             <Grid ColumnDefinitions="150,*" ColumnSpacing="12"><TextBlock Text="{local:Loc &quot;Resource gauges&quot;}" Classes="label" VerticalAlignment="Center" /><ComboBox Grid.Column="1" x:Name="GaugeChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Resource gauge style&quot;}" /></Grid>
             <ThemeVariantScope x:Name="PreviewScope">
               <Border Background="{DynamicResource MacWindowBrush}" CornerRadius="10" Padding="14">

@@ -1127,3 +1127,26 @@ signing, ZIP integrity and checksum checks pass; native stderr is empty. The
 updated app is open with saved appearance preserved.
 Artifact: `MacMon-0.13.5-osx-arm64-dev.zip`, SHA-256:
 `0bbb8b50f5dc49e9f21ad8df88d49f020952756095b5078f1792a994d6300aa6`.
+
+
+## Consistent decimal precision and simpler Appearance — 0.13.6/build 29
+
+Measured values use one decimal place throughout the UI: adaptive table units
+(including bytes and zero), CPU GHz, chart axis labels, details, human-readable
+capture reports and numeric settings inputs. Counts and time-of-day/duration
+clocks retain their integer/clock formats; raw CSV retains source precision.
+Appearance removes Use theme palette and its handler. The palette dropdown now
+shares one centered row with its label, and changing themes continues to select
+the matching default palette. Tests verify automatic theme/palette selection,
+the removed action, one-decimal input rendering and numeric formats in both
+languages, including chart labels and adaptive-unit rounding.
+
+Validation: all 189 Mac tests and three release-workflow tests pass, with zero
+build warnings/errors and native collector/launchd smoke checks. The final
+preview-text correction also passes all 10 Settings tests and seven input/shell/
+toolbar layout tests. Native checks cover one-decimal gauges, chart axes, tables,
+numeric capture settings and Appearance without the reset button. Strict signing,
+ZIP integrity and checksum checks pass; native stderr is empty. MacMon is left
+open on Settings → Appearance with saved preferences preserved.
+Artifact: `MacMon-0.13.6-osx-arm64-dev.zip`, SHA-256:
+`5b655b228e37185eb5a3c062fef3c88c8385ba9755f24d99167801d85002eba5`.

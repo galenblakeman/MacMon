@@ -20,5 +20,5 @@ public static class ProcessDetails
             (grouped ? $"Observed members: {string.Join(", ", p.MemberIds)}\nResident sums may count shared pages repeatedly.\n" : "") +
             $"Executable: {(p.ImagePath.Length == 0 ? "Unavailable" : p.ImagePath)}\n— means unavailable.";
     }
-    private static string Number(double? value) => value?.ToString("F2", CultureInfo.InvariantCulture) ?? "—";
+    private static string Number(double? value) => value?.ToString("F1", CultureInfo.InvariantCulture) ?? "—";
 }

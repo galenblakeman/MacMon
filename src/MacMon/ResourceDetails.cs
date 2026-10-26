@@ -26,10 +26,10 @@ public static class ResourceDetails
                 rows.AddRange([
                     new("User CPU", total is { } t && system is { } k && k <= t ? Percent(t - k) : "—"),
                     new("System CPU", Percent(system)),
-                    new("Clock estimate", r?.CpuClockMhz is > 0 ? $"{r.CpuClockMhz / 1000:F2} GHz" : "—"),
+                    new("Clock estimate", r?.CpuClockMhz is > 0 ? $"{r.CpuClockMhz / 1000:F1} GHz" : "—"),
                     new("Logical cores", sample is not null && logicalCores > 0 ? logicalCores.ToString() : "—"),
                     new("Enumerated processes", r?.ProcessCount?.ToString() ?? "—"),
-                    new("Measured interval", sample?.IntervalSeconds is > 0 and <= 5 ? $"{sample.IntervalSeconds:F2} s" : "—")]);
+                    new("Measured interval", sample?.IntervalSeconds is > 0 and <= 5 ? $"{sample.IntervalSeconds:F1} s" : "—")]);
                 break;
             case ResourceMetric.Memory:
                 definition = "Physical usage is a macOS estimate. Available is its complement, not guaranteed allocatable RAM. Cached pages may be reclaimable. Pressure and compressed storage are live adapter metadata.";
@@ -81,5 +81,5 @@ public static class ResourceDetails
     private static string Percent(double? value) => PercentValue(value) is { } number ? $"{number:F1}%" : "—";
     private static string Rate(double? value) => value is { } number && double.IsFinite(number) && number >= 0 ? ResourceGaugeHistory.Rate(number) : "—";
     public static string Bytes(ulong? value) => value is not { } bytes ? "—" : bytes >= 1073741824 ? $"{bytes / 1073741824d:F1} GiB" :
-        bytes >= 1048576 ? $"{bytes / 1048576d:F1} MiB" : bytes >= 1024 ? $"{bytes / 1024d:F1} KiB" : $"{bytes} B";
+        bytes >= 1048576 ? $"{bytes / 1048576d:F1} MiB" : bytes >= 1024 ? $"{bytes / 1024d:F1} KiB" : $"{bytes:F1} B";
 }

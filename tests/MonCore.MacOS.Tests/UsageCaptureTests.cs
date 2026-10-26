@@ -29,8 +29,8 @@ public sealed class UsageCaptureTests
             Assert.That(rows[1].App.Lifetimes, Is.EqualTo(2));
             Assert.That(rows[1].App.Running, Is.Zero);
             Assert.That(rows[1].App.IoBytes, Is.EqualTo(2048));
-            Assert.That(rows[1].DiskIo, Is.EqualTo("2.00 KiB"));
-            Assert.That(UsagePresentation.Report(rows, ledger.Since), Does.Contain("2.00 KiB"));
+            Assert.That(rows[1].DiskIo, Is.EqualTo("2.0 KiB"));
+            Assert.That(UsagePresentation.Report(rows, ledger.Since), Does.Contain("2.0 KiB"));
             Assert.That(UsagePresentation.Rows(ledger, "/A", UsageSort.DiskIo), Has.Length.EqualTo(2));
         });
         ledger.Reset(DateTimeOffset.UtcNow);
@@ -65,9 +65,9 @@ public sealed class UsageCaptureTests
         var fired = rules.Observe(SampleGpu(4, 70)).Single();
         Assert.That(fired.PeakValue, Is.EqualTo(90));
         var report = MacCaptureReports.AutomaticText(fired);
-        Assert.That(report, Does.Contain("GPU Test GPU: 90.00%"));
-        Assert.That(report, Does.Contain("Primary disk disk0: read 1000.00 B/s"));
-        Assert.That(report, Does.Contain("Second disk disk2: read 3000.00 B/s"));
+        Assert.That(report, Does.Contain("GPU Test GPU: 90.0%"));
+        Assert.That(report, Does.Contain("Primary disk disk0: read 1000.0 B/s"));
+        Assert.That(report, Does.Contain("Second disk disk2: read 3000.0 B/s"));
         Assert.That(report, Does.Not.Contain("Data volume disk0"));
         Assert.That(MacCaptureOptions.SupportedMetrics, Does.Contain(CaptureMetric.Gpu));
     }

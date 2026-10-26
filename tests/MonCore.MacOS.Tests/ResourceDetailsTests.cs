@@ -61,7 +61,7 @@ public sealed class ResourceDetailsTests
         Assert.That(Row(model, "Pressure"), Is.EqualTo("Normal"));
         Assert.That(model.Definition, Does.Contain("not guaranteed allocatable").And.Contain("live adapter metadata"));
         model = ResourceDetails.Create(ResourceMetric.Memory, Sample(), new(null, null, 0, "Unavailable"), GaugeReading.Empty, 10);
-        Assert.That(Row(model, "Compressed storage"), Is.EqualTo("0 B"));
+        Assert.That(Row(model, "Compressed storage"), Is.EqualTo("0.0 B"));
         Assert.That(Row(model, "Pressure"), Is.EqualTo("—"));
     }
 

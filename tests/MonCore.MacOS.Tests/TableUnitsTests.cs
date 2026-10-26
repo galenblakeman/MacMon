@@ -8,13 +8,13 @@ namespace MonCore.MacOS.Tests;
 
 public sealed class TableUnitsTests
 {
-    [TestCase(0, "0 B", "0 B/s")]
-    [TestCase(512, "512 B", "512 B/s")]
-    [TestCase(1024, "1.0 KiB", "1.00 KiB/s")]
-    [TestCase(1536, "1.5 KiB", "1.50 KiB/s")]
-    [TestCase(1048576, "1.0 MiB", "1.00 MiB/s")]
-    [TestCase(1073741824, "1.0 GiB", "1.00 GiB/s")]
-    [TestCase(1099511627776, "1.0 TiB", "1.00 TiB/s")]
+    [TestCase(0, "0.0 B", "0.0 B/s")]
+    [TestCase(512, "512.0 B", "512.0 B/s")]
+    [TestCase(1024, "1.0 KiB", "1.0 KiB/s")]
+    [TestCase(1536, "1.5 KiB", "1.5 KiB/s")]
+    [TestCase(1048576, "1.0 MiB", "1.0 MiB/s")]
+    [TestCase(1073741824, "1.0 GiB", "1.0 GiB/s")]
+    [TestCase(1099511627776, "1.0 TiB", "1.0 TiB/s")]
     public void SelectsUnitsFromEachValuesMagnitude(double value, string memory, string rate)
     {
         using var culture = new CultureScope("en-US");
@@ -28,7 +28,7 @@ public sealed class TableUnitsTests
     {
         using var culture = new CultureScope("en-US");
         Assert.That(TableUnits.Memory(1048575), Is.EqualTo("1.0 MiB"));
-        Assert.That(TableUnits.IoRate(1048575), Is.EqualTo("1.00 MiB/s"));
+        Assert.That(TableUnits.IoRate(1048575), Is.EqualTo("1.0 MiB/s"));
         foreach (var value in new double?[] { null, -1, double.NaN, double.PositiveInfinity })
         {
             Assert.That(TableUnits.Memory(value), Is.EqualTo("—"));
@@ -37,7 +37,7 @@ public sealed class TableUnitsTests
         }
         using var spanish = new CultureScope("es-ES");
         Assert.That(TableUnits.Memory(1536), Is.EqualTo("1,5 KiB"));
-        Assert.That(TableUnits.IoRate(1536), Is.EqualTo("1,50 KiB/s"));
+        Assert.That(TableUnits.IoRate(1536), Is.EqualTo("1,5 KiB/s"));
     }
 
     [Test]
@@ -53,7 +53,7 @@ public sealed class TableUnitsTests
         var jobRow = LaunchdPresentation.Rows(snapshot, sample, true, "", 0, 0).Single();
         Assert.That(row.Resident, Is.EqualTo("2.0 GiB"));
         Assert.That(jobRow.Resident, Is.EqualTo(row.Resident));
-        Assert.That(row.Io, Is.EqualTo("512 B/s"));
+        Assert.That(row.Io, Is.EqualTo("512.0 B/s"));
         Assert.That(jobRow.Io, Is.EqualTo(row.Io));
         var missing = new ProcessRow(process with { WorkingSetBytes = null, IoBytesPerSecond = null });
         Assert.That(missing.Resident, Is.EqualTo("—")); Assert.That(missing.Io, Is.EqualTo("—"));

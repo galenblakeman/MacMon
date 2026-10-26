@@ -34,7 +34,7 @@
     <Style Selector="ComboBox"><Setter Property="VerticalContentAlignment" Value="Center" /><Setter Property="MinHeight" Value="28" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="6,3" /></Style>
     <Style Selector="TextBox"><Setter Property="VerticalContentAlignment" Value="Center" /><Setter Property="MinHeight" Value="28" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="6,3" /></Style>
     <Style Selector="TextBox[AcceptsReturn=True]"><Setter Property="VerticalContentAlignment" Value="Top" /></Style>
-    <Style Selector="NumericUpDown"><Setter Property="VerticalContentAlignment" Value="Center" /><Setter Property="MinHeight" Value="28" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="6,3" /></Style>
+    <Style Selector="NumericUpDown"><Setter Property="FormatString" Value="F1" /><Setter Property="VerticalContentAlignment" Value="Center" /><Setter Property="MinHeight" Value="28" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="6,3" /></Style>
     <Style Selector="ComboBoxItem"><Setter Property="VerticalContentAlignment" Value="Center" /></Style>
     <Style Selector="ComboBox.rankingChoice"><Setter Property="MinWidth" Value="0" /><Setter Property="Padding" Value="3,2" /></Style>
     <Style Selector="Button.titleAction, ToggleButton.titleAction"><Setter Property="chrome:WindowDecorationProperties.ElementRole" Value="User" /><Setter Property="Background" Value="Transparent" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="6,4" /></Style>
