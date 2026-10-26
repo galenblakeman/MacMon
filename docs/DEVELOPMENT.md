@@ -799,3 +799,14 @@ existing 884px window width. Returned to Processes/Live after inspection.
 Validation: 15 table/shell regression checks pass, zero build warnings/errors.
 Packaged resource/launchd smoke, strict signing and ZIP/checksum verification
 pass. Artifact: `MacMon-0.11.2-osx-arm64-dev.zip`, SHA-256: `4cdee8333579aff5acc35148d6484adc1a37a84c2ecbe9db4bc109ad0396f01a`.
+
+
+## Text-box input alignment — 0.11.3/build 16
+
+The shared TextBox style bottom-aligns content within its existing padding.
+Native inspection confirmed typed search text and the capture-folder field.
+The temporary search was cleared and Settings cancelled; the app remains open
+in Processes/Live. Twelve table/settings layout checks pass with zero build
+warnings/errors. Packaged resource/launchd smoke, strict signing and ZIP/checksum
+verification pass. Artifact: `MacMon-0.11.3-osx-arm64-dev.zip`, SHA-256:
+`0a88fc597fcfcf47bcb574d51fe26dc1a81fe2e308afadc2bf743d1daa9b9f7d`.
