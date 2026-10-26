@@ -763,3 +763,26 @@ with zero build warnings/errors. New checks cover permission denial/grant,
 shortcut conflicts, rollback after failed persistence, language draft/Save and
 binding lifetime across collection, Spanish minimum-size layout and readable
 numeric editors, GPU trigger gaps and hardware fields in capture reports.
+
+
+## Button icons and vertical alignment — 0.11.1/build 14
+
+Shared button styling centers content vertically for actions, toggles and chips.
+A vector-icon caption template decorates string content while retaining the
+original caption bindings and accessible names. It also preserves existing
+control-based title captions. Save/Cancel, folder actions, reset/default, copy,
+export, process actions, chart controls, grouping/time chips and sortable table
+headers all have icons. Icon strokes inherit the caption foreground; row pins
+use outline/filled geometry to preserve their state cue. Compact header icons
+and ellipsis keep narrow columns bounded.
+
+Validation: 164 Mac regression tests and three release-workflow tests pass,
+zero build warnings. The final control-content compatibility fix passes the
+focused alignment test and native package inspection. Alignment checks cover
+ordinary/disabled buttons, toggle/checked chips and existing title content,
+including live English/Spanish changes and dynamic captions. Native inspection
+confirmed the title bar, table headers, Settings and capture-folder actions.
+Strict ad-hoc signing, packaged resource/launchd smoke and ZIP integrity/checksum
+verification pass. The app is left open in Live mode with the existing settings.
+Artifact: `MacMon-0.11.1-osx-arm64-dev.zip`, SHA-256:
+`04e1e7af39ec6016a1b144a697f8473724821e01c31d74a9ebded275c5fca379`.
