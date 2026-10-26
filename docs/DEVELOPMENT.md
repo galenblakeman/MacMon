@@ -1060,3 +1060,27 @@ strict signing, ZIP integrity and checksum checks pass. The app is left open in
 full Processes view with saved appearance preserved; native stderr is empty.
 Artifact: `MacMon-0.13.2-osx-arm64-dev.zip`, SHA-256:
 `363ef200ec239bdef1fb7b91830dd475629d8e8cbacfc001e7a556ad3c5c0338`.
+
+
+## Consistent input alignment — 0.13.3/build 26
+
+Single-line text boxes now center both entered text and placeholders, matching
+dropdown selections. The previous bottom alignment placed search text four
+pixels below dropdown text in 28px toolbar controls. Numeric fields use the same
+12px font, symmetric padding and centered alignment. Multi-line details stay
+top-aligned for reading. Dropdowns already center their selected text correctly,
+including ranking choices and the palette's label and color swatches.
+
+Rendered layout regressions measure actual selected labels, TextPresenters and
+placeholders against their control centers at 28/32/40px heights in light/dark
+themes, and across every Settings section in English and Spanish.
+
+Validation: all 179 Mac tests and three release-workflow tests pass, with zero
+build warnings/errors and native collector/launchd smoke checks. Native visual
+checks cover Jobs search placeholders/entered text, Appearance dropdowns, numeric
+capture fields and the read-only save location. The existing icon test explicitly
+selects Processes so a saved Jobs/Usage tab cannot hide the buttons it inspects.
+Strict signing, ZIP integrity and checksum checks pass; native stderr is empty.
+The updated app is open with saved appearance and tab preferences preserved.
+Artifact: `MacMon-0.13.3-osx-arm64-dev.zip`, SHA-256:
+`c88899946d323b8be4f62b0c0d279a682521cac66df431452b9560402205c667`.

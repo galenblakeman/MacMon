@@ -17,6 +17,7 @@ public sealed class ButtonLayoutTests
     {
         var main = new MainWindow();
         main.FindControl<Grid>("MainLayout")!.IsVisible = true;
+        main.FindControl<TabControl>("DataTabs")!.SelectedIndex = 0;
         main.FindControl<CompactView>("CompactPanel")!.IsVisible = false;
         main.FindControl<WrapPanel>("ProcessActionsPanel")!.IsVisible = true;
         var shell = main.Content; main.Content = null;
