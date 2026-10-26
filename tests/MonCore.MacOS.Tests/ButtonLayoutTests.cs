@@ -17,12 +17,13 @@ public sealed class ButtonLayoutTests
     {
         var save = new Button { Name = "SaveSettings", Height = 44, [!Button.ContentProperty] = UiText.Bind("Save") };
         var chip = new RadioButton { Name = "Range30", Content = "30m", Classes = { "chip" }, IsChecked = true, Height = 36 };
+        var group = new RadioButton { Name = "GroupProcesses", Content = "Grouped", Classes = { "chip" }, GroupName = "Grouping", IsChecked = true, Height = 36 };
         var toggle = new ToggleButton { Name = "ShowProcessActions", Content = "Actions", Height = 42 };
         var disabled = new Button { Name = "CopyDetails", Content = "Copy details", IsEnabled = false, Height = 40 };
         var title = new Button { Name = "OpenInfo", Height = 38,
             Content = new TitleButtonContentExtension("Info", "Info").ProvideValue(null!) };
         var window = new Window { Width = 500, Height = 300,
-            Content = new StackPanel { Children = { save, chip, toggle, disabled, title } } };
+            Content = new StackPanel { Children = { save, chip, group, toggle, disabled, title } } };
         try
         {
             window.Show();
@@ -30,12 +31,13 @@ public sealed class ButtonLayoutTests
             {
                 UiText.Apply(language); Dispatcher.UIThread.RunJobs();
                 Assert.That(save.Content, Is.EqualTo(UiText.Get("Save")));
-                foreach (var button in new Button[] { save, chip, toggle, disabled, title })
+                foreach (var button in new Button[] { save, chip, group, toggle, disabled, title })
                 {
-                    var icon = button.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().Single(p => p.Data is not null);
+                    var icons = button.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().Where(p => p.Data is not null).ToArray();
+                    Assert.That(icons.Length, Is.EqualTo(button == chip || button == group ? 0 : 1), button.Name);
                     var text = button.GetVisualDescendants().OfType<TextBlock>().Single(t => !string.IsNullOrEmpty(t.Text));
                     Assert.That(button.VerticalContentAlignment, Is.EqualTo(VerticalAlignment.Center));
-                    foreach (var element in new Control[] { icon, text })
+                    foreach (var element in icons.Cast<Control>().Append(text))
                     {
                         var center = element.TranslatePoint(new Point(element.Bounds.Width / 2, element.Bounds.Height / 2), button)!.Value;
                         Assert.That(center.Y, Is.EqualTo(button.Bounds.Height / 2).Within(1), button.Name);

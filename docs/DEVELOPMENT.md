@@ -867,3 +867,14 @@ Native inspection confirms order and wording in full and compact views; returned
 to full Live mode. Packaged signing, resource/launchd smoke and ZIP/checksum
 verification pass. Artifact: `MacMon-0.11.6-osx-arm64-dev.zip`, SHA-256:
 `44ac97fabfe674d92be3764605173c3fcda0cd2feef6d88a2094f158d34a4051`.
+
+
+## Text-only time and grouping chips — 0.11.7/build 20
+
+Time-range and Individual/Grouped chips use plain captions, preserving centered
+text and selected-state styling. Other action buttons retain their icons.
+Five button/shell layout checks pass with zero build warnings; the alignment
+check covers both chip types in English/Spanish and checks their absence of
+icons. Native package inspection confirms the text-only chips. Signing,
+resource/launchd smoke and ZIP/checksum verification pass. The app is left open
+in Live mode. Artifact: `MacMon-0.11.7-osx-arm64-dev.zip`, SHA-256: `181e5b203507a6e44f2c55bb58042bea9bade63ffc74866051097f8630890a92`.
