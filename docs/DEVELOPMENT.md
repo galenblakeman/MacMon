@@ -918,3 +918,30 @@ launchd smoke, ZIP integrity and checksum verification pass.
 
 Artifact: `MacMon-0.12.0-osx-arm64-dev.zip`, SHA-256:
 `73e8ef940f06e7e365fbf54123955030a256e6f1ca1c08be06211a432cfc2849`.
+
+
+## Appearance dropdown crash — 0.12.1/build 22
+
+Reproduced the reported Settings / Appearance crash in both the packaged
+0.12.0 app and a rendered headless regression. Changing a palette while its
+dropdown was open replaced its item template. Avalonia cleared/recycled realized
+items, called the template with null, and `PalettePreview` passed that null into
+`UiText.Bind`, throwing an unhandled `ArgumentNullException` (`key`). Captured
+packaged stderr confirms the same stack as the failing regression.
+
+All eight settings item templates now return no control for a transient null
+item; real selections and localized labels are unchanged. The regression opens
+the actual dropdown popups and repeatedly changes every theme, palette and gauge
+style in one visible Settings window, renders each gauge style, and exercises
+Use theme palette. It failed before the fix and passes afterward.
+
+Validation: all 170 Mac tests pass (the exhaustive compact rendering matrix
+accounts for most of the 4.88-minute run), plus all three release-workflow tests;
+Release build has zero warnings/errors. Native 0.12.1 verification repeated the
+formerly crashing open-popup palette selection successfully, then changed theme
+and gauge style and used the theme-palette reset. Canceled the draft to preserve
+the user's saved appearance. Packaged native collector/launchd smoke, strict
+ad-hoc signature verification, ZIP integrity and SHA-256 verification pass.
+
+Artifact: `MacMon-0.12.1-osx-arm64-dev.zip`, SHA-256:
+`0a734705c0276b21d8ea091828de330fe37165114c4171531828bb810827c5de`.

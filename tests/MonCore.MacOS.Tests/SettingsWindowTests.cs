@@ -96,6 +96,45 @@ public sealed class SettingsWindowTests
         Assert.That(Get<ComboBox>(window, "PaletteChoice").SelectedItem, Is.EqualTo("Cool Tech"));
         window.Close();
     }
+    [AvaloniaTest]
+    public void AppearanceCanChangeRepeatedlyWhilePreviewIsVisible()
+    {
+        var window = Window();
+        try
+        {
+            window.Show();
+            foreach (var theme in Appearance.Themes)
+            {
+                Get<ComboBox>(window, "ThemeChoice").IsDropDownOpen = true;
+                Dispatcher.UIThread.RunJobs();
+                Get<ComboBox>(window, "ThemeChoice").SelectedItem = theme;
+                Dispatcher.UIThread.RunJobs();
+                Get<ComboBox>(window, "ThemeChoice").IsDropDownOpen = false;
+                foreach (var style in ResourceGauge.GaugeStyles)
+                {
+                    Get<ComboBox>(window, "GaugeChoice").IsDropDownOpen = true;
+                    Dispatcher.UIThread.RunJobs();
+                    Get<ComboBox>(window, "GaugeChoice").SelectedItem = style;
+                    Get<ComboBox>(window, "GaugeChoice").IsDropDownOpen = false;
+                    Dispatcher.UIThread.RunJobs();
+                    using var frame = window.CaptureRenderedFrame();
+                    Assert.That(frame, Is.Not.Null, $"{theme}/{style}");
+                }
+                foreach (var palette in Appearance.Palettes)
+                {
+                    Get<ComboBox>(window, "PaletteChoice").IsDropDownOpen = true;
+                    Dispatcher.UIThread.RunJobs();
+                    Get<ComboBox>(window, "PaletteChoice").SelectedItem = palette;
+                    Get<ComboBox>(window, "PaletteChoice").IsDropDownOpen = false;
+                    Dispatcher.UIThread.RunJobs();
+                }
+                Click(window, "DefaultPalette");
+                Dispatcher.UIThread.RunJobs();
+            }
+        }
+        finally { window.Close(); }
+    }
+
     private static SettingsWindow Window(Func<SettingsValues, Task<string?>>? save = null, int section = 1, bool writable = true) =>
         new(new MacPreferences(), [new MacNetworkChoice("", "Automatic"), new MacNetworkChoice("en1", "Wi-Fi")],
             section, writable, save ?? (_ => Task.FromResult<string?>(null)));

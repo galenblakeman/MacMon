@@ -23,13 +23,14 @@ public sealed partial class SettingsWindow : Window
         _save = save;
         InitializeComponent();
         LanguageChoice.ItemsSource = UiText.Languages;
-        LanguageChoice.ItemTemplate = new FuncDataTemplate<LanguageChoice>((choice, _) => UiText.Label(choice!.Label));
+        // Avalonia passes null while clearing/recycling dropdown containers.
+        LanguageChoice.ItemTemplate = new FuncDataTemplate<LanguageChoice>((choice, _) => choice is null ? null : UiText.Label(choice.Label));
         LanguageChoice.SelectedItem = UiText.Languages.First(c => c.Id == preferences.Language);
         StartupViewChoice.ItemsSource = new[] { "Last view", "Full view", "Compact view" };
-        StartupViewChoice.ItemTemplate = new FuncDataTemplate<string>((value, _) => UiText.Label(value!));
+        StartupViewChoice.ItemTemplate = new FuncDataTemplate<string>((value, _) => value is null ? null : UiText.Label(value));
         StartupViewChoice.SelectedIndex = preferences.StartupView switch { "Full" => 1, "Compact" => 2, _ => 0 };
         ShortcutChoice.ItemsSource = MacDesktopIntegration.Shortcuts;
-        ShortcutChoice.ItemTemplate = new FuncDataTemplate<ShortcutChoice>((choice, _) => UiText.Label(choice!.Label));
+        ShortcutChoice.ItemTemplate = new FuncDataTemplate<ShortcutChoice>((choice, _) => choice is null ? null : UiText.Label(choice.Label));
         ShortcutChoice.SelectedItem = MacDesktopIntegration.Shortcuts.First(c => c.Id == preferences.ShowShortcut);
         DefaultShortcut.Click += (_, _) => ShortcutChoice.SelectedItem = MacDesktopIntegration.Shortcuts[1];
         var loginStatus = MacDesktopIntegration.LoginStatus;
@@ -42,13 +43,13 @@ public sealed partial class SettingsWindow : Window
         TopmostSetting.IsChecked = preferences.AlwaysOnTop;
         KeepHistorySetting.IsChecked = preferences.KeepHistory;
         RangeChoice.SelectedIndex = preferences.HistoryRange;
-        ThemeChoice.ItemTemplate = new FuncDataTemplate<string>((theme, _) => UiText.Label(Appearance.ThemeLabel(theme!)));
+        ThemeChoice.ItemTemplate = new FuncDataTemplate<string>((theme, _) => theme is null ? null : UiText.Label(Appearance.ThemeLabel(theme)));
         ThemeChoice.ItemsSource = Appearance.Themes; ThemeChoice.SelectedItem = preferences.Theme;
         PaletteChoice.ItemsSource = Appearance.Palettes; PaletteChoice.SelectedItem = preferences.Palette;
-        GaugeChoice.ItemTemplate = new FuncDataTemplate<string>((style, _) => UiText.Label(ResourceGauge.StyleLabel(style!)));
+        GaugeChoice.ItemTemplate = new FuncDataTemplate<string>((style, _) => style is null ? null : UiText.Label(ResourceGauge.StyleLabel(style)));
         GaugeChoice.ItemsSource = ResourceGauge.GaugeStyles; GaugeChoice.SelectedItem = preferences.GaugeStyle;
-        NetworkChoice.ItemTemplate = new FuncDataTemplate<MacNetworkChoice>((choice, _) => UiText.Label(choice!.Name));
-        PrimaryDiskChoice.ItemTemplate = SecondaryDiskChoice.ItemTemplate = new FuncDataTemplate<MacDiskChoice>((choice, _) => UiText.Label(choice!.Name));
+        NetworkChoice.ItemTemplate = new FuncDataTemplate<MacNetworkChoice>((choice, _) => choice is null ? null : UiText.Label(choice.Name));
+        PrimaryDiskChoice.ItemTemplate = SecondaryDiskChoice.ItemTemplate = new FuncDataTemplate<MacDiskChoice>((choice, _) => choice is null ? null : UiText.Label(choice.Name));
         NetworkChoice.ItemsSource = networks;
         NetworkChoice.SelectedItem = networks.FirstOrDefault(network => network.Id == (preferences.NetworkId ?? ""));
         var availableDisks = disks ?? [];
@@ -119,7 +120,7 @@ public sealed partial class SettingsWindow : Window
         var palette = PaletteChoice.SelectedItem as string ?? "Classic";
         Appearance.SetThemeResources(PreviewScope.Resources, theme, dark);
         Appearance.SetPaletteResources(PreviewScope.Resources, palette, dark, theme);
-        PaletteChoice.ItemTemplate = new FuncDataTemplate<string>((choice, _) => PalettePreview(choice!, theme, dark));
+        PaletteChoice.ItemTemplate = new FuncDataTemplate<string>((choice, _) => choice is null ? null : PalettePreview(choice, theme, dark));
         PreviewScope.Resources["ResourceGaugeStyle"] = GaugeChoice.SelectedItem as string ?? "Bowl";
     }
     private static Control PalettePreview(string palette, string theme, bool dark)
