@@ -113,13 +113,14 @@ public sealed class CpuChart : Control
     public double Maximum(int metric) => _maxima[metric];
     private IBrush Brush(int metric) => metric switch { 0 => CpuBrush, 1 => MemoryBrush, 2 => NetworkBrush, 4 => GpuBrush, 5 => SecondDiskBrush, _ => StorageBrush };
     public ChartPanel[] Panels => ResourceCharts.Panels(new Size(Bounds.Width, Math.Max(0, Bounds.Height - 22)), VisibleMetrics, Mode, FocusMetric, LabelColumnWidth());
+    private const double LabelSize = 12;
     private double LabelColumnWidth()
     {
         var metrics = ResourceCharts.Metrics(VisibleMetrics);
         if (metrics.Length == 0) return 0;
         var labels = Mode == ResourceChartMode.Overlay
             ? ResourceCharts.AxisLabels(metrics[0], Maximum(metrics[0])).AsEnumerable()
-            : metrics.Select(i => UiText.Get(ResourceCharts.Names[i])).Concat(metrics.Select(i => ResourceCharts.AxisLabel(i, Maximum(i))));
+            : metrics.Select(i => UiText.Get(ResourceCharts.Names[i])).Concat(metrics.SelectMany(i => ResourceCharts.AxisLabels(i, Maximum(i))));
         return Math.Ceiling(labels.Select(text => Text(text, MarkerBrush).Width).DefaultIfEmpty(29).Max() + 10);
     }
     private double X(long time, Rect plot) => plot.X + plot.Width * (1 -
@@ -169,7 +170,7 @@ public sealed class CpuChart : Control
         if (_labels.TryGetValue((text, brush), out var formatted)) return formatted;
         if (_labels.Count >= 64) _labels.Clear();
         formatted = new(text, System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
-            new Typeface("Inter, Arial"), 11, brush);
+            new Typeface("Inter, Arial"), LabelSize, brush);
         _labels[(text, brush)] = formatted;
         return formatted;
     }
@@ -248,7 +249,7 @@ public sealed class CpuChart : Control
             for (var i = 0; i < labels.Length; i += step)
             {
                 var text = new FormattedText(labels[i], System.Globalization.CultureInfo.CurrentCulture,
-                    FlowDirection.LeftToRight, new Typeface("Inter, Arial"), 11, MarkerBrush);
+                    FlowDirection.LeftToRight, new Typeface("Inter, Arial"), LabelSize, MarkerBrush);
                 var x = plot.X + plot.Width * i / 4 - text.Width / 2;
                 context.DrawText(text, new(Math.Clamp(x, 0, Math.Max(0, Bounds.Width - text.Width)), Bounds.Height - 17));
             }

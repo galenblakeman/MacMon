@@ -51,6 +51,14 @@ public static class Appearance
             ("MacMutedBrush", f?.Muted ?? (dark ? "#9BAAB9" : "#4D5E70")), ("MacGridBrush", f?.Line ?? (dark ? "#394959" : "#CDD7E2")),
             ("MacGaugeTrackBrush", f?.Track ?? (dark ? "#394959" : "#CDD7E2")), ("MacMarkerBrush", f?.Text ?? (dark ? "#FFFFFF" : "#17222E"))];
         foreach (var (key, value) in values) resources[key] = new SolidColorBrush(Color.Parse(value));
+        var inactive = theme switch
+        {
+            "Candy" => "#4E3B51", "Copper" => "#FFF9F4", "Crystal" => "#E0EBF4", "Slate" => "#E6EFF4",
+            _ => f?.Muted ?? (dark ? "#9BAAB9" : "#4D5E70")
+        };
+        resources["MacInactiveTabBrush"] = new SolidColorBrush(EnsureContrast(Color.Parse(inactive),
+            [Color.Parse(f?.Header ?? (dark ? "#17222E" : "#FFFFFF")),
+             Color.Parse(f?.Surface ?? (dark ? "#0E1721" : "#EDF2F7"))], 4.5, dark));
     }
 
     public static double Contrast(Color left, Color right)

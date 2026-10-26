@@ -1222,3 +1222,23 @@ smoke checks pass, with zero build warnings/errors. Actual tooltip-popup tests
 confirm nonnegative content origins and no horizontal overflow with long values.
 Native Full/Compact checks confirm peak corners, centered gauges and rounded
 network scales. Signing and ZIP integrity pass; native stderr is empty.
+
+
+## Parity slice 3: chart and tab readability — 0.13.10/build 33
+
+Chart axis, resource, selected-reading and time labels use 12px text. Gutter
+measurement includes every tick, including intermediate network ticks that can
+be wider than the maximum label, in each chart mode and both languages.
+
+Inactive data tabs adapt WinMon's Candy, Copper, Crystal and Slate colors and
+use the finish's muted color elsewhere. Colors meet 4.5:1 contrast against both
+header and window surfaces. Selected tabs keep their existing underline and
+use the theme text color. Dynamic resources update when the appearance changes.
+Regression tests cover actual tab selection/foreground across every theme and
+12px gutter measurement across every chart mode in English and Spanish.
+
+Validation: all 201 Mac tests, three release-workflow tests and collector/launchd
+smoke checks pass with zero build warnings/errors. Rendered Candy, Copper,
+Crystal and Slate views retain readable tabs and the selection underline.
+Native 0.13.10 checks confirm larger chart labels; stderr is empty. Strict
+signing, ZIP integrity and SHA-256 verification pass.

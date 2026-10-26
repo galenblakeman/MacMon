@@ -70,6 +70,8 @@
     <Style Selector="Button.numericHeader"><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Right" /></Style>
     <Style Selector="ListBox.dataRows ListBoxItem"><Setter Property="BorderThickness" Value="0" /><Setter Property="Padding" Value="0" /><Setter Property="MinHeight" Value="42" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>
     <Style Selector="TabItem"><Setter Property="FontSize" Value="14" /><Setter Property="Padding" Value="10,6" /></Style>
+    <Style Selector="TabControl#DataTabs TabItem:not(:selected)"><Setter Property="Foreground" Value="{DynamicResource MacInactiveTabBrush}" /></Style>
+    <Style Selector="TabControl#DataTabs TabItem:selected"><Setter Property="Foreground" Value="{DynamicResource MacTextBrush}" /></Style>
     <Style Selector="TextBlock.label"><Setter Property="Foreground" Value="{DynamicResource MacMutedBrush}" /></Style>
     <Style Selector="TextBlock.cpuMetric"><Setter Property="Foreground" Value="{DynamicResource CpuText}" /></Style>
     <Style Selector="TextBlock.pinMetric"><Setter Property="Foreground" Value="{DynamicResource MemoryText}" /></Style>

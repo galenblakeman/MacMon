@@ -54,3 +54,10 @@ Settings navigation shapes additionally use `Preferences/SettingsWindow.cs`
 from that revision. Avalonia adaptation: `src/MacMon/ButtonIcon.cs`. Capture
 combines the shared frame with WinMon's filled 3px center dot. The existing MIT
 license is retained and packaged.
+
+
+MacMon 0.13.10 adapts inactive tab text colors from WinMon
+`6eb190908b03885fbf4ed5605add8f252bb2f135`,
+`Preferences/ThemeFinishes.cs` (`InactiveTabText`). MacMon checks contrast
+against its solid header/window surfaces and adjusts colors when necessary.
+The existing MIT license is retained.
