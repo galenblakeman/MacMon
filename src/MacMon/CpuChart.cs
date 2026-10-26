@@ -9,6 +9,8 @@ namespace MacMon;
 public sealed class CpuChart : Control
 {
     private IReadOnlyList<MonitorSample> _samples = [];
+    public IReadOnlyList<MacCaptureRecord> Captures { get; set; } = [];
+    public event Action<MacCaptureRecord>? CaptureSelected;
     public bool ShowActivity { get; set; }
     public double ActivityMaximum => Math.Max(1024, _samples.Where(sample => _samples.Count > 0 &&
         (_samples[^1].MonotonicTimestamp - sample.MonotonicTimestamp) / (double)Stopwatch.Frequency <= RangeSeconds)
@@ -23,6 +25,13 @@ public sealed class CpuChart : Control
     {
         base.OnPointerPressed(e);
         if (Bounds.Width <= 0 || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        if (_samples.Count > 0)
+        {
+            var x = e.GetPosition(this).X;
+            var marker = Captures.Where(capture => MarkerVisible(capture))
+                .FirstOrDefault(capture => Math.Abs(MarkerX(capture) - x) < 7 && e.GetPosition(this).Y < 14);
+            if (marker is not null) { CaptureSelected?.Invoke(marker); return; }
+        }
         if (HistoryInspection.Nearest(_samples, RangeSeconds, e.GetPosition(this).X / Bounds.Width) is { } sample)
             SampleSelected?.Invoke(sample);
     }
@@ -54,6 +63,17 @@ public sealed class CpuChart : Control
             DrawSeries(context, width, height, now, sample => sample.TotalCpuPercent, "#6DE3CB", true);
             DrawSeries(context, width, height, now, sample => sample.Resources.MemoryPercent, "#BD9AFF", false);
         }
+        foreach (var capture in Captures.Where(MarkerVisible))
+        {
+            var x = MarkerX(capture);
+            var geometry = new StreamGeometry();
+            using (var path = geometry.Open())
+            {
+                path.BeginFigure(new Point(x, 9), true);
+                path.LineTo(new Point(x - 5, 0)); path.LineTo(new Point(x + 5, 0)); path.EndFigure(true);
+            }
+            context.DrawGeometry(Brushes.White, null, geometry);
+        }
         if (SelectedTimestamp is { } selected)
         {
             var age = (now - selected) / (double)Stopwatch.Frequency;
@@ -62,6 +82,15 @@ public sealed class CpuChart : Control
                     new Point(width * (1 - age / RangeSeconds), height));
         }
     }
+
+    private bool MarkerVisible(MacCaptureRecord capture)
+    {
+        if (_samples.Count == 0 || ShowActivity != (capture.Metric == CaptureMetric.Network)) return false;
+        var age = (_samples[^1].MonotonicTimestamp - capture.Peak.MonotonicTimestamp) / (double)Stopwatch.Frequency;
+        return age >= 0 && age <= RangeSeconds;
+    }
+    private double MarkerX(MacCaptureRecord capture) => Bounds.Width * (1 -
+        (_samples[^1].MonotonicTimestamp - capture.Peak.MonotonicTimestamp) / (double)Stopwatch.Frequency / RangeSeconds);
 
     private void DrawSeries(DrawingContext context, double width, double height, long now,
         Func<MonitorSample, double?> value, string color, bool interval, double maximum = 100)

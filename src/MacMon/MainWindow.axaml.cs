@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.Platform.Storage;
+using Avalonia.Input.Platform;
 using MonCore.MacOS;
 using WinMon.Monitoring;
 
@@ -12,6 +14,13 @@ public sealed partial class MainWindow : Window
     private readonly MonitorSession _session;
     private readonly MacFrameSource _source = new();
     private Task? _sampling;
+    private readonly CaptureReportWriter _reportWriter;
+    private readonly List<MacCaptureRecord> _captures = [];
+    private MacCaptureOptions _captureOptions = MacCaptureOptions.Default;
+    private CaptureRules _captureRules = new([], TimeSpan.FromSeconds(60), Environment.ProcessorCount);
+    private bool _refreshingCaptures;
+    private bool _closing;
+    private bool _shutdownComplete;
     private ProcessSelection _selection = new(MacFrameSource.IdentityPolicy);
     private volatile Func<ProcessUsage, bool>? _retain;
     private bool _refreshingRows;
@@ -31,6 +40,35 @@ public sealed partial class MainWindow : Window
             () => new SamplingOptions(Retain: _retain),
             action => Dispatcher.UIThread.Post(action), identityPolicy: MacFrameSource.IdentityPolicy);
         _session.Recorded += Update;
+        _reportWriter = new CaptureReportWriter((record, error) => Dispatcher.UIThread.Post(() =>
+        {
+            if (_closing) return;
+            var index = _captures.FindIndex(capture => capture.Id == record.Id);
+            if (index >= 0) _captures[index] = record with { State = error is null ? "Saved" : "Failed" };
+            if (error is not null) _operationStatus = $"Capture report failed: {error}";
+            RefreshCaptures();
+        }));
+        _session.LiveSampleRecorded += ObserveCaptures;
+        ConfigureCaptures.Click += async (_, _) =>
+        {
+            var options = await new AutoCaptureWindow(_captureOptions).ShowDialog<MacCaptureOptions?>(this);
+            if (options is null) return;
+            _captureOptions = options.Normalized();
+            _captureRules = new(_captureOptions.Rules, TimeSpan.FromSeconds(_captureOptions.CooldownSeconds), Environment.ProcessorCount);
+            _operationStatus = _captureOptions.Enabled ? "Automatic captures enabled" : "Automatic captures disabled";
+        };
+        CapturesList.SelectionChanged += (_, _) =>
+        {
+            if (_refreshingCaptures) return;
+            if (CapturesList.SelectedItem is MacCaptureRecord record) SelectCapture(record);
+        };
+        OpenCaptureReport.Click += (_, _) => { if (CapturesList.SelectedItem is MacCaptureRecord record) OpenReport(record); };
+        CopyCapture.Click += async (_, _) => await CopySelectedCapture();
+        UsageSearch.TextChanged += (_, _) => UpdateUsage();
+        UsageSortBox.SelectionChanged += (_, _) => UpdateUsage();
+        ResetUsage.Click += (_, _) => { _session.Usage.Reset(DateTimeOffset.Now); UpdateUsage(); };
+        ExportUsage.Click += async (_, _) => await Export(CsvExportKind.UsageTotals);
+        DataTabs.SelectionChanged += (_, args) => { if (args.Source == DataTabs) { UpdateProcesses(); UpdateUsage(); } };
         NetworkAdapter.ItemsSource = new[] { new MacNetworkChoice("", "Automatic · active Ethernet/Wi-Fi") };
         NetworkAdapter.SelectedIndex = 0;
         NetworkAdapter.SelectionChanged += (_, _) =>
@@ -63,6 +101,8 @@ public sealed partial class MainWindow : Window
             UpdateRetention();
             UpdateProcesses();
         };
+        ActivityChart.CaptureSelected += SelectCapture;
+        Chart.CaptureSelected += SelectCapture;
         ActivityChart.SampleSelected += sample => { _inspection.Select(sample); Update(); };
         Chart.SampleSelected += sample => { _inspection.Select(sample); Update(); };
         CaptureMode.Click += (_, _) => { if (_session.Latest is { } sample) _inspection.Select(sample); Update(); };
@@ -76,7 +116,7 @@ public sealed partial class MainWindow : Window
         ExportResources.Click += async (_, _) => await Export(CsvExportKind.ResourceHistory);
         ExportProcesses.Click += async (_, _) => await Export(CsvExportKind.ProcessSamples);
         Opened += (_, _) => _sampling = _session.Run(_shutdown.Token);
-        Closed += OnClosed;
+        Closing += OnClosing;
     }
 
     private void Update()
@@ -118,6 +158,7 @@ public sealed partial class MainWindow : Window
             ? "Capture expired from retained history · return to Live or select another moment"
             : $"Captured {captured.Timestamp:yyyy-MM-dd HH:mm:ss zzz} · CPU {captured.TotalCpuPercent?.ToString("F1") ?? "—"}% · memory {GiB(captured.Resources.UsedMemoryBytes)} · network ↓ {Rate(captured.Resources.ReceiveBytesPerSecond)} ↑ {Rate(captured.Resources.SendBytesPerSecond)} · retained process observations";
         UpdateProcesses();
+        UpdateUsage();
         StatusLabel.Text = _session.Error is null
             ? $"Updated {sample.Timestamp:HH:mm:ss} · macOS {Environment.OSVersion.Version}"
             : "Some readings are unavailable · retrying…";
@@ -155,7 +196,7 @@ public sealed partial class MainWindow : Window
 
     private void UpdateProcesses()
     {
-        if (_session is null) return;
+        if (_session is null || DataTabs.SelectedIndex != 0) return;
         var display = TrailHistory();
         if (display.LastOrDefault() is not { } sample)
         {
@@ -218,9 +259,13 @@ public sealed partial class MainWindow : Window
     private async Task Export(CsvExportKind kind)
     {
         var samples = CsvExport.SelectSamples(_session.History.Samples, RangeSeconds).ToArray();
+        var apps = _session.Usage.Apps.ToArray();
+        var since = _session.Usage.Since;
+        var machine = _session.Usage.MachineBusyTicks;
+        var notAttributed = _session.Usage.NotAttributedCpuTicks;
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = kind == CsvExportKind.ResourceHistory ? "Export resource history" : "Export retained process samples",
+            Title = kind switch { CsvExportKind.ResourceHistory => "Export resource history", CsvExportKind.UsageTotals => "Export session usage totals", _ => "Export retained process samples" },
             SuggestedFileName = $"MacMon-{kind}-{DateTime.Now:yyyyMMdd-HHmmss}.csv",
             DefaultExtension = "csv",
             FileTypeChoices = [new FilePickerFileType("CSV") { Patterns = ["*.csv"] }]
@@ -230,8 +275,8 @@ public sealed partial class MainWindow : Window
         if (path is null) { _operationStatus = "Choose a local file for export."; return; }
         try
         {
-            await Task.Run(() => CsvExport.Write(path, kind, samples, [], DateTimeOffset.Now, 0, 0));
-            _operationStatus = $"Exported {samples.Length} retained samples to {path}";
+            await Task.Run(() => CsvExport.Write(path, kind, samples, apps, since, machine, notAttributed));
+            _operationStatus = kind == CsvExportKind.UsageTotals ? $"Exported session usage to {path}" : $"Exported {samples.Length} retained samples to {path}";
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         { _operationStatus = $"Export failed: {ex.Message}"; }
@@ -239,12 +284,86 @@ public sealed partial class MainWindow : Window
 
     private static string GiB(ulong? bytes) => bytes is { } value ? $"{value / 1073741824d:F1} GiB" : "—";
 
-    private async void OnClosed(object? sender, EventArgs args)
+    private void UpdateUsage()
     {
+        if (_session is null || DataTabs.SelectedIndex != 1) return;
+        UsageList.ItemsSource = UsagePresentation.Rows(_session.Usage, UsageSearch.Text ?? "", (UsageSort)Math.Max(0, UsageSortBox.SelectedIndex));
+        UsageStatus.Text = $"Live totals since {_session.Usage.Since:yyyy-MM-dd HH:mm:ss zzz} · un-attributed CPU {TimeSpan.FromTicks(_session.Usage.NotAttributedCpuTicks).TotalSeconds:F1} s\n" +
+            "Includes exited apps. Busy share uses observed machine CPU time. Missing intervals are excluded; disk I/O excludes network. Capture/chart range does not change these totals.";
+    }
+
+    private void ObserveCaptures(MonitorSample sample)
+    {
+        if (!_captureOptions.Enabled) return;
+        var firedCaptures = _captureRules.Observe(sample);
+        if (firedCaptures.Count == 0) return;
+        foreach (var fired in firedCaptures)
+        {
+            var record = MacCaptureReports.Create(fired, Path.Combine(MacPaths.AppSupport, "Captures"));
+            if (!_reportWriter.Enqueue(record, MacCaptureReports.AutomaticText(fired)))
+            {
+                record = record with { State = "Failed" };
+                _operationStatus = "Capture report queue is full; report could not be saved.";
+            }
+            _captures.Add(record);
+            if (_captures.Count > 200) _captures.RemoveAt(0);
+        }
+        RefreshCaptures();
+    }
+
+    private void RefreshCaptures()
+    {
+        var selected = (CapturesList.SelectedItem as MacCaptureRecord)?.Id;
+        _refreshingCaptures = true;
+        CapturesList.ItemsSource = _captures.AsEnumerable().Reverse().ToArray();
+        CapturesList.SelectedItem = _captures.FirstOrDefault(record => record.Id == selected);
+        _refreshingCaptures = false;
+        OpenCaptureReport.IsEnabled = CapturesList.SelectedItem is MacCaptureRecord { State: "Saved" };
+        Chart.Captures = ActivityChart.Captures = _captures.ToArray();
+    }
+
+    private void SelectCapture(MacCaptureRecord record)
+    {
+        var sample = _session.History.Samples.FirstOrDefault(record.Peak.Matches);
+        if (sample is not null) { _inspection.Select(sample); DataTabs.SelectedIndex = 0; Update(); }
+        else OpenReport(record);
+        OpenCaptureReport.IsEnabled = record.State == "Saved";
+    }
+
+    private void OpenReport(MacCaptureRecord record)
+    {
+        if (!File.Exists(record.ReportPath)) { _operationStatus = "Capture report is unavailable or still saving."; return; }
+        try { Process.Start(new ProcessStartInfo("/usr/bin/open") { UseShellExecute = false, ArgumentList = { record.ReportPath } }); }
+        catch (Exception ex) when (ex is IOException or System.ComponentModel.Win32Exception)
+        { _operationStatus = $"Could not open report: {ex.Message}"; }
+    }
+
+    private async Task CopySelectedCapture()
+    {
+        var sample = TrailHistory().LastOrDefault();
+        if (sample is null) { _operationStatus = "Selected capture has expired."; return; }
+        var rows = ProcessPresentation.Rows(TrailHistory(), sample, Grouped, Sort, ProcessSearchBox.Text ?? "",
+            _pins, PinnedOnly.IsChecked == true, _inspection.IsHistorical).Select(row => row.Process).ToArray();
+        var note = $"Displayed {(Grouped ? "grouped" : "individual")} rows: CPU and disk I/O averaged over five observed seconds; resident and threads are latest observations. Filter: {ProcessSearchBox.Text}";
+        var text = MacCaptureReports.Text(sample, rows, note);
+        if (Clipboard is { } clipboard) { await clipboard.SetTextAsync(text); _operationStatus = "Capture copied."; }
+    }
+
+    private async void OnClosing(object? sender, WindowClosingEventArgs args)
+    {
+        if (_shutdownComplete) return;
+        args.Cancel = true;
+        if (_closing) return;
+        _closing = true;
+        IsEnabled = false;
         _session.Close();
         _session.Recorded -= Update;
+        _session.LiveSampleRecorded -= ObserveCaptures;
         await _shutdown.CancelAsync();
         if (_sampling is not null) await _sampling;
+        await _reportWriter.Complete();
         _shutdown.Dispose();
+        _shutdownComplete = true;
+        Close();
     }
 }

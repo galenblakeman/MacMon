@@ -1,0 +1,34 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="MacMon.AutoCaptureWindow" Title="Automatic captures" Width="660" Height="460"
+        CanResize="False" WindowStartupLocation="CenterOwner" Background="#0E1721">
+  <Grid Margin="24" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="18">
+    <CheckBox x:Name="EnabledCapture" Content="Enable automatic captures" />
+    <TextBlock Grid.Row="1" Classes="label" TextWrapping="Wrap"
+               Text="Capture a peak after consecutive readings above a threshold. A rule must fall below its threshold before it can re-arm. Reports are saved locally; the newest 200 are kept." />
+    <Grid Grid.Row="2" ColumnDefinitions="*,120,110" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+      <TextBlock Text="Rule" Classes="label" />
+      <TextBlock Grid.Column="1" Text="Threshold" Classes="label" />
+      <TextBlock Grid.Column="2" Text="Duration (s)" Classes="label" />
+      <CheckBox Grid.Row="1" x:Name="CpuEnabled" Content="System CPU (%)" />
+      <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="CpuThreshold" Minimum="1" Maximum="100" />
+      <NumericUpDown Grid.Row="1" Grid.Column="2" x:Name="CpuSeconds" Minimum="1" Maximum="300" />
+      <CheckBox Grid.Row="2" x:Name="MemoryEnabled" Content="Memory usage estimate (%)" />
+      <NumericUpDown Grid.Row="2" Grid.Column="1" x:Name="MemoryThreshold" Minimum="1" Maximum="100" />
+      <NumericUpDown Grid.Row="2" Grid.Column="2" x:Name="MemorySeconds" Minimum="1" Maximum="300" />
+      <CheckBox Grid.Row="3" x:Name="NetworkEnabled" Content="Network · busier direction (Mbps)" />
+      <NumericUpDown Grid.Row="3" Grid.Column="1" x:Name="NetworkThreshold" Minimum="0.1" Maximum="100000" Increment="1" />
+      <NumericUpDown Grid.Row="3" Grid.Column="2" x:Name="NetworkSeconds" Minimum="1" Maximum="300" />
+      <CheckBox Grid.Row="4" x:Name="ProcessEnabled" Content="Any process CPU (% of one core)" />
+      <NumericUpDown Grid.Row="4" Grid.Column="1" x:Name="ProcessThreshold" Minimum="1" Maximum="25600" />
+      <NumericUpDown Grid.Row="4" Grid.Column="2" x:Name="ProcessSeconds" Minimum="1" Maximum="300" />
+    </Grid>
+    <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="12" VerticalAlignment="Top">
+      <TextBlock Text="Cooldown per rule (s)" VerticalAlignment="Center" Classes="label" />
+      <NumericUpDown x:Name="Cooldown" Minimum="1" Maximum="3600" Width="120" />
+    </StackPanel>
+    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12">
+      <Button x:Name="CancelChanges" Content="Cancel" />
+      <Button x:Name="SaveChanges" Content="Save" />
+    </StackPanel>
+  </Grid>
+</Window>

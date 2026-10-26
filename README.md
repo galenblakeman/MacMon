@@ -8,6 +8,10 @@ Network throughput follows the chosen interface (Automatic prefers an active Eth
 
 Click the chart or choose Capture to inspect retained process observations while recording and top readouts stay live. Choose 2, 10, 30 or 60 minutes to adjust the chart and retention limit; memory bounds can shorten retained history. Export resources or retained process samples as local CSV for the selected chart range. Historical samples can omit idle processes; pressure/compressed details stay live.
 
+The Usage tab totals observed CPU time and disk I/O by executable for this session, including exited apps. Search, sort, reset or export those totals independently of the chart range. Missing intervals are excluded.
+
+Automatic captures can watch system CPU, estimated memory usage, network throughput or any process’s CPU. Configure thresholds, duration and cooldown with **Automatic captures…**. A fired rule marks the peak on the chart and saves a local text report under `~/Library/Application Support/MacMon/Captures`; only the newest 200 MacMon-owned reports are kept. Choose a capture to inspect its retained peak or open its report after history expires. **Copy capture** copies the current resource summary and process rows with their averaging notes.
+
 Sampling, ranking, selection and bounded history run through MonCore. Baselines, failed readings and wake gaps appear as unavailable CPU readings instead of zero. macOS may deny access to some processes; the list reports unavailable readings and retries without requesting elevated privileges.
 
 Requires macOS, Python 3 for local-package normalization, and the .NET 10 SDK (validated with 10.0.401).
