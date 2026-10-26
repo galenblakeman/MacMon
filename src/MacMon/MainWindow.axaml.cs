@@ -9,6 +9,7 @@ public sealed partial class MainWindow : Window
 {
     private readonly CancellationTokenSource _shutdown = new();
     private readonly MonitorSession _session;
+    private readonly MacFrameSource _source = new();
     private Task? _sampling;
     private ProcessSelection _selection = new(MacFrameSource.IdentityPolicy);
     private volatile Func<ProcessUsage, bool>? _retain;
@@ -18,7 +19,7 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         MachineLabel.Text = $"{Environment.MachineName} · {Environment.ProcessorCount} logical cores";
-        _session = new MonitorSession(() => new MacFrameSource(),
+        _session = new MonitorSession(() => _source,
             () => new SamplingOptions(Retain: _retain),
             action => Dispatcher.UIThread.Post(action), identityPolicy: MacFrameSource.IdentityPolicy);
         _session.Recorded += Update;
@@ -44,6 +45,7 @@ public sealed partial class MainWindow : Window
             CpuValue.Text = MemoryValue.Text = DiskValue.Text = "—";
             KernelValue.Text = "Waiting for a fresh CPU interval…";
             DiskTotal.Text = "Capacity unavailable";
+            MemoryDetails.Text = "Memory readings unavailable";
             StatusLabel.Text = "Readings unavailable · retrying…";
             _refreshingRows = true;
             ProcessList.ItemsSource = Array.Empty<ProcessRow>();
@@ -57,7 +59,9 @@ public sealed partial class MainWindow : Window
         CpuValue.Text = sample.TotalCpuPercent is { } cpu ? $"{cpu:F1}%" : "—";
         KernelValue.Text = sample.Resources.CpuKernelPercent is { } kernel
             ? $"{kernel:F1}% system CPU" : "Waiting for a fresh CPU interval…";
-        MemoryValue.Text = GiB(sample.Resources.TotalMemoryBytes);
+        MemoryValue.Text = sample.Resources.MemoryPercent is { } percent ? $"{percent:F1}%" : "—";
+        MemoryDetails.Text = $"{GiB(sample.Resources.UsedMemoryBytes)} used / {GiB(sample.Resources.TotalMemoryBytes)} installed\n" +
+            $"Pressure: {_source.Memory.Pressure} · compressed {GiB(_source.Memory.CompressedBytes)}";
         DiskValue.Text = GiB(sample.Resources.DiskFreeBytes);
         DiskTotal.Text = $"of {GiB(sample.Resources.DiskTotalBytes)}";
         Chart.Update(_session.History.Samples);

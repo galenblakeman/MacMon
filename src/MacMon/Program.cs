@@ -28,7 +28,7 @@ internal static class Program
             var frame = source.Capture(new SamplingOptions());
             history.Add(frame.Full);
             Console.WriteLine($"{frame.Full.Timestamp:O} CPU={frame.Full.TotalCpuPercent?.ToString("F1") ?? "unavailable"} " +
-                              $"RAM={frame.Full.Resources.TotalMemoryBytes} " +
+                              $"RAM={frame.Full.Resources.TotalMemoryBytes} Used={frame.Full.Resources.UsedMemoryBytes} Pressure={source.Memory.Pressure} " +
                               $"VolumeFree={frame.Full.Resources.DiskFreeBytes} " +
                               $"Processes={frame.Full.Processes.Count} Unavailable={frame.Full.UnavailableProcesses} " +
                               $"SelfCpu={frame.Full.Processes.FirstOrDefault(p => p.ProcessId == Environment.ProcessId)?.ObservedCpuPercent} " +
@@ -38,7 +38,7 @@ internal static class Program
 
         var last = history.Latest!;
         return last.TotalCpuPercent is >= 0 and <= 100 && last.Resources.TotalMemoryBytes is > 0
-            && last.Resources.DiskFreeBytes is > 0 && last.Processes.Any(process =>
+            && last.Resources.MemoryPercent is >= 0 and <= 100 && last.Resources.DiskFreeBytes is > 0 && last.Processes.Any(process =>
                 process.ProcessId == Environment.ProcessId && process.ObservedCpuPercent is >= 0 and <= 100 &&
                 process.WorkingSetBytes is > 0 && process.ThreadCount is > 0) ? 0 : 1;
     }

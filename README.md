@@ -2,7 +2,7 @@
 
 macOS resource monitor built with C# and Avalonia, using WinMon's portable MonCore library.
 
-MacMon provides live system CPU usage, a two-minute CPU chart, installed physical RAM and available space on the data volume. The process list shows CPU averaged over five seconds, resident memory and thread counts. Search by name or PID, sort by CPU/memory/threads, and select a row to inspect its start time and executable path. Selection follows a process lifetime, so a reused PID cannot inherit it.
+MacMon provides live system CPU usage, a two-minute CPU/memory chart, estimated physical-memory usage, live memory pressure and available space on the data volume. The process list shows CPU averaged over five seconds, resident memory and thread counts. Search by name or PID, sort by CPU/memory/threads, and select a row to inspect its start time and executable path. Selection follows a process lifetime, so a reused PID cannot inherit it.
 
 Sampling, ranking, selection and bounded history run through MonCore. Baselines, failed readings and wake gaps appear as unavailable CPU readings instead of zero. macOS may deny access to some processes; the list reports unavailable readings and retries without requesting elevated privileges.
 
@@ -25,4 +25,4 @@ open artifacts/osx-arm64/MacMon.app
 
 The bundle is ad-hoc signed for development. Developer ID signing, notarization and distribution are future work. Intel packaging accepts `osx-x64`; it has not been validated on Intel hardware.
 
-Memory pressure/usage, network rates, GPU, launchd, process actions and saved history are not implemented yet. See [development notes](docs/DEVELOPMENT.md) for contracts, verification and remaining work.
+Network rates, GPU, launchd, process actions and saved history are not implemented yet. See [development notes](docs/DEVELOPMENT.md) for contracts, verification and remaining work.

@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace MonCore.MacOS;
 
-internal sealed partial class DarwinSystemReader : IMacSystemReader
+internal sealed unsafe partial class DarwinSystemReader : IMacSystemReader
 {
     private const string LibSystem = "/usr/lib/libSystem.B.dylib";
     private readonly uint _host;
@@ -47,8 +47,42 @@ internal sealed partial class DarwinSystemReader : IMacSystemReader
         }
 
         return new SystemObservation(timestamp, instant, cpu, _logicalProcessors,
-            memory, volumePath, free, total);
+            memory, volumePath, free, total) { Memory = ReadMemory(memory) };
     }
+
+    private MacMemorySnapshot ReadMemory(ulong? total)
+    {
+        // Request the stable rev1 prefix of vm_statistics64 (38 natural_t words).
+        uint count = 38;
+        VmStatistics64 statistics;
+        uint pageSize = 0;
+        var valid = HostStatistics64(_host, 4, out statistics, ref count) == 0 && count >= 38 &&
+                    HostPageSize(_host, out pageSize) == 0 && pageSize > 0;
+        nuint size = sizeof(uint);
+        var pressure = SysctlInt("kern.memorystatus_vm_pressure_level", out var level, ref size,
+            IntPtr.Zero, 0) == 0 && size == sizeof(uint) ? MacMemorySnapshot.PressureName(level) : "Unavailable";
+        if (!valid) return new(null, null, null, pressure);
+        return MacMemorySnapshot.FromPages(total, pageSize, statistics.Internal, statistics.Purgeable,
+            statistics.Wired, statistics.Compressor, statistics.External, pressure);
+    }
+
+    // mach/vm_statistics.h, rev1. Later SDK additions are intentionally not requested.
+    [StructLayout(LayoutKind.Sequential, Size = 152)]
+    private struct VmStatistics64
+    {
+        public uint Free, Active, Inactive, Wired;
+        public fixed ulong Counters[9];
+        public uint Purgeable, Speculative;
+        public fixed ulong CompressionCounters[4];
+        public uint Compressor, Throttled, External, Internal;
+        public ulong Uncompressed;
+    }
+
+    [LibraryImport(LibSystem, EntryPoint = "host_statistics64")]
+    private static partial int HostStatistics64(uint host, int flavor, out VmStatistics64 info, ref uint count);
+
+    [LibraryImport(LibSystem, EntryPoint = "host_page_size")]
+    private static partial int HostPageSize(uint host, out uint pageSize);
 
     public void Dispose()
     {

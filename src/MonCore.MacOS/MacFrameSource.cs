@@ -20,6 +20,9 @@ public sealed class MacFrameSource : IFrameSource
         _processReader = processReader;
     }
 
+    public MacMemorySnapshot Memory => Volatile.Read(ref _memory);
+    private MacMemorySnapshot _memory = new(null, null, null, "Unavailable");
+
     public static ProcessIdentityPolicy IdentityPolicy => ProcessIdentityPolicy.ExactPaths;
 
     public CollectorCapabilities Capabilities { get; } = new(
@@ -31,6 +34,7 @@ public sealed class MacFrameSource : IFrameSource
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var current = _reader.Read(options.PrimaryDrive ?? "/System/Volumes/Data");
+        Volatile.Write(ref _memory, current.Memory);
         var batch = _processReader?.Read() ?? new MacProcessBatch([], 0);
         var before = _previous;
         _previous = current;
@@ -98,6 +102,10 @@ public sealed class MacFrameSource : IFrameSource
             {
                 CpuKernelPercent = kernel,
                 TotalMemoryBytes = current.TotalMemoryBytes,
+                UsedMemoryBytes = current.Memory.UsedBytes,
+                AvailableMemoryBytes = current.Memory.UsedBytes is { } used && current.TotalMemoryBytes is { } totalMemory
+                    ? totalMemory - used : null,
+                CachedBytes = current.Memory.CachedBytes,
                 ProcessCount = batch.EnumerationAvailable ? checked((uint)(processes.Count + batch.UnavailableProcesses)) : null,
                 DiskName = current.VolumePath,
                 DiskFreeBytes = current.VolumeFreeBytes,
@@ -128,7 +136,10 @@ internal readonly record struct CpuCounters(uint User, uint System, uint Idle, u
 
 internal sealed record SystemObservation(
     DateTimeOffset Timestamp, long MonotonicTimestamp, CpuCounters? Cpu, int LogicalProcessors,
-    ulong? TotalMemoryBytes, string VolumePath, ulong? VolumeFreeBytes, ulong? VolumeTotalBytes);
+    ulong? TotalMemoryBytes, string VolumePath, ulong? VolumeFreeBytes, ulong? VolumeTotalBytes)
+{
+    public MacMemorySnapshot Memory { get; init; } = new(null, null, null, "Unavailable");
+}
 
 internal interface IMacSystemReader : IDisposable
 {

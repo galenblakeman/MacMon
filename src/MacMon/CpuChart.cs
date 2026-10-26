@@ -27,14 +27,21 @@ public sealed class CpuChart : Control
             context.DrawLine(gridPen, new Point(0, height * i / 4), new Point(width, height * i / 4));
         if (_samples.Count == 0) return;
         var now = _samples[^1].MonotonicTimestamp;
-        var line = new Pen(new SolidColorBrush(Color.Parse("#6DE3CB")), 2);
+        DrawSeries(context, width, height, now, sample => sample.TotalCpuPercent, "#6DE3CB", true);
+        DrawSeries(context, width, height, now, sample => sample.Resources.MemoryPercent, "#BD9AFF", false);
+    }
+
+    private void DrawSeries(DrawingContext context, double width, double height, long now,
+        Func<MonitorSample, double?> value, string color, bool interval)
+    {
+        var line = new Pen(new SolidColorBrush(Color.Parse(color)), 2);
         Point? previous = null;
         long previousTime = 0;
         foreach (var sample in _samples)
         {
             var age = (now - sample.MonotonicTimestamp) / (double)Stopwatch.Frequency;
             if (age > 120) continue;
-            if (sample.IsGap || sample.TotalCpuPercent is not { } cpu)
+            if ((interval && sample.IsGap) || value(sample) is not { } cpu)
             {
                 previous = null;
                 continue;

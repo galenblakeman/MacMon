@@ -21,9 +21,9 @@
       </Border>
       <Border Grid.Column="1" Classes="card">
         <StackPanel Spacing="8">
-          <TextBlock Text="Installed memory" Classes="label" />
+          <TextBlock Text="Memory · physical usage estimate" Classes="label" />
           <TextBlock x:Name="MemoryValue" Text="—" FontSize="32" />
-          <TextBlock Text="Physical RAM" Classes="label" />
+          <TextBlock x:Name="MemoryDetails" Text="Reading memory…" Classes="label" TextWrapping="Wrap" />
         </StackPanel>
       </Border>
       <Border Grid.Column="2" Classes="card">
@@ -37,12 +37,12 @@
     <Border Grid.Row="2" Classes="card">
       <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
         <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="CPU history" FontSize="18" FontWeight="SemiBold" />
+          <TextBlock Text="CPU and memory history" FontSize="18" FontWeight="SemiBold" />
           <TextBlock Grid.Column="1" Text="0–100%" Classes="label" />
         </Grid>
         <local:CpuChart Grid.Row="1" x:Name="Chart" />
         <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
-          <TextBlock Text="Last 2 minutes · one sample per second" Classes="label" />
+          <TextBlock Text="Last 2 minutes · CPU teal · memory purple" Classes="label" />
           <TextBlock Grid.Column="1" Text="Live" Foreground="#6DE3CB" />
         </Grid>
       </Grid>

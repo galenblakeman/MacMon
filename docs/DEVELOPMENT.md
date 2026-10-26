@@ -29,7 +29,7 @@ The old Windows restart format is unchanged. Saving portable domains, timestamps
 
 ## Native collection and app behavior
 
-The system reader uses `host_statistics(HOST_CPU_LOAD_INFO)` for cumulative CPU states, `sysctlbyname(hw.memsize)` for installed RAM and `hw.logicalcpu` for machine capacity. The host port is released on disposal. `DriveInfo` reads the configured volume's capacity, defaulting to `/System/Volumes/Data`. Memory and disk capabilities currently provide capacity only, without pressure, used-memory estimates or disk activity.
+The system reader uses `host_statistics(HOST_CPU_LOAD_INFO)` for cumulative CPU states, `sysctlbyname(hw.memsize)` for installed RAM and `hw.logicalcpu` for machine capacity. The host port is released on disposal. `DriveInfo` reads the configured volume's capacity, defaulting to `/System/Volumes/Data`. Memory uses the stable rev1 `host_statistics64` layout and `host_page_size`. Estimated used physical bytes are `(internal - purgeable + wired + compressor) * pageSize`; cached bytes are `(external + purgeable) * pageSize`. Available bytes are the complement of this estimate, not a guarantee of immediately allocatable RAM. Invalid counters remain unavailable. The memory trace is recorded even on CPU-baseline frames. Compressed bytes describe physical compressor storage, not uncompressed logical pages. Live pressure reads `kern.memorystatus_vm_pressure_level`, whose [XNU sysctl handler](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/kern/kern_memorystatus_notify.c) returns dispatch flags 1/2/4 for Normal/Warning/Critical; denied or unknown values stay unavailable. Pressure and compressed details are live adapter metadata, not persisted shared metrics. Disk still provides capacity only.
 
 The process reader uses `proc_listpids`, `proc_pidinfo(PROC_PIDTASKALLINFO/PROC_PIDTBSDINFO)` and `proc_pidpath`. Native layouts match the SDK's `sys/proc_info.h`; tests assert the layout sizes and exercise real reads. Native CPU counters use Mach absolute ticks, as in [Apple's implementation](https://github.com/apple-oss-distributions/xnu/blob/main/osfmk/kern/bsd_kern.c). The adapter converts them through `mach_timebase_info` to nanoseconds, including Apple Silicon's non-unit timebase; an actual-workload test compares the result with .NET process CPU accounting. Enumerations retry instead of truncating. Each path lookup is followed by a start-identity recheck. Exited, denied and raced observations are counted separately from successful rows. Readable BSD identity can still produce a row with unavailable CPU/memory when task details are denied. No permission escalation is requested.
 
@@ -48,4 +48,20 @@ On October 25, 2026, Apple Silicon, macOS 26.6, .NET SDK 10.0.401:
 
 The repeatable core microbenchmark is `tools/MonCore.Performance`. For an existing local baseline package, pass `-p:MonCoreBenchmarkVersion=3.4.1`; the default is the current prerelease. It feeds 850 processes across six observations, warms the ranking path 1,000 times and measures seven batches of 500 operations. On this Mac, medians changed from 165.4 to 165.8 microseconds for grouped ranking and 13.7 to 12.1 microseconds for usage. Ranking allocations grew from 32,416 to 35,652 bytes per refresh for portable metadata; usage remained 32 bytes. These measurements do not replace WinMon's Windows UI/pixel/performance suite.
 
-Outstanding platform checks: Windows `Verify.ps1` including relevant smoke/performance and Store gates; Intel execution; actual sleep/wake and reboot behavior. Simulated clock/wake gaps are covered. Future features include memory pressure, network/I/O, GPU, launchd, process actions, Mac-specific persistence and signed/notarized distribution.
+Windows runtime, smoke, performance and Store checks were reported completed and passing by the maintainer on October 25, 2026.
+
+Outstanding platform checks: Intel execution; actual sleep/wake and reboot behavior. Simulated clock/wake gaps are covered. Future features include network/I/O, GPU, launchd, process actions, Mac-specific persistence and signed/notarized distribution.
+
+## Parity implementation progress
+
+Work proceeds in separately verified commits on `codex/winmon-parity-slices`.
+
+1. Memory usage/pressure: implemented. Release build has zero warnings; 30 collector tests and native smoke pass. Packaged Apple Silicon app visually checked for memory card wrapping, live pressure and separate CPU/memory traces.
+2. Grouped processes, pins and sparklines: next.
+3. History inspection and CSV export: pending.
+4. Network and disk activity: pending.
+5. Usage totals and automatic captures: pending.
+6. Process tools and preferences: pending.
+7. Portable persistence and distribution readiness: pending. Developer ID signing/notarization requires the maintainer's signing identity; Intel execution requires Intel hardware. Real sleep/wake and reboot checks remain outstanding.
+
+GPU and launchd require separate capability research. Windows runtime, smoke, performance and Store verification are complete per maintainer report; they do not need to be repeated for Mac-only UI/collector changes.
