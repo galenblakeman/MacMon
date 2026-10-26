@@ -29,6 +29,8 @@ public static class ResourceCharts
         ResourceGaugeHistory.RateMaximum(HistoryInspection.VisibleSamples(samples, rangeSeconds).Select(s => Value(s, metric) ?? 0).DefaultIfEmpty().Max());
     public static string Reading(MonitorSample sample, int metric) => Value(sample, metric) is not { } value ? "—" :
         metric < 2 ? $"{value:F1}%" : ResourceGaugeHistory.Rate(value);
+    public static string Describe(MonitorSample sample) => $"{sample.Timestamp:HH:mm:ss zzz} · " +
+        string.Join(" · ", Enumerable.Range(0, 4).Select(i => $"{Names[i]} {Reading(sample, i)}")) + (sample.IsGap ? " · interval gap" : "");
     public static string Scale(int metric, double maximum) => metric < 2 ? "0–100%" : $"0–{ResourceGaugeHistory.Rate(maximum)}";
     public static ChartPanel[] Panels(Size size, int mask, ResourceChartMode mode, int focus)
     {

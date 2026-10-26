@@ -8,6 +8,8 @@ public sealed partial class MainWindow
     private CheckBox[] MetricSwitches => [CpuVisible, MemoryVisible, NetworkVisible, StorageVisible];
     private void InitializeCharts()
     {
+        Chart.SampleHovered += _ => UpdateChartReadout();
+        Chart.LiveRequested += ReturnToLive;
         ChartModeBox.SelectionChanged += (_, _) => ApplyChartChoices();
         FocusMetricBox.SelectionChanged += (_, _) =>
         {
@@ -39,11 +41,33 @@ public sealed partial class MainWindow
         try { FocusMetricBox.SelectedIndex = Chart.FocusMetric; }
         finally { _restoringCharts = false; }
         FocusMetricBox.IsVisible = Chart.Mode == ResourceChartMode.Focus;
+        Chart.ClearHover();
         Chart.InvalidateVisual();
         UpdateChartLabels();
     }
+    private void UpdateChartReadout()
+    {
+        var hovered = Chart.HoveredSample;
+        var sample = hovered ?? TrailHistory().LastOrDefault();
+        var state = hovered is not null ? "Preview" : _inspection.IsHistorical ? "Captured" : "Live";
+        ChartReadout.Text = sample is null ? $"{state} · readings unavailable" : $"{state} · {ResourceCharts.Describe(sample)}";
+        LiveMode.Content = _inspection.IsHistorical ? "Return to Live" : "● Live";
+        LiveMode.IsEnabled = _inspection.IsHistorical;
+        CaptureMode.Content = _inspection.IsHistorical ? "Captured" : "Capture";
+        CaptureMode.IsEnabled = !_inspection.IsHistorical && _session.Latest is not null;
+        ToolTip.SetTip(LiveMode, "Return to current readings; sampling continues during capture inspection");
+        ToolTip.SetTip(CaptureMode, "Inspect the latest retained sample without pausing collection");
+    }
+    private void ReturnToLive()
+    {
+        if (!_historyOrigins.SameBoot(TrailHistory().LastOrDefault(), _session.LatestFull)) ClearSelection();
+        _inspection.Live();
+        Chart.ClearHover();
+        Update();
+    }
     private void UpdateChartLabels()
     {
+        UpdateChartReadout();
         for (var i = 0; i < 4; i++)
         {
             var label = $"{ResourceCharts.Names[i]} · {ResourceCharts.Scale(i, Chart.Maximum(i))}";

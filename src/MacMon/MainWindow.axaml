@@ -51,23 +51,25 @@
             <ComboBoxItem Content="2 minutes" /><ComboBoxItem Content="10 minutes" /><ComboBoxItem Content="30 minutes" /><ComboBoxItem Content="60 minutes" />
           </ComboBox>
         </Grid>
-        <Grid Grid.Row="1" RowDefinitions="Auto,*" RowSpacing="4">
-          <UniformGrid Columns="4">
+        <Grid Grid.Row="1" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="4">
+          <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
+            <Button x:Name="LiveMode" Content="Live" />
+            <Button Grid.Column="1" x:Name="CaptureMode" Content="Capture" />
+            <TextBlock Grid.Column="2" Text="← → inspect · Esc live" Classes="label" VerticalAlignment="Center" FontSize="12" TextWrapping="Wrap" />
+            <Button Grid.Column="3" x:Name="ExportResources" Content="Export resources" />
+            <Button Grid.Column="4" x:Name="ExportProcesses" Content="Export processes" />
+          </Grid>
+
+          <UniformGrid Grid.Row="1" Columns="4">
             <CheckBox x:Name="CpuVisible" Content="CPU · 0–100%" Foreground="{DynamicResource CpuText}" IsChecked="True" FontSize="11" />
             <CheckBox x:Name="MemoryVisible" Content="Memory · 0–100%" Foreground="{DynamicResource MemoryText}" IsChecked="True" FontSize="11" />
             <CheckBox x:Name="NetworkVisible" Content="Network · bytes/s" Foreground="{DynamicResource NetworkText}" IsChecked="True" FontSize="11" />
             <CheckBox x:Name="StorageVisible" Content="Storage · bytes/s" Foreground="{DynamicResource StorageText}" IsChecked="True" FontSize="11" />
           </UniformGrid>
-          <local:CpuChart Grid.Row="1" x:Name="Chart" Height="180" />
+          <TextBlock Grid.Row="2" x:Name="ChartReadout" Text="Live · waiting for readings" Classes="label" FontSize="11" TextWrapping="Wrap" MinHeight="18" />
+          <local:CpuChart Grid.Row="3" x:Name="Chart" Height="180" AutomationProperties.Name="Resource history" />
         </Grid>
         <StackPanel Grid.Row="2" Spacing="6">
-          <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
-            <Button x:Name="LiveMode" Content="Live" />
-            <Button Grid.Column="1" x:Name="CaptureMode" Content="Capture" />
-            <TextBlock Grid.Column="2" Text="Click the chart to inspect" Classes="label" VerticalAlignment="Center" FontSize="12" TextWrapping="Wrap" />
-            <Button Grid.Column="3" x:Name="ExportResources" Content="Export resources" />
-            <Button Grid.Column="4" x:Name="ExportProcesses" Content="Export processes" />
-          </Grid>
           <Expander Header="Automatic capture reports" HorizontalAlignment="Stretch" Padding="0">
           <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
             <Button x:Name="ConfigureCaptures" Content="Automatic captures…" />

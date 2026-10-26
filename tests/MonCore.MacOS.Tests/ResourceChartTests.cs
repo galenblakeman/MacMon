@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Input.Raw;
 using Avalonia.Headless;
 using Avalonia.Headless.NUnit;
 using Avalonia.Media.Imaging;
@@ -56,6 +58,86 @@ public sealed class ResourceChartTests
         Assert.That(invalid.ChartMode, Is.EqualTo(ResourceChartMode.Overlay));
         Assert.That(ResourceCharts.Panels(new(600, 180), 0, ResourceChartMode.Focus, 0), Is.Empty);
         Assert.That(ResourceCharts.Panels(new(600, 180), 12, ResourceChartMode.Focus, 0).Single().Metrics, Is.EqualTo(new[] { 2 }));
+    }
+
+    [Test]
+    public void KeyboardNavigationClampsToVisibleSamplesAndHandlesExpiredSelections()
+    {
+        var samples = Samples();
+        Assert.That(HistoryInspection.Navigate(samples, 10, null, -1), Is.SameAs(samples[^2]));
+        Assert.That(HistoryInspection.Navigate(samples, 10, null, int.MinValue), Is.SameAs(samples[110]));
+        Assert.That(HistoryInspection.Navigate(samples, 10, samples[0].MonotonicTimestamp, -1), Is.SameAs(samples[110]));
+        Assert.That(HistoryInspection.Navigate(samples, 10, samples[^1].MonotonicTimestamp, 1), Is.SameAs(samples[^1]));
+        Assert.That(HistoryInspection.Navigate([], 10, null, -1), Is.Null);
+    }
+
+    [AvaloniaTest]
+    public void PointerPreviewDoesNotCaptureAndKeyboardWorksInEveryLayout()
+    {
+        foreach (var mode in Enum.GetValues<ResourceChartMode>())
+        {
+            var samples = Samples();
+            var chart = new CpuChart { Mode = mode, FocusMetric = 2 };
+            chart.Update(samples);
+            MonitorSample? selected = null;
+            var live = 0;
+            chart.SampleSelected += sample => { selected = sample; chart.SelectedTimestamp = sample.MonotonicTimestamp; };
+            chart.LiveRequested += () => { live++; selected = null; chart.SelectedTimestamp = null; };
+            var window = new Window { Width = 720, Height = 220, Content = chart };
+            window.Show(); Dispatcher.UIThread.RunJobs();
+            var panel = ResourceCharts.Panels(chart.Bounds.Size, 15, mode, 2).Last();
+            var plot = ResourceCharts.Plot(panel);
+            var point = new Point(plot.X + plot.Width / 2, plot.Y + plot.Height / 2);
+            window.MouseMove(point);
+            Assert.That(chart.HoveredSample, Is.SameAs(samples[60]), mode.ToString());
+            Assert.That(selected, Is.Null, "Hover must not enter Capture mode");
+            Assert.That(ToolTip.GetTip(chart)?.ToString(), Does.Contain("CPU").And.Contain("Network").And.Contain("Storage"));
+            window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
+            Assert.That(selected, Is.SameAs(samples[60]));
+            Assert.That(chart.IsFocused, Is.True);
+            void Press(Key key)
+            {
+                window.KeyPress(key, RawInputModifiers.None, PhysicalKey.None, null);
+                window.KeyRelease(key, RawInputModifiers.None, PhysicalKey.None, null);
+            }
+            Press(Key.Right);
+            Assert.That(selected, Is.SameAs(samples[61]));
+            Assert.That(chart.HoveredSample, Is.Null);
+            Press(Key.Home); Assert.That(selected, Is.SameAs(samples[0]));
+            Press(Key.Left); Assert.That(selected, Is.SameAs(samples[0]));
+            Press(Key.End); Assert.That(selected, Is.SameAs(samples[^1]));
+            Press(Key.Right); Assert.That(selected, Is.SameAs(samples[^1]));
+            Press(Key.Escape); Assert.That(live, Is.EqualTo(1)); Assert.That(selected, Is.Null);
+            window.MouseMove(new Point(10, 2));
+            Assert.That(chart.HoveredSample, Is.Null, "Panel titles must not select data");
+            window.Close();
+        }
+    }
+
+    [AvaloniaTest]
+    public void CaptureMarkersUseTheirMetricPanelAndDisappearWithHiddenMetrics()
+    {
+        var samples = Samples();
+        var record = new MacCaptureRecord(Guid.NewGuid(), SampleKey.Of(samples[60]), CaptureMetric.Network, "network", "unused");
+        var chart = new CpuChart { Mode = ResourceChartMode.SmallMultiples, Captures = [record] };
+        chart.Update(samples);
+        var captures = 0; var selections = 0;
+        chart.CaptureSelected += capture => { Assert.That(capture, Is.SameAs(record)); captures++; };
+        chart.SampleSelected += _ => selections++;
+        var window = new Window { Width = 720, Height = 220, Content = chart };
+        window.Show(); Dispatcher.UIThread.RunJobs();
+        void ClickPanel(int mask, int index)
+        {
+            var plot = ResourceCharts.Plot(ResourceCharts.Panels(chart.Bounds.Size, mask, chart.Mode, 0)[index]);
+            var point = new Point(plot.X + plot.Width / 2, plot.Y + 3);
+            window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
+        }
+        ClickPanel(15, 2);
+        Assert.That(captures, Is.EqualTo(1)); Assert.That(selections, Is.Zero);
+        chart.VisibleMetrics = 3; chart.Update(samples);
+        ClickPanel(3, 0);
+        Assert.That(captures, Is.EqualTo(1)); Assert.That(selections, Is.EqualTo(1));
+        window.Close();
     }
 
     [AvaloniaTest]

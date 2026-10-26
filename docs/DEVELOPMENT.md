@@ -373,3 +373,18 @@ launchd smoke passed with zero warnings. Rendered all four modes in both themes
 with all/single/no metrics, missing observations and selected timestamps; inspected
 Small Multiples and Heatmap output. Scale/persistence tests include expired peaks,
 unknown settings, hidden focus and preservation through Settings edits.
+
+### UI parity slice 7 — chart inspection
+
+Hover previews a timestamp and all four supported readings, with a synchronized
+crosshair and tooltip; it does not enter Capture mode. Click selects retained
+history. The focusable chart exposes keyboard help and current capture details
+to accessibility clients. Left/Right navigate samples, Home/End select visible
+boundaries and Escape returns to Live. Navigation clamps when a selected sample
+expires or falls outside a changed range. Live/Capture controls are above the
+plot, with explicit state and a Return to Live action. Collection never pauses.
+
+Verification: 126 Mac tests, three release-workflow tests, zero warnings and
+native resource/launchd smoke passed. Real headless pointer/key input exercises
+all layouts, preview versus capture, focus, navigation limits, Escape, capture
+marker selection and hidden-metric marker suppression.

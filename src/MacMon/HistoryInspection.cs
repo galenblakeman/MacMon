@@ -27,6 +27,16 @@ public sealed class HistoryInspection
         return samples.Where(sample => (end - sample.MonotonicTimestamp) / (double)Stopwatch.Frequency <= rangeSeconds).ToArray();
     }
 
+    public static MonitorSample? Navigate(IReadOnlyList<MonitorSample> samples, int rangeSeconds, long? selected, int offset)
+    {
+        var visible = VisibleSamples(samples, rangeSeconds);
+        if (visible.Count == 0) return null;
+        var index = selected is { } time
+            ? Enumerable.Range(0, visible.Count).MinBy(i => Math.Abs((double)visible[i].MonotonicTimestamp - time))
+            : visible.Count - 1;
+        return visible[(int)Math.Clamp((long)index + offset, 0, visible.Count - 1)];
+    }
+
     public static MonitorSample? Nearest(IReadOnlyList<MonitorSample> samples, int rangeSeconds, double fraction)
     {
         if (samples.Count == 0 || !double.IsFinite(fraction)) return null;

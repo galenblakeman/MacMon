@@ -2,6 +2,9 @@ using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Input;
+using Avalonia.Automation;
+using Avalonia.Automation.Peers;
 using WinMon.Monitoring;
 
 namespace MacMon;
@@ -38,6 +41,54 @@ public sealed class CpuChart : Control
     public int RangeSeconds { get; set; } = 120;
     public long? SelectedTimestamp { get; set; }
     public event Action<MonitorSample>? SampleSelected;
+    public event Action<MonitorSample?>? SampleHovered;
+    public event Action? LiveRequested;
+    public MonitorSample? HoveredSample { get; private set; }
+    private Point? _hoverPoint;
+    public CpuChart()
+    {
+        Focusable = true;
+        AutomationProperties.SetName(this, "Resource history");
+        AutomationProperties.SetHelpText(this, "Left and Right inspect samples; Home and End select boundaries; Escape returns to Live. Hover previews readings; click captures a moment.");
+    }
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        base.OnPointerMoved(e);
+        _hoverPoint = e.GetPosition(this);
+        RefreshHover();
+    }
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        ClearHover();
+    }
+    public void ClearHover() { _hoverPoint = null; RefreshHover(); }
+    private void RefreshHover()
+    {
+        var plot = _hoverPoint is { } point ? Panels.Select(ResourceCharts.Plot).FirstOrDefault(p => p.Contains(point)) : default;
+        var sample = _hoverPoint is { } position && plot.Width > 0
+            ? HistoryInspection.Nearest(_samples, RangeSeconds, (position.X - plot.X) / plot.Width) : null;
+        HoveredSample = sample;
+        ToolTip.SetTip(this, sample is null ? null : ResourceCharts.Describe(sample));
+        SampleHovered?.Invoke(sample);
+        InvalidateVisual();
+    }
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.KeyModifiers != KeyModifiers.None) return;
+        if (e.Key == Key.Escape) { ClearHover(); LiveRequested?.Invoke(); e.Handled = true; return; }
+        var offset = e.Key switch { Key.Left => -1, Key.Right => 1, Key.Home => int.MinValue, Key.End => int.MaxValue, _ => 0 };
+        if (offset == 0 || Panels.Length == 0) return;
+        ClearHover();
+        if (HistoryInspection.Navigate(_samples, RangeSeconds, SelectedTimestamp, offset) is { } sample)
+        {
+            SampleSelected?.Invoke(sample);
+            AutomationProperties.SetName(this, $"Resource history. Captured {ResourceCharts.Describe(sample)}");
+        }
+        e.Handled = true;
+    }
+    protected override AutomationPeer OnCreateAutomationPeer() => new ControlAutomationPeer(this);
     public double Maximum(int metric) => _maxima[metric];
     private IBrush Brush(int metric) => metric switch { 0 => CpuBrush, 1 => MemoryBrush, 2 => NetworkBrush, _ => StorageBrush };
     private ChartPanel[] Panels => ResourceCharts.Panels(Bounds.Size, VisibleMetrics, Mode, FocusMetric);
@@ -53,14 +104,15 @@ public sealed class CpuChart : Control
     {
         base.OnPointerPressed(e);
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || _samples.Count == 0) return;
+        Focus();
         var point = e.GetPosition(this);
         foreach (var panel in Panels.Where(panel => ResourceCharts.Plot(panel).Contains(point)))
         {
             var plot = ResourceCharts.Plot(panel);
             var marker = Captures.FirstOrDefault(c => MarkerVisible(c, panel) && Math.Abs(X(c.Peak.MonotonicTimestamp, plot) - point.X) < 7 && point.Y - plot.Y < 14);
-            if (marker is not null) { CaptureSelected?.Invoke(marker); return; }
+            if (marker is not null) { CaptureSelected?.Invoke(marker); e.Handled = true; return; }
             if (HistoryInspection.Nearest(_samples, RangeSeconds, (point.X - plot.X) / plot.Width) is { } sample)
-                SampleSelected?.Invoke(sample);
+            { SampleSelected?.Invoke(sample); e.Handled = true; }
         }
     }
 
@@ -69,7 +121,10 @@ public sealed class CpuChart : Control
         _samples = samples;
         _visible = HistoryInspection.VisibleSamples(samples, RangeSeconds);
         _maxima = Enumerable.Range(0, 4).Select(i => ResourceCharts.Maximum(_visible, RangeSeconds, i)).ToArray();
-        InvalidateVisual();
+        var captured = _visible.FirstOrDefault(s => s.MonotonicTimestamp == SelectedTimestamp);
+        AutomationProperties.SetName(this, SelectedTimestamp is null ? "Resource history. Live" : captured is null
+            ? "Resource history. Captured sample is outside the visible range" : $"Resource history. Captured {ResourceCharts.Describe(captured)}");
+        RefreshHover();
     }
     private void Label(DrawingContext context, string text, Point point, IBrush brush) => context.DrawText(
         new FormattedText(text, System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
@@ -79,6 +134,7 @@ public sealed class CpuChart : Control
     {
         base.Render(context);
         if (Bounds.Width <= 0 || Bounds.Height <= 0) return;
+        context.DrawRectangle(Brushes.Transparent, null, new Rect(Bounds.Size));
         if (Panels.Length == 0) { Label(context, "Select a metric to display history", new(8, 8), MarkerBrush); return; }
         foreach (var panel in Panels)
         {
@@ -104,7 +160,7 @@ public sealed class CpuChart : Control
                     { path.BeginFigure(new(x, plot.Y + 9), true); path.LineTo(new(x - 5, plot.Y)); path.LineTo(new(x + 5, plot.Y)); path.EndFigure(true); }
                     context.DrawGeometry(MarkerBrush, null, geometry);
                 }
-                if (SelectedTimestamp is { } selected)
+                if ((HoveredSample?.MonotonicTimestamp ?? SelectedTimestamp) is { } selected)
                 {
                     var x = X(selected, plot);
                     if (x >= plot.X && x <= plot.Right) context.DrawLine(new Pen(MarkerBrush, 1), new(x, plot.Y), new(x, plot.Bottom));

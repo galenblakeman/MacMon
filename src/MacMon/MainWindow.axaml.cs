@@ -149,11 +149,7 @@ public sealed partial class MainWindow : Window
 
         Chart.SampleSelected += InspectSample;
         CaptureMode.Click += (_, _) => { if (_session.Latest is { } sample) InspectSample(sample); };
-        LiveMode.Click += (_, _) =>
-        {
-            if (!_historyOrigins.SameBoot(TrailHistory().LastOrDefault(), _session.LatestFull)) ClearSelection();
-            _inspection.Live(); Update();
-        };
+        LiveMode.Click += (_, _) => ReturnToLive();
         HistoryRange.SelectionChanged += (_, _) =>
         {
             _session.History.Resize(RangeSeconds);
