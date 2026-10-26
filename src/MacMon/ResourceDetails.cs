@@ -33,13 +33,13 @@ public static class ResourceDetails
             case ResourceMetric.Memory:
                 definition = "Physical usage is a macOS estimate. Available is its complement, not guaranteed allocatable RAM. Cached pages may be reclaimable. Pressure and compressed storage are live adapter metadata.";
                 rows.AddRange([
-                    new("Used physical", Bytes(r?.UsedMemoryBytes)), new("Installed", Bytes(r?.TotalMemoryBytes)),
+                    new("Used", Bytes(r?.UsedMemoryBytes)), new("Installed", Bytes(r?.TotalMemoryBytes)),
                     new("Available estimate", Bytes(r?.AvailableMemoryBytes)), new("Cached", Bytes(r?.CachedBytes)),
                     new("Compressed storage", Bytes(memory?.CompressedBytes)),
                     new("Pressure", memory?.Pressure is "Normal" or "Warning" or "Critical" ? memory.Pressure : "—")]);
                 break;
             case ResourceMetric.Network:
-                definition = "Throughput is receive + send on the selected interface, in bytes per second. The adaptive gauge scale is not link speed or percent utilization. A source change starts a new peak window.";
+                definition = "The main reading is download on the selected interface, in bits per second. Upload is shown separately. The adaptive gauge scale is not link speed or percent utilization. A source change starts a new peak window.";
                 rows.AddRange([
                     new("Interface", Text(r?.NetworkName)), new("Interface ID", Text(r?.NetworkId)),
                     new("Receive", Rate(r?.ReceiveBytesPerSecond)), new("Send", Rate(r?.SendBytesPerSecond))]);
@@ -55,9 +55,9 @@ public static class ResourceDetails
             default: throw new ArgumentOutOfRangeException(nameof(metric));
         }
         rows.Add(new("Peak · last 2 minutes", reading.Value is null ? "—" : metric is ResourceMetric.Cpu or ResourceMetric.Memory
-            ? Percent(reading.Peak) : Rate(reading.Peak)));
+            ? Percent(reading.Peak) : metric == ResourceMetric.Network ? ResourceGaugeHistory.NetworkRate(reading.Peak) : Rate(reading.Peak)));
         rows.Add(new("Gauge scale", reading.Value is null ? "—" : reading.Scale));
-        return new(metric == ResourceMetric.Cpu ? "CPU details" : $"{metric} details",
+        return new(metric == ResourceMetric.Cpu ? "CPU details" : metric == ResourceMetric.Storage ? "Disk details" : $"{metric} details",
             sample is null ? "Waiting for live readings…" : $"Live · updated {sample.Timestamp:HH:mm:ss zzz}", definition, rows);
     }
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "—" : value;

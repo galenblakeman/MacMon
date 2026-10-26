@@ -217,10 +217,10 @@ public sealed partial class MainWindow : Window
     {
         var r = sample.Resources;
         string[] descriptions = [
-            r.CpuKernelPercent is { } kernel ? $"Machine capacity · {kernel:F1}% system" : "Machine capacity · baseline pending",
-            $"{GiB(r.UsedMemoryBytes)} / {GiB(r.TotalMemoryBytes)} physical\nPressure: {_source.Memory.Pressure} · compressed {GiB(_source.Memory.CompressedBytes)}",
-            $"{r.NetworkName} · receive + send\n↓ {Rate(r.ReceiveBytesPerSecond)} · ↑ {Rate(r.SendBytesPerSecond)}",
-            $"All block drivers · read + write\nR {Rate(r.SecondaryDiskReadBytesPerSecond)} · W {Rate(r.SecondaryDiskWriteBytesPerSecond)}"];
+            r.CpuClockMhz is > 0 ? $"{r.CpuClockMhz.Value / 1000:F2} GHz" : "Speed unavailable",
+            $"{GiB(r.UsedMemoryBytes)} / {GiB(r.TotalMemoryBytes)}\nPressure: {_source.Memory.Pressure} · compressed {GiB(_source.Memory.CompressedBytes)}",
+            $"{r.NetworkName} · download\n↑ {ResourceGaugeHistory.NetworkRate(r.SendBytesPerSecond)}",
+            $"All block drivers · read + write\n{Rate(r.SecondaryDiskReadBytesPerSecond + r.SecondaryDiskWriteBytesPerSecond)} combined"];
         var gauges = VisibleGauges;
         for (var index = 0; index < gauges.Length; index++) gauges[index].Update(_gaugeHistory.Readings[index], descriptions[index]);
     }

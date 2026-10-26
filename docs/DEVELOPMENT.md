@@ -516,3 +516,50 @@ all series, Individual mode and always-on-top off were restored and verified on
 restart. The temporary test pin was removed. The final app is left open.
 Archive: `MacMon-0.9.0-osx-arm64-dev.zip`; SHA-256:
 `7873ac98fb7c7ed0fc184408eaea40baab12178a1c81f22170fb17f7276b7cfa`.
+
+## Readout and chart refinements — 0.9.1/build 11
+
+The title bar is 44px (previously 36px), with resolution-independent vector icons
+and explicit accessible action names in full and compact views. Compact height
+increases by the same 8px. Gauge checkboxes use their resource's text accent with
+a contrasting check mark; checkboxes and names share a centered heading row.
+Memory's main detail omits “physical”. Storage is labeled Disk throughout the
+visible shell, chart choices, tooltip title and settings preview. Disk details
+show combined read/write throughput. CPU details use a real CpuClockMhz reading
+when present, otherwise “Speed unavailable”; the present Mac collector does not
+supply clock speed. System CPU remains available in the resource tooltip.
+
+Network's main gauge and chart now use download alone, with upload separately
+below the gauge. Display units use decimal Kbps/Mbps/Gbps, matching WinMon;
+underlying samples, CSV and byte counters are unchanged. Missing upload no longer
+suppresses a known download reading. Peaks and adaptive scales follow download,
+and source changes still reset the peak window. Detailed receive/send rows retain
+their explicitly labeled byte-rate units.
+
+Clicking a chart opens its captured-reading tooltip immediately after pointer
+routing completes. Its reading and cursor stay fixed while the pointer moves;
+arrow keys change the capture and Escape returns to Live. Losing focus or
+detaching closes the tooltip. All chart layouts reserve a shared time axis with
+five sample-clock labels and aligned vertical grid lines. CPU and memory retain
+0–100% scales. Disk remains combined bytes/second: its native counters do not
+provide Windows-equivalent active-time percentage, and throughput is not relabeled
+as utilization.
+
+Hardware follow-up: a configurable second disk is feasible through per-device
+IOKit discovery, identity and counter baselines. The current collector aggregates
+all block drivers, so selecting an APFS volume would not isolate that volume's
+I/O or create a separate physical drive. CPU frequency and whole-device GPU usage
+need a separately validated collector with explicit capability/availability and
+hardware coverage; no model-derived frequency, nominal-frequency substitute or
+fabricated GPU utilization was added here.
+
+Verification: 144 Mac tests and three release-workflow tests passed, with zero
+build warnings, native resource/launchd smoke and both-theme chart/shell/gauge
+renders. New checks cover captured-tooltip opening/freeze/Escape, sample-clock
+axis labels and download-only network semantics. The ad-hoc arm64 package passed
+strict signing, packaged native smoke, ZIP integrity and checksum verification.
+Native inspection confirmed title height/icons, colored/aligned checks, revised
+readouts, time labels and click capture/arrow/Escape. Native popup pixels remain
+outside the automation screenshot surface; tooltip behavior is asserted in the
+headless UI tests. The user's current Focus CPU/30m/Processes preferences restored
+on package launch; the checked app is left open in Live mode.

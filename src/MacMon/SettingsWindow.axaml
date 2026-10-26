@@ -35,7 +35,7 @@
                       <local:ResourceGauge x:Name="PreviewCpu" Title="CPU" ReadoutSize="16" Fill="{DynamicResource CpuText}" />
                       <local:ResourceGauge Grid.Column="1" x:Name="PreviewMemory" Title="Memory" ReadoutSize="16" Fill="{DynamicResource MemoryText}" />
                       <local:ResourceGauge Grid.Column="2" x:Name="PreviewNetwork" Title="Network" ReadoutSize="16" Fill="{DynamicResource NetworkText}" />
-                      <local:ResourceGauge Grid.Column="3" x:Name="PreviewStorage" Title="Storage" ReadoutSize="16" Fill="{DynamicResource StorageText}" />
+                      <local:ResourceGauge Grid.Column="3" x:Name="PreviewStorage" Title="Disk" ReadoutSize="16" Fill="{DynamicResource StorageText}" />
                     </Grid>
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
                       <local:CpuChart x:Name="PreviewChart" Height="60" VisibleMetrics="3" />
@@ -57,7 +57,7 @@
             </ComboBox>
             <TextBlock Text="Network interface" Classes="label" />
             <ComboBox x:Name="NetworkChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Settings network interface" />
-            <TextBlock Classes="label" TextWrapping="Wrap" Text="Automatic prefers an active Ethernet or Wi-Fi interface. Storage activity covers all readable block-storage drivers. Unavailable readings remain unavailable." />
+            <TextBlock Classes="label" TextWrapping="Wrap" Text="Automatic prefers an active Ethernet or Wi-Fi interface. Disk activity covers all readable block-storage drivers. Unavailable readings remain unavailable." />
           </StackPanel>
           <StackPanel x:Name="CapturesPage" Spacing="14" IsVisible="False">
             <TextBlock Text="Automatic captures" FontSize="21" FontWeight="SemiBold" />

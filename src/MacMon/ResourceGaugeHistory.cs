@@ -23,7 +23,7 @@ public sealed class ResourceGaugeHistory
         if (now <= _last || (now - _last) / (double)Stopwatch.Frequency > 2.5) _samples.Clear();
         _last = now;
         var values = new[] { Valid(sample.TotalCpuPercent, 100), Valid(r.MemoryPercent, 100),
-            Total(r.ReceiveBytesPerSecond, r.SendBytesPerSecond), Total(r.SecondaryDiskReadBytesPerSecond, r.SecondaryDiskWriteBytesPerSecond) };
+            Valid(r.ReceiveBytesPerSecond), Total(r.SecondaryDiskReadBytesPerSecond, r.SecondaryDiskWriteBytesPerSecond) };
         // A baseline or source change starts a new activity interval, without retaining another device's peak.
         foreach (var old in _samples)
         {
@@ -39,8 +39,8 @@ public sealed class ResourceGaugeHistory
             if (values[index] is not { } value) return GaugeReading.Empty;
             var peak = _samples.Max(entry => entry.Values[index]) ?? value;
             var maximum = index < 2 ? 100 : RateMaximum(peak);
-            return new GaugeReading(value, peak, maximum, index < 2 ? $"{value:F1}%" : Rate(value),
-                index < 2 ? "0–100%" : $"0–{Rate(maximum)}");
+            return new GaugeReading(value, peak, maximum, index < 2 ? $"{value:F1}%" : index == 2 ? NetworkRate(value) : Rate(value),
+                index < 2 ? "0–100%" : $"0–{(index == 2 ? NetworkRate(maximum) : Rate(maximum))}");
         }).ToArray();
     }
     private static double? Valid(double? value, double maximum = double.MaxValue) =>
@@ -54,4 +54,6 @@ public sealed class ResourceGaugeHistory
     }
     public static string Rate(double? value) => value is not { } bytes ? "—" : bytes >= 1073741824 ? $"{bytes / 1073741824:F1} GiB/s" :
         bytes >= 1048576 ? $"{bytes / 1048576:F1} MiB/s" : $"{bytes / 1024:F1} KiB/s";
+    public static string NetworkRate(double? value) => value is not { } bytes || !double.IsFinite(bytes) || bytes < 0 ? "—" :
+        bytes >= 125000000 ? $"{bytes / 125000000:F1} Gbps" : bytes >= 125000 ? $"{bytes / 125000:F1} Mbps" : $"{bytes / 125:F1} Kbps";
 }

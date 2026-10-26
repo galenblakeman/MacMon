@@ -1,19 +1,19 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="using:MacMon" xmlns:chrome="using:Avalonia.Controls.Chrome" x:Class="MacMon.MainWindow" Title="MacMon" Width="1000" Height="900" MinWidth="800" MinHeight="760" ExtendClientAreaToDecorationsHint="True" ExtendClientAreaTitleBarHeightHint="36">
+        xmlns:local="using:MacMon" xmlns:chrome="using:Avalonia.Controls.Chrome" x:Class="MacMon.MainWindow" Title="MacMon" Width="1000" Height="900" MinWidth="800" MinHeight="760" ExtendClientAreaToDecorationsHint="True" ExtendClientAreaTitleBarHeightHint="44">
   <Grid>
     <local:CompactView x:Name="CompactPanel" IsVisible="False" />
     <Grid x:Name="MainLayout" Margin="20,0,20,8" RowSpacing="6">
       <Grid.RowDefinitions>
-        <RowDefinition Height="36" /><RowDefinition Height="1.15*" MinHeight="240" />
+        <RowDefinition Height="44" /><RowDefinition Height="1.15*" MinHeight="240" />
         <RowDefinition Height="6" /><RowDefinition Height="*" MinHeight="344" /><RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
       <Grid x:Name="TitleActions" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" ColumnSpacing="6" Background="Transparent" chrome:WindowDecorationProperties.ElementRole="TitleBar">
         <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,8,0">
           <TextBlock Text="MacMon" FontSize="14" FontWeight="SemiBold" /><TextBlock x:Name="VersionLabel" Classes="label" FontSize="11" VerticalAlignment="Center" />
         </StackPanel>
-        <Button Grid.Column="1" x:Name="OpenInfo" Content="ⓘ Info" Classes="titleAction" ToolTip.Tip="About MacMon and hardware information" />
-        <Button Grid.Column="2" x:Name="OpenSettings" Content="⚙ Settings" Classes="titleAction" ToolTip.Tip="Settings (⌘,)" />
-        <Button Grid.Column="3" x:Name="OpenExport" Content="↥ Export" Classes="titleAction">
+        <Button Grid.Column="1" x:Name="OpenInfo" Content="{local:TitleButtonContent Info, Info}" AutomationProperties.Name="Info" Classes="titleAction" ToolTip.Tip="About MacMon and hardware information" />
+        <Button Grid.Column="2" x:Name="OpenSettings" Content="{local:TitleButtonContent Settings, Settings}" AutomationProperties.Name="Settings" Classes="titleAction" ToolTip.Tip="Settings (⌘,)" />
+        <Button Grid.Column="3" x:Name="OpenExport" Content="{local:TitleButtonContent Export, Export}" AutomationProperties.Name="Export" Classes="titleAction">
           <Button.Flyout><Flyout Placement="Bottom">
             <StackPanel Spacing="6" MinWidth="210">
               <Button x:Name="ExportResources" Content="Resource history CSV…" HorizontalAlignment="Stretch" />
@@ -22,14 +22,14 @@
             </StackPanel>
           </Flyout></Button.Flyout>
         </Button>
-        <Button Grid.Column="5" x:Name="EnterCompactView" Content="▱ Compact view" Classes="titleAction" ToolTip.Tip="Compact view (⌘⇧M)" />
-        <ToggleButton Grid.Column="6" x:Name="AlwaysOnTop" Content="↟ Always on top" Classes="titleAction" ToolTip.Tip="Keep MacMon above other windows" />
+        <Button Grid.Column="5" x:Name="EnterCompactView" Content="{local:TitleButtonContent Compact, Compact view}" AutomationProperties.Name="Compact view" Classes="titleAction" ToolTip.Tip="Compact view (⌘⇧M)" />
+        <ToggleButton Grid.Column="6" x:Name="AlwaysOnTop" Content="{local:TitleButtonContent Pin, Always on top}" AutomationProperties.Name="Always on top" Classes="titleAction" ToolTip.Tip="Keep MacMon above other windows" />
       </Grid>
       <Grid Grid.Row="1" RowDefinitions="98,Auto,*" RowSpacing="8">
         <UniformGrid x:Name="ResourceCards" Columns="4">
           <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="0,0,12,0"><local:ResourceGauge x:Name="CpuGauge" Title="CPU" Fill="{DynamicResource CpuStroke}" TextAccent="{DynamicResource CpuText}" /></Border>
           <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="12,0"><local:ResourceGauge x:Name="MemoryGauge" Title="Memory" Fill="{DynamicResource MemoryStroke}" TextAccent="{DynamicResource MemoryText}" /></Border>
-          <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="12,0"><local:ResourceGauge x:Name="StorageGauge" Title="Storage" Fill="{DynamicResource StorageStroke}" TextAccent="{DynamicResource StorageText}" /></Border>
+          <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="12,0"><local:ResourceGauge x:Name="StorageGauge" Title="Disk" Fill="{DynamicResource StorageStroke}" TextAccent="{DynamicResource StorageText}" /></Border>
           <Border Padding="12,0,0,0"><local:ResourceGauge x:Name="NetworkGauge" Title="Network" Fill="{DynamicResource NetworkStroke}" TextAccent="{DynamicResource NetworkText}" /></Border>
         </UniformGrid>
         <Border Grid.Row="1" Classes="sectionHeader" Padding="0,5">

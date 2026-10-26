@@ -83,10 +83,10 @@ public sealed class ResourceDetailsTests
         var model = Snapshot(ResourceMetric.Network, partial);
         Assert.That(Row(model, "Receive"), Is.EqualTo("0.0 KiB/s"));
         Assert.That(Row(model, "Send"), Is.EqualTo("—"));
-        Assert.That(Row(model, "Current"), Is.EqualTo("—"));
-        Assert.That(Row(model, "Peak · last 2 minutes"), Is.EqualTo("—"));
+        Assert.That(Row(model, "Current"), Is.EqualTo("0.0 Kbps"));
+        Assert.That(Row(model, "Peak · last 2 minutes"), Is.EqualTo("0.0 Kbps"));
         Assert.That(model.Definition, Does.Contain("not link speed or percent utilization"));
-        Assert.That(Row(Snapshot(ResourceMetric.Network), "Current"), Is.EqualTo("3.0 KiB/s"));
+        Assert.That(Row(Snapshot(ResourceMetric.Network), "Current"), Is.EqualTo("8.2 Kbps"));
     }
 
     [Test]

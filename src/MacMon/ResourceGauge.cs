@@ -7,6 +7,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Interactivity;
 using Avalonia.Controls.Documents;
+using Avalonia.Controls.Templates;
 
 namespace MacMon;
 
@@ -35,6 +36,10 @@ public sealed class ResourceGauge : UserControl
     public string Title { get => GetValue(TitleProperty); set => SetValue(TitleProperty, value); }
     public CheckBox SeriesToggle { get; } = new() { IsChecked = true, FontSize = 14, MinHeight = 20, Padding = new Thickness(0) };
     private readonly TextBlock _name = new() { FontSize = 14 };
+    private readonly TextBlock _checkMark = new() { Text = "✓", FontSize = 12, FontWeight = FontWeight.Bold,
+        HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+    private readonly Border _checkBox = new() { Width = 15, Height = 15, CornerRadius = new(3), BorderThickness = new(1),
+        VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
     private readonly TextBlock _value = new() { FontWeight = FontWeight.SemiBold };
     private readonly TextBlock _scale = new() { Classes = { "label" }, FontSize = 10, VerticalAlignment = VerticalAlignment.Center };
     private readonly TextBlock _detail = new() { FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
@@ -48,6 +53,10 @@ public sealed class ResourceGauge : UserControl
     {
         Focusable = true;
         Height = 98;
+        SeriesToggle.Width = 20; SeriesToggle.Height = 20;
+        _checkBox.Child = _checkMark;
+        SeriesToggle.Template = new FuncControlTemplate<CheckBox>((_, _) => _checkBox);
+        SeriesToggle.IsCheckedChanged += (_, _) => RefreshCheck();
         _tip.FindControl<Button>("CloseDetails")!.IsVisible = false;
         ToolTip.SetShowDelay(this, 350);
         ToolTip.SetPlacement(this, PlacementMode.Bottom);
@@ -89,7 +98,8 @@ public sealed class ResourceGauge : UserControl
     private void Refresh()
     {
         Height = 98;
-        _name.Text = Title; SeriesToggle.Content = Title; SeriesToggle.Foreground = _name.Foreground = _value.Foreground = TextAccent ?? Fill;
+        _name.Text = Title; SeriesToggle.Foreground = _name.Foreground = _value.Foreground = TextAccent ?? Fill;
+        RefreshCheck();
         AutomationProperties.SetName(SeriesToggle, $"Show {Title} on chart");
         var number = _reading.Text; var unit = "";
         var space = number.LastIndexOf(' ');
@@ -102,7 +112,7 @@ public sealed class ResourceGauge : UserControl
         _scale.Text = _reading.Value is not null && _reading.Maximum != 100 ? _reading.Scale.Replace("0–", "") : "";
         _detail.Text = (Title is "Memory" or "CPU" ? _description.Split('\n').FirstOrDefault() : _description.Split('\n').LastOrDefault()) ?? "";
         if (Title == "CPU") _detail.Text = _detail.Text.Split(" · ").Last();
-        var peak = _reading.Peak is { } p ? (_reading.Scale == "0–100%" ? $"{p:F1}%" : ResourceGaugeHistory.Rate(p)) : "—";
+        var peak = _reading.Peak is { } p ? (_reading.Scale == "0–100%" ? $"{p:F1}%" : Title == "Network" ? ResourceGaugeHistory.NetworkRate(p) : ResourceGaugeHistory.Rate(p)) : "—";
         var accessible = $"{Title}: {_reading.Text}. {_description}. Scale {_reading.Scale}. Peak over the last two minutes: {peak}.";
         AutomationProperties.SetName(this, accessible);
         if (_detailsProvider is null) ToolTip.SetTip(this, accessible);
@@ -112,6 +122,14 @@ public sealed class ResourceGauge : UserControl
         LayoutReadout();
     }
     private string _layout = "";
+    private void RefreshCheck()
+    {
+        _checkBox.BorderBrush = TextAccent ?? Fill;
+        _checkBox.Background = SeriesToggle.IsChecked == true ? TextAccent ?? Fill : Brushes.Transparent;
+        _checkMark.IsVisible = SeriesToggle.IsChecked == true;
+        var color = (TextAccent ?? Fill) is ISolidColorBrush solid ? solid.Color : Colors.Teal;
+        _checkMark.Foreground = .2126 * color.R + .7152 * color.G + .0722 * color.B > 145 ? Brushes.Black : Brushes.White;
+    }
     private void LayoutReadout()
     {
         _scale.MaxWidth = Math.Max(40, Bounds.Width * .48);
@@ -128,7 +146,9 @@ public sealed class ResourceGauge : UserControl
         if (Content is Panel previous) Clear(previous);
         Content = null;
         var heading = new Grid { ColumnDefinitions = new("*,Auto"), ColumnSpacing = 4 };
-        heading.Children.Add(IsCompact ? _name : SeriesToggle);
+        _name.VerticalAlignment = VerticalAlignment.Center;
+        heading.Children.Add(IsCompact ? _name : new StackPanel { Orientation = Orientation.Horizontal,
+            VerticalAlignment = VerticalAlignment.Center, Spacing = 2, Children = { SeriesToggle, _name } });
         heading.Children.Add(_scale); Grid.SetColumn(_scale, 1);
         _marks.Width = double.NaN; _marks.Height = double.NaN; _marks.Margin = default;
         _value.Margin = default; _value.HorizontalAlignment = HorizontalAlignment.Left;

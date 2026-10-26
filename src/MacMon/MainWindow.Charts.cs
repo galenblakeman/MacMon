@@ -17,7 +17,7 @@ public sealed partial class MainWindow
     private static readonly ChartChoice[] ChartChoices = [new("Overlay", ResourceChartMode.Overlay),
         new("Small multiples", ResourceChartMode.SmallMultiples), new("Heatmap", ResourceChartMode.Heatmap),
         new("Focus · CPU", ResourceChartMode.Focus), new("Focus · Memory", ResourceChartMode.Focus, 1),
-        new("Focus · Storage", ResourceChartMode.Focus, 3), new("Focus · Network", ResourceChartMode.Focus, 2)];
+        new("Focus · Disk", ResourceChartMode.Focus, 3), new("Focus · Network", ResourceChartMode.Focus, 2)];
     private void InitializeCharts()
     {
         Chart.SampleHovered += _ => UpdateChartReadout();

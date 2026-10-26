@@ -50,6 +50,8 @@ public sealed class CpuChart : Control
         Focusable = true;
         AutomationProperties.SetName(this, "Resource history");
         AutomationProperties.SetHelpText(this, "Left and Right inspect samples; Home and End select boundaries; Escape returns to Live. Hover previews readings; click captures a moment.");
+        ToolTip.SetShowDelay(this, 100);
+        ToolTip.SetPlacement(this, PlacementMode.Pointer);
     }
     protected override void OnPointerMoved(PointerEventArgs e)
     {
@@ -69,8 +71,12 @@ public sealed class CpuChart : Control
         var sample = _hoverPoint is { } position && plot.Width > 0
             ? HistoryInspection.Nearest(_samples, RangeSeconds, (position.X - plot.X) / plot.Width) : null;
         HoveredSample = sample;
-        ToolTip.SetTip(this, sample is null ? null : ResourceCharts.Describe(sample) + "\nHistory scales: " +
+        var captured = _visible.FirstOrDefault(s => s.MonotonicTimestamp == SelectedTimestamp);
+        var tipSample = captured ?? sample;
+        ToolTip.SetTip(this, tipSample is null ? null : (captured is null ? "" : "Captured · ") + ResourceCharts.Describe(tipSample) + "\nHistory scales: " +
             string.Join(" · ", ResourceCharts.Metrics(VisibleMetrics).Select(i => $"{ResourceCharts.Names[i]} {ResourceCharts.Scale(i, Maximum(i))}")));
+        if (captured is not null && IsFocused) ToolTip.SetIsOpen(this, true);
+        else if (tipSample is null) ToolTip.SetIsOpen(this, false);
         SampleHovered?.Invoke(sample);
         InvalidateVisual();
     }
@@ -78,21 +84,26 @@ public sealed class CpuChart : Control
     {
         base.OnKeyDown(e);
         if (e.KeyModifiers != KeyModifiers.None) return;
-        if (e.Key == Key.Escape) { ClearHover(); LiveRequested?.Invoke(); e.Handled = true; return; }
+        if (e.Key == Key.Escape) { ClearHover(); LiveRequested?.Invoke(); ToolTip.SetIsOpen(this, false); e.Handled = true; return; }
         var offset = e.Key switch { Key.Left => -1, Key.Right => 1, Key.Home => int.MinValue, Key.End => int.MaxValue, _ => 0 };
         if (offset == 0 || Panels.Length == 0) return;
         ClearHover();
         if (HistoryInspection.Navigate(_samples, RangeSeconds, SelectedTimestamp, offset) is { } sample)
         {
             SampleSelected?.Invoke(sample);
+            RefreshHover();
             AutomationProperties.SetName(this, $"Resource history. Captured {ResourceCharts.Describe(sample)}");
         }
         e.Handled = true;
     }
     protected override AutomationPeer OnCreateAutomationPeer() => new ControlAutomationPeer(this);
+    protected override void OnLostFocus(FocusChangedEventArgs e)
+    { base.OnLostFocus(e); ToolTip.SetIsOpen(this, false); }
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    { ToolTip.SetIsOpen(this, false); base.OnDetachedFromVisualTree(e); }
     public double Maximum(int metric) => _maxima[metric];
     private IBrush Brush(int metric) => metric switch { 0 => CpuBrush, 1 => MemoryBrush, 2 => NetworkBrush, _ => StorageBrush };
-    private ChartPanel[] Panels => ResourceCharts.Panels(Bounds.Size, VisibleMetrics, Mode, FocusMetric);
+    private ChartPanel[] Panels => ResourceCharts.Panels(new Size(Bounds.Width, Math.Max(0, Bounds.Height - 22)), VisibleMetrics, Mode, FocusMetric);
     private double X(long time, Rect plot) => plot.X + plot.Width * (1 -
         (_samples[^1].MonotonicTimestamp - time) / (double)Stopwatch.Frequency / RangeSeconds);
     private static int CaptureMetricIndex(MacCaptureRecord capture) => capture.Metric switch
@@ -113,7 +124,15 @@ public sealed class CpuChart : Control
             var marker = Captures.FirstOrDefault(c => MarkerVisible(c, panel) && Math.Abs(X(c.Peak.MonotonicTimestamp, plot) - point.X) < 7 && point.Y - plot.Y < 14);
             if (marker is not null) { CaptureSelected?.Invoke(marker); e.Handled = true; return; }
             if (HistoryInspection.Nearest(_samples, RangeSeconds, (point.X - plot.X) / plot.Width) is { } sample)
-            { SampleSelected?.Invoke(sample); e.Handled = true; }
+            {
+                SampleSelected?.Invoke(sample); RefreshHover(); e.Handled = true;
+                // The tooltip service dismisses tips during pointer press routing.
+                // Reopen the captured reading after that input has completed.
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    if (SelectedTimestamp is not null && IsFocused) RefreshHover();
+                });
+            }
         }
     }
 
@@ -130,6 +149,9 @@ public sealed class CpuChart : Control
     private void Label(DrawingContext context, string text, Point point, IBrush brush) => context.DrawText(
         new FormattedText(text, System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
             new Typeface("Inter, Arial"), 11, brush), point);
+
+    public static string[] TimeLabels(DateTimeOffset end, int seconds) => Enumerable.Range(0, 5)
+        .Select(i => end.AddSeconds(-seconds * (1 - i / 4d)).ToString(seconds <= 600 ? "HH:mm:ss" : "HH:mm")).ToArray();
 
     public override void Render(DrawingContext context)
     {
@@ -151,6 +173,8 @@ public sealed class CpuChart : Control
             else if (panel.Metrics.Length == 1) Label(context, ResourceCharts.Names[metric], panel.Bounds.TopLeft + new Vector(5, 4), Brush(metric));
             for (var i = 0; i <= 4; i++) context.DrawLine(new Pen(GridBrush, 1),
                 new(plot.X, plot.Y + plot.Height * i / 4), new(plot.Right, plot.Y + plot.Height * i / 4));
+            for (var i = 0; i <= 4; i++) context.DrawLine(new Pen(GridBrush, 1),
+                new(plot.X + plot.Width * i / 4, plot.Y), new(plot.X + plot.Width * i / 4, plot.Bottom));
             if (_samples.Count == 0) continue;
             using (context.PushClip(plot))
             {
@@ -165,11 +189,23 @@ public sealed class CpuChart : Control
                     { path.BeginFigure(new(x, plot.Y + 9), true); path.LineTo(new(x - 5, plot.Y)); path.LineTo(new(x + 5, plot.Y)); path.EndFigure(true); }
                     context.DrawGeometry(MarkerBrush, null, geometry);
                 }
-                if ((HoveredSample?.MonotonicTimestamp ?? SelectedTimestamp) is { } selected)
+                if ((SelectedTimestamp ?? HoveredSample?.MonotonicTimestamp) is { } selected)
                 {
                     var x = X(selected, plot);
                     if (x >= plot.X && x <= plot.Right) context.DrawLine(new Pen(MarkerBrush, 1), new(x, plot.Y), new(x, plot.Bottom));
                 }
+            }
+        }
+        if (_samples.Count > 0)
+        {
+            var plot = ResourceCharts.Plot(Panels.Last());
+            var labels = TimeLabels(_samples[^1].Timestamp, RangeSeconds);
+            for (var i = 0; i < labels.Length; i++)
+            {
+                var text = new FormattedText(labels[i], System.Globalization.CultureInfo.CurrentCulture,
+                    FlowDirection.LeftToRight, new Typeface("Inter, Arial"), 11, MarkerBrush);
+                var x = plot.X + plot.Width * i / 4 - text.Width / 2;
+                context.DrawText(text, new(Math.Clamp(x, 0, Math.Max(0, Bounds.Width - text.Width)), Bounds.Height - 17));
             }
         }
     }

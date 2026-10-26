@@ -57,10 +57,10 @@ public sealed partial class SettingsWindow : Window
                 ReceiveBytesPerSecond = 4.2 * 1048576 - 100000 + Math.Sin((index - 24) * 0.4) * 1000000, SendBytesPerSecond = 100000,
                 SecondaryDiskReadBytesPerSecond = 18 * 1048576 - 1000000 + (index % 7 - 3) * 3000000, SecondaryDiskWriteBytesPerSecond = 1000000 }
         }).ToArray();
-        PreviewCpu.Update(new(24, 67, 100, "24.0%", "0–100%"), "Machine capacity");
-        PreviewMemory.Update(new(62, 72, 100, "62.0%", "0–100%"), "Physical usage");
-        PreviewNetwork.Update(new(4.2 * 1048576, 8 * 1048576, 16 * 1048576, "4.2 MiB/s", "0–16 MiB/s"), "Receive + send");
-        PreviewStorage.Update(new(18 * 1048576, 32 * 1048576, 64 * 1048576, "18 MiB/s", "0–64 MiB/s"), "Read + write");
+        PreviewCpu.Update(new(24, 67, 100, "24.0%", "0–100%"), "Speed unavailable");
+        PreviewMemory.Update(new(62, 72, 100, "62.0%", "0–100%"), "9.9 / 16.0 GiB");
+        PreviewNetwork.Update(new(4.2 * 1048576, 8 * 1048576, 16 * 1048576, ResourceGaugeHistory.NetworkRate(4.2 * 1048576), "0–" + ResourceGaugeHistory.NetworkRate(16 * 1048576)), "↑ 800.0 Kbps");
+        PreviewStorage.Update(new(18 * 1048576, 32 * 1048576, 64 * 1048576, "18 MiB/s", "0–64 MiB/s"), "18 MiB/s combined");
         PreviewChart.RangeSeconds = PreviewActivity.RangeSeconds = 24;
         PreviewChart.Update(samples); PreviewActivity.Update(samples);
         UpdatePreview();

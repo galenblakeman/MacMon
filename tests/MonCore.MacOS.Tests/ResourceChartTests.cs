@@ -39,7 +39,7 @@ public sealed class ResourceChartTests
         var oldPeak = samples[0] with { Resources = samples[0].Resources with { ReceiveBytesPerSecond = 1e9 } };
         Assert.That(ResourceCharts.Maximum([oldPeak, .. samples.Skip(1)], 10, 2), Is.LessThan(1e9));
         Assert.That(ResourceCharts.Value(samples[0] with { TotalCpuPercent = double.NaN }, 0), Is.Null);
-        Assert.That(ResourceCharts.Scale(2, 65536), Does.Contain("KiB/s").And.Not.Contain("%"));
+        Assert.That(ResourceCharts.Scale(2, 65536), Does.Contain("Kbps").And.Not.Contain("%"));
     }
 
     [Test]
@@ -85,16 +85,22 @@ public sealed class ResourceChartTests
             chart.LiveRequested += () => { live++; selected = null; chart.SelectedTimestamp = null; };
             var window = new Window { Width = 720, Height = 220, Content = chart };
             window.Show(); Dispatcher.UIThread.RunJobs();
-            var panel = ResourceCharts.Panels(chart.Bounds.Size, 15, mode, 2).Last();
+            var panel = ResourceCharts.Panels(new Size(chart.Bounds.Width, chart.Bounds.Height - 22), 15, mode, 2).Last();
             var plot = ResourceCharts.Plot(panel);
             var point = new Point(plot.X + plot.Width / 2, plot.Y + plot.Height / 2);
             window.MouseMove(point);
             Assert.That(chart.HoveredSample, Is.SameAs(samples[60]), mode.ToString());
             Assert.That(selected, Is.Null, "Hover must not enter Capture mode");
-            Assert.That(ToolTip.GetTip(chart)?.ToString(), Does.Contain("CPU").And.Contain("Network").And.Contain("Storage"));
+            Assert.That(ToolTip.GetTip(chart)?.ToString(), Does.Contain("CPU").And.Contain("Network").And.Contain("Disk"));
             window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
             Assert.That(selected, Is.SameAs(samples[60]));
             Assert.That(chart.IsFocused, Is.True);
+            Assert.That(ToolTip.GetIsOpen(chart), Is.True, "Click opens the captured reading immediately");
+            var capturedTip = ToolTip.GetTip(chart)?.ToString();
+            Assert.That(capturedTip, Does.StartWith("Captured · "));
+            window.MouseMove(new Point(plot.Right - 2, point.Y));
+            Assert.That(ToolTip.GetTip(chart)?.ToString(), Is.EqualTo(capturedTip), "Moving the pointer keeps the captured reading");
             void Press(Key key)
             {
                 window.KeyPress(key, RawInputModifiers.None, PhysicalKey.None, null);
@@ -108,10 +114,22 @@ public sealed class ResourceChartTests
             Press(Key.End); Assert.That(selected, Is.SameAs(samples[^1]));
             Press(Key.Right); Assert.That(selected, Is.SameAs(samples[^1]));
             Press(Key.Escape); Assert.That(live, Is.EqualTo(1)); Assert.That(selected, Is.Null);
+            Assert.That(ToolTip.GetIsOpen(chart), Is.False);
             window.MouseMove(new Point(-1, -1));
             Assert.That(chart.HoveredSample, Is.Null, "Leaving the chart clears preview");
             window.Close();
         }
+    }
+
+    [Test]
+    public void TimeAxisUsesTheSampleClockAndShowsTheWholeSelectedRange()
+    {
+        var end = DateTimeOffset.Parse("2026-10-26T12:00:00-05:00");
+        Assert.That(CpuChart.TimeLabels(end, 120), Is.EqualTo(new[] { "11:58:00", "11:58:30", "11:59:00", "11:59:30", "12:00:00" }));
+        Assert.That(CpuChart.TimeLabels(end, 3600).First(), Is.EqualTo("11:00"));
+        var sample = Samples()[0] with { Resources = Samples()[0].Resources with { ReceiveBytesPerSecond = 125000, SendBytesPerSecond = 9999999 } };
+        Assert.That(ResourceCharts.Value(sample, 2), Is.EqualTo(125000), "Upload must not inflate the download plot");
+        Assert.That(ResourceCharts.Reading(sample, 2), Is.EqualTo("1.0 Mbps"));
     }
 
     [AvaloniaTest]
@@ -128,7 +146,7 @@ public sealed class ResourceChartTests
         window.Show(); Dispatcher.UIThread.RunJobs();
         void ClickPanel(int mask, int index)
         {
-            var plot = ResourceCharts.Plot(ResourceCharts.Panels(chart.Bounds.Size, mask, chart.Mode, 0)[index]);
+            var plot = ResourceCharts.Plot(ResourceCharts.Panels(new Size(chart.Bounds.Width, chart.Bounds.Height - 22), mask, chart.Mode, 0)[index]);
             var point = new Point(plot.X + plot.Width / 2, plot.Y + 3);
             window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
         }
@@ -170,7 +188,7 @@ public sealed class ResourceChartTests
             Dispatcher.UIThread.RunJobs();
             using var frame = window.CaptureRenderedFrame();
             Assert.That(frame, Is.Not.Null);
-            foreach (var panel in ResourceCharts.Panels(chart.Bounds.Size, mask, mode, 2))
+            foreach (var panel in ResourceCharts.Panels(new Size(chart.Bounds.Width, chart.Bounds.Height - 22), mask, mode, 2))
             {
                 Assert.That(panel.Bounds.Right, Is.LessThanOrEqualTo(chart.Bounds.Width));
                 Assert.That(ResourceCharts.Plot(panel).Height, Is.GreaterThan(10));
