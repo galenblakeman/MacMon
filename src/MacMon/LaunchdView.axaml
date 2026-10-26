@@ -19,10 +19,14 @@
       </ListBox>
       <TextBlock x:Name="JobEmpty" Text="{local:Loc &quot;Choose Refresh to read loaded jobs.&quot;}" Classes="label" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" TextWrapping="Wrap" />
     </Grid>
-    <Border Grid.Row="3" Classes="actionBar"><Grid RowDefinitions="Auto,Auto" RowSpacing="4">
-      <TextBlock x:Name="JobScope" Text="{local:Loc &quot;Current bootstrap context · read only&quot;}" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" />
-      <WrapPanel Grid.Row="1"><Button x:Name="RefreshJobs" Content="{local:Loc &quot;↻ Refresh&quot;}" /><Button x:Name="JobDetails" Content="{local:Loc &quot;ⓘ Properties&quot;}" IsEnabled="False" /><Button x:Name="CopyJob" Content="{local:Loc &quot;Copy details&quot;}" IsEnabled="False" /></WrapPanel>
-    </Grid></Border>
+<Border Grid.Row="3" Classes="actionBar"><Grid ColumnDefinitions="4,*,Auto">
+                <Border Background="{DynamicResource CpuStroke}" CornerRadius="3,0,0,3" />
+                <local:ActionBarLayout Grid.Column="1" Margin="14,6,6,6">
+                  <StackPanel Spacing="2" VerticalAlignment="Center" Margin="0,0,12,0"><TextBlock x:Name="JobSelectionName" Text="{local:Loc &quot;Select a job&quot;}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="JobScope" Text="{local:Loc &quot;Current bootstrap context · read only&quot;}" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" /></StackPanel>
+                  <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" IsVisible="{Binding IsChecked, ElementName=ShowJobActions}"><Button x:Name="JobDetails" Content="{local:Loc &quot;Properties&quot;}" IsEnabled="False" /><Button x:Name="CopyJob" Content="{local:Loc &quot;Copy details&quot;}" IsEnabled="False" /><Border Classes="actionDivider" /><Button x:Name="RefreshJobs" Content="{local:Loc &quot;Refresh&quot;}" /></WrapPanel>
+                </local:ActionBarLayout>
+                <ToggleButton Grid.Column="2" x:Name="ShowJobActions" Content="⌄" IsChecked="True" Classes="actionCollapse" AutomationProperties.Name="{local:Loc &quot;Show or hide actions&quot;}" ToolTip.Tip="{local:Loc &quot;Show or hide actions&quot;}" />
+              </Grid></Border>
     <TextBlock x:Name="JobStatus" IsVisible="False" />
   </Grid>
 </UserControl>

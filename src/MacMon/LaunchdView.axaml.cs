@@ -37,6 +37,7 @@ public sealed partial class LaunchdView : UserControl
             else if (Inventory.IsStale) Rebuild();
         };
         _heartbeat.Start();
+        ShowJobActions.IsCheckedChanged += (_, _) => ShowJobActions.Content = ShowJobActions.IsChecked == true ? "⌄" : "⌃";
         RefreshJobs.Click += async (_, _) => await Refresh();
         JobSearch.TextChanged += (_, _) => Rebuild();
         JobFilter.SelectionChanged += (_, _) => Rebuild();
@@ -49,7 +50,9 @@ public sealed partial class LaunchdView : UserControl
             if (_updating) return;
             _selected = (JobList.SelectedItem as LaunchdRow)?.Job.Id;
             JobDetails.IsEnabled = CopyJob.IsEnabled = JobList.SelectedItem is LaunchdRow;
-            JobScope.Text = JobList.SelectedItem is LaunchdRow selected ? $"{selected.Name} · read only" : "Select a job · read only";
+            JobSelectionName.Text = (JobList.SelectedItem as LaunchdRow)?.Name ?? UiText.Get("Select a job");
+            ToolTip.SetTip(JobSelectionName, (JobList.SelectedItem as LaunchdRow)?.Label);
+            JobScope.Text = JobList.SelectedItem is LaunchdRow selected ? $"{selected.State} · {selected.ProcessDescription} · read only" : "Current bootstrap context · read only";
         };
         JobDetails.Click += async (_, _) =>
         {
@@ -125,6 +128,8 @@ public sealed partial class LaunchdView : UserControl
         finally { _updating = false; }
         if (scroller is not null && offset is { } position) scroller.Offset = position;
         JobDetails.IsEnabled = CopyJob.IsEnabled = JobList.SelectedItem is LaunchdRow;
+        JobSelectionName.Text = (JobList.SelectedItem as LaunchdRow)?.Name ?? UiText.Get("Select a job");
+        ToolTip.SetTip(JobSelectionName, (JobList.SelectedItem as LaunchdRow)?.Label);
         JobEmpty.IsVisible = rows.Count == 0;
         JobEmpty.Text = snapshot is not null ? "No loaded jobs match this view." : Inventory.Error is null
             ? "Waiting for loaded jobs…" : "Job inventory unavailable · choose Refresh to retry.";
@@ -136,7 +141,7 @@ public sealed partial class LaunchdView : UserControl
             : $"{(Inventory.IsStale ? "STALE · " : "")}{rows.Count} shown / {snapshot.Jobs.Count} loaded · {snapshot.Jobs.Count(job => job.ReportedPid is not null)} running at {snapshot.ObservedAt:HH:mm:ss zzz}. Not running ≠ disabled. Refreshes every 5s while visible; separate from Capture.";
         SummaryChanged?.Invoke(snapshot is null ? Inventory.Error ?? "Waiting for discovery" :
             $"{(Inventory.IsStale ? "STALE · " : "")}{rows.Count} shown · {snapshot.Jobs.Count} jobs · {snapshot.Jobs.Count(job => job.ReportedPid is not null)} running");
-        JobScope.Text = JobList.SelectedItem is LaunchdRow selected ? $"{selected.Name} · read only" : "Select a job · read only";
+        JobScope.Text = JobList.SelectedItem is LaunchdRow selected ? $"{selected.State} · {selected.ProcessDescription} · read only" : "Current bootstrap context · read only";
         ToolTip.SetTip(JobScope, SummaryDetails);
 
     }

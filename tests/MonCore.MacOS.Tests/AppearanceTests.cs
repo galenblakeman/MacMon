@@ -9,6 +9,31 @@ namespace MonCore.MacOS.Tests;
 public sealed class AppearanceTests
 {
     [Test]
+    public void DisplayNamesMatchWinMonWhileSavedIdentifiersStayStable()
+    {
+        Assert.That(Appearance.ThemeLabel("MidnightInk"), Is.EqualTo("Midnight"));
+        Assert.That(Appearance.ThemeLabel("EvergreenInstrument"), Is.EqualTo("Evergreen"));
+        Assert.That(Appearance.ThemeLabel("FrostedPorcelain"), Is.EqualTo("Frost"));
+        Assert.That(Appearance.ThemeLabel("SmokedSapphire"), Is.EqualTo("Sapphire"));
+        Assert.That(Appearance.PaletteLabel("High-Contrast & Inclusive"), Is.EqualTo("High-Contrast"));
+        Assert.That(Appearance.PaletteLabel("Sophisticated Pastel"), Is.EqualTo("Sophisticated"));
+        Assert.That(Appearance.PaletteLabel("Vibrant Monochromatic Shift"), Is.EqualTo("Vibrant"));
+        Assert.That(Appearance.PaletteLabel("Warm Earth Tones"), Is.EqualTo("Earth Tones"));
+        UiText.Apply("es");
+        try
+        {
+            Assert.That(UiText.Get(Appearance.ThemeLabel("MidnightInk")), Is.EqualTo("Medianoche"));
+            Assert.That(UiText.Get(ResourceGauge.StyleLabel("Bowl")), Is.EqualTo("Cuenco"));
+            Assert.That(UiText.Get(Appearance.PaletteLabel("Sophisticated Pastel")), Is.EqualTo("Sofisticada"));
+            var prefs = new MacPreferences { Theme = "MidnightInk", Palette = "Sophisticated Pastel", GaugeStyle = "Bowl" }.Normalized(null);
+            Assert.That(prefs.Theme, Is.EqualTo("MidnightInk"));
+            Assert.That(prefs.Palette, Is.EqualTo("Sophisticated Pastel"));
+            Assert.That(prefs.GaugeStyle, Is.EqualTo("Bowl"));
+        }
+        finally { UiText.Apply("en"); }
+    }
+
+    [Test]
     public void EveryFinishPaletteKeepsReadoutsAndTracesLegible()
     {
         foreach (var theme in Appearance.Themes.Where(t => t is not ("System" or "Light" or "Dark")))

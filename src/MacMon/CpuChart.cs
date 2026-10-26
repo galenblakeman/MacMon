@@ -287,7 +287,8 @@ public sealed class CpuChart : Control
                 previous = point; prior = sample;
             }
         }
-        context.DrawGeometry(brush, null, area);
+        using (context.PushOpacity(Mode == ResourceChartMode.Overlay ? .08 : .14))
+            context.DrawGeometry(brush, null, area);
         context.DrawGeometry(null, new Pen(brush, 2), trace);
     }
     private void DrawHeatmap(DrawingContext context, Rect plot, int metric)
@@ -301,7 +302,7 @@ public sealed class CpuChart : Control
             var x = X(sample.MonotonicTimestamp, plot);
             // Do not paint across a missing interval, source change or wake gap.
             var end = i + 1 < samples.Count ? Math.Min(samples[i + 1].MonotonicTimestamp, sample.MonotonicTimestamp + Stopwatch.Frequency) : sample.MonotonicTimestamp + Stopwatch.Frequency;
-            using (context.PushOpacity(.08 + .92 * Math.Clamp(value / maximum, 0, 1)))
+            using (context.PushOpacity(.08 + .075 * Math.Clamp(value / maximum, 0, 1)))
                 context.DrawRectangle(Brush(metric), null, new Rect(x, plot.Y, Math.Max(1, X(end, plot) - x), plot.Height));
         }
     }

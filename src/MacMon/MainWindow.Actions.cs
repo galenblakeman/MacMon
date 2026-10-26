@@ -87,7 +87,10 @@ public sealed partial class MainWindow
         var row = UsageList.SelectedItem as UsageRow;
         UsageProperties.IsEnabled = CopyUsageApp.IsEnabled = row is not null;
         RevealUsageApp.IsEnabled = row is not null && File.Exists(row.Path);
-        UsageSelection.Text = row is null ? "Select an app" : row.Path;
+        UsageSelectionName.Text = row?.Name ?? UiText.Get("Select an app");
+        ToolTip.SetTip(UsageSelectionName, row?.Name);
+        UsageSelectionIcon.IsVisible = row is not null; UsageSelectionIcon.Source = row?.Icon;
+        UsageSelection.Text = row?.Path ?? "";
         ToolTip.SetTip(UsageSelection, row?.Path);
     }
     private async Task CopyUsageRows()

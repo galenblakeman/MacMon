@@ -58,6 +58,9 @@ public sealed partial class MainWindow : Window
         VersionLabel.Text = typeof(MainWindow).Assembly.GetName().Version?.ToString(3);
         OpenInfo.Click += async (_, _) => await ShowHardwareInfo();
         OpenExport.Click += async (_, _) => await ShowExportDialog();
+        PinSelection.Click += (_, _) => MoreProcessActions.Flyout?.Hide();
+        RevealExecutable.Click += (_, _) => MoreProcessActions.Flyout?.Hide();
+        ShowUsageActions.IsCheckedChanged += (_, _) => ShowUsageActions.Content = ShowUsageActions.IsChecked == true ? "⌄" : "⌃";
         MacDesktopIntegration.Activated += ShowFromShortcut;
         _session = new MonitorSession(() => _source,
             () => new SamplingOptions(Retain: _retain),
@@ -256,6 +259,7 @@ public sealed partial class MainWindow : Window
             _refreshingRows = false;
             EmptyProcessLabel.IsVisible = true;
             EmptyProcessLabel.Text = "Selected capture is no longer retained";
+            ProcessSelectionName.Text = UiText.Get("Select a process"); SelectionIcon.IsVisible = false;
             PinSelection.IsEnabled = false;
             ProcessCountLabel.Text = "Capture expired";
             SelectionLabel.Text = "Return to Live or select another moment.";
@@ -272,7 +276,7 @@ public sealed partial class MainWindow : Window
         EmptyProcessLabel.Text = _session.Error == SamplingError.ProcessesUnavailable
             ? "Process enumeration unavailable · retrying…"
             : sample.IsGap ? "Establishing process baselines…" : "No matching processes";
-        ProcessCountLabel.Text = UiText.Format("Processes: {0} · Threads: {1} · Handles: —", sample.Resources.ProcessCount?.ToString() ?? "—", sample.Processes.Sum(p => (long)(p.ThreadCount ?? 0)));
+        ProcessCountLabel.Text = UiText.Format("Processes: {0} · Threads: {1}", sample.Resources.ProcessCount?.ToString() ?? "—", sample.Processes.Sum(p => (long)(p.ThreadCount ?? 0)));
         ToolTip.SetTip(ProcessCountLabel, $"{rows.Length} rows shown; {sample.UnavailableProcesses} processes unavailable. Thread count sums readable observations; handles are not collected on macOS.");
         UpdateSelection();
     }
@@ -281,18 +285,24 @@ public sealed partial class MainWindow : Window
     {
         var selected = ProcessList.SelectedItem is null ? null : _selection.Resolve(LiveHistory(), Grouped, _inspection.IsHistorical, Sort);
         ProcessActionsPanel.IsVisible = selected is not null && ShowProcessActions.IsChecked == true;
+        ProcessSelectionName.Text = selected?.Usage.Name ?? UiText.Get("Select a process");
+        ToolTip.SetTip(ProcessSelectionName, selected?.Usage.Name);
+        SelectionIcon.IsVisible = selected is not null;
+        SelectionIcon.Source = selected is null ? null : ApplicationIcons.For(selected.Usage.ImagePath);
+        ShowProcessActions.Content = ShowProcessActions.IsChecked == true ? "⌄" : "⌃";
         RevealExecutable.IsEnabled = selected is not null && selected.Usage.ImagePath.Length > 0;
         EndProcess.Content = Grouped ? "End group…" : "End process…";
         EndProcess.IsEnabled = !_processActionPending && !_inspection.IsHistorical && selected?.State == PinnedProcessState.Present &&
             selected.Usage.ProcessId > 1 && (Grouped
                 ? selected.Usage.MemberIds.Count > 0 && selected.Usage.MemberIds.All(pid => pid > 1 && pid != Environment.ProcessId)
                 : selected.Usage.ProcessId != Environment.ProcessId);
+        ToolTip.SetTip(SelectionLabel, selected?.Usage.ImagePath);
         PinSelection.IsEnabled = selected is not null && _historyOrigins.CanPin(TrailHistory().LastOrDefault(), Grouped, _inspection.IsHistorical);
         PinSelection.Content = selected is not null && _pins.Contains(selected.Usage, Grouped) ? "Unpin selected" : "Pin selected";
-        SelectionLabel.Text = selected is null ? "Select a process to inspect its lifetime and path."
+        SelectionLabel.Text = selected is null ? ""
             : selected.State != PinnedProcessState.Present
-                ? $"{selected.Usage.Name} · PID {selected.Usage.ProcessId} · no longer observed or unavailable"
-                : $"{selected.Usage.Name} · PID {selected.Usage.ProcessId} · started " +
+                ? $"PID {selected.Usage.ProcessId} · no longer observed or unavailable"
+                : $"PID {selected.Usage.ProcessId} · started " +
                   $"{selected.Usage.StartedAtUtc?.ToLocalTime().ToString("g") ?? "unavailable"}\n" +
                   (selected.Usage.ImagePath.Length > 0 ? selected.Usage.ImagePath : "Executable path unavailable");
     }

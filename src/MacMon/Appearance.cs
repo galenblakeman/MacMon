@@ -11,7 +11,7 @@ public sealed record PaletteColors(Color Cpu, Color Memory, Color Network, Color
 
 public static class Appearance
 {
-    public static IReadOnlyList<string> Themes { get; } = Array.AsReadOnly(new[] { "System", "Light", "Dark" }.Concat(WinMonAppearanceCatalog.Finishes.Keys).ToArray());
+    public static IReadOnlyList<string> Themes { get; } = Array.AsReadOnly(new[] { "System", "Light", "Dark" }.Concat(WinMonAppearanceCatalog.Finishes.Keys.OrderBy(ThemeLabel, StringComparer.OrdinalIgnoreCase)).ToArray());
     public static IReadOnlyList<string> Palettes { get; } = WinMonAppearanceCatalog.Palettes;
     public static string NormalizeTheme(string? theme) => Themes.Contains(theme) ? theme! : "Dark";
     public static string NormalizePalette(string? palette) => palette == "High contrast" ? "High-Contrast & Inclusive" : Palettes.Contains(palette) ? palette! : "Classic";
@@ -31,7 +31,16 @@ public static class Appearance
     }
 
     public static string DefaultPalette(string? theme) => WinMonAppearanceCatalog.PaletteForTheme(theme);
-    public static string ThemeLabel(string theme) => System.Text.RegularExpressions.Regex.Replace(theme, "([a-z])([A-Z])", "$1 $2");
+    public static string ThemeLabel(string theme) => theme switch
+    {
+        "MidnightInk" => "Midnight", "EvergreenInstrument" => "Evergreen",
+        "FrostedPorcelain" => "Frost", "SmokedSapphire" => "Sapphire", _ => theme
+    };
+    public static string PaletteLabel(string palette) => palette switch
+    {
+        "High-Contrast & Inclusive" => "High-Contrast", "Sophisticated Pastel" => "Sophisticated",
+        "Vibrant Monochromatic Shift" => "Vibrant", "Warm Earth Tones" => "Earth Tones", _ => palette
+    };
     public static void SetThemeResources(IResourceDictionary resources, string theme, bool dark)
     {
         var f = WinMonAppearanceCatalog.Finishes.GetValueOrDefault(theme);

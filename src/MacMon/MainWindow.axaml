@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="using:MacMon" xmlns:chrome="using:Avalonia.Controls.Chrome" x:Class="MacMon.MainWindow" Title="{local:Loc &quot;MacMon&quot;}" Width="1000" Height="900" MinWidth="800" MinHeight="760" ExtendClientAreaToDecorationsHint="True" ExtendClientAreaTitleBarHeightHint="44">
   <Grid>
+    <Border x:Name="TitleBackground" Height="44" VerticalAlignment="Top" Background="{DynamicResource MacChromeBrush}" IsHitTestVisible="False" />
     <local:CompactView x:Name="CompactPanel" IsVisible="False" />
     <Grid x:Name="MainLayout" Margin="20,0,20,8" RowSpacing="6">
       <Grid.RowDefinitions>
@@ -36,7 +37,7 @@
               <Button x:Name="LiveMode" Content="{local:Loc &quot;● Live&quot;}" Classes="chip" /><Button x:Name="CaptureMode" Content="{local:Loc &quot;◎ Capture&quot;}" Classes="chip" />
             </StackPanel>
             <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="2">
-              <Button x:Name="AutomaticCaptures" Content="{local:Loc &quot;◎ Auto&quot;}" Classes="titleAction" ToolTip.Tip="{local:Loc &quot;Automatic captures and saved reports&quot;}">
+              <Button x:Name="AutomaticCaptures" Content="{local:Loc &quot;Auto&quot;}" ContentTemplate="{x:Null}" Classes="titleAction" ToolTip.Tip="{local:Loc &quot;Automatic captures and saved reports&quot;}">
                 <Button.Flyout><Flyout Placement="Bottom">
                   <StackPanel Spacing="8" Width="360">
                     <Button x:Name="ConfigureCaptures" Content="{local:Loc &quot;Automatic capture settings…&quot;}" HorizontalAlignment="Stretch" />
@@ -97,9 +98,20 @@
                 </ListBox>
                 <TextBlock x:Name="EmptyProcessLabel" Text="{local:Loc &quot;Waiting for process readings…&quot;}" Classes="label" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
               </Grid>
-              <Border Grid.Row="3" Classes="actionBar"><Grid RowDefinitions="Auto,Auto" RowSpacing="4">
-                <Grid ColumnDefinitions="*,Auto"><TextBlock x:Name="SelectionLabel" Text="{local:Loc &quot;Select a process&quot;}" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" /><ToggleButton Grid.Column="1" x:Name="ShowProcessActions" Content="{local:Loc &quot;Actions&quot;}" Classes="titleAction" IsChecked="True" /></Grid>
-                <WrapPanel Grid.Row="1" x:Name="ProcessActionsPanel" IsVisible="False"><Button x:Name="PinSelection" Content="{local:Loc &quot;☆ Pin&quot;}" /><Button x:Name="ShowProperties" Content="{local:Loc &quot;ⓘ Properties&quot;}" /><Button x:Name="CopyProcessDetails" Content="{local:Loc &quot;Copy details&quot;}" /><Button x:Name="RevealExecutable" Content="{local:Loc &quot;Reveal in Finder&quot;}" /><Button x:Name="EndProcess" Content="{local:Loc &quot;End process…&quot;}" /></WrapPanel>
+<Border Grid.Row="3" Classes="actionBar"><Grid ColumnDefinitions="4,*,Auto">
+                <Border Background="{DynamicResource CpuStroke}" CornerRadius="3,0,0,3" />
+                <local:ActionBarLayout Grid.Column="1" Margin="14,6,6,6">
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" VerticalAlignment="Center" Margin="0,0,12,0">
+                    <Image x:Name="SelectionIcon" Width="28" Height="28" IsVisible="False" />
+                    <StackPanel Grid.Column="1" Spacing="2"><TextBlock x:Name="ProcessSelectionName" Text="{local:Loc &quot;Select a process&quot;}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="SelectionLabel" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" /></StackPanel>
+                  </Grid>
+                  <WrapPanel Grid.Column="1" x:Name="ProcessActionsPanel" HorizontalAlignment="Right" VerticalAlignment="Center" IsVisible="False">
+                    <Button x:Name="ShowProperties" Content="{local:Loc &quot;Properties&quot;}" /><Button x:Name="CopyProcessDetails" Content="{local:Loc &quot;Copy details&quot;}" />
+                    <Button x:Name="MoreProcessActions" Content="{local:Loc &quot;More…&quot;}"><Button.Flyout><Flyout Placement="Top"><StackPanel Spacing="6"><Button x:Name="PinSelection" Content="{local:Loc &quot;Pin selected&quot;}" /><Button x:Name="RevealExecutable" Content="{local:Loc &quot;Reveal in Finder&quot;}" /></StackPanel></Flyout></Button.Flyout></Button>
+                    <Border Classes="actionDivider" /><Button x:Name="EndProcess" Content="{local:Loc &quot;End process…&quot;}" Classes="dangerAction" />
+                  </WrapPanel>
+                </local:ActionBarLayout>
+                <ToggleButton Grid.Column="2" x:Name="ShowProcessActions" Content="⌄" IsChecked="True" Classes="actionCollapse" AutomationProperties.Name="{local:Loc &quot;Show or hide actions&quot;}" ToolTip.Tip="{local:Loc &quot;Show or hide actions&quot;}" />
               </Grid></Border>
             </Grid>
           </TabItem>
@@ -121,7 +133,14 @@
                   <TextBlock Grid.Column="1" Text="{Binding Cpu}" Classes="cpuMetric" VerticalAlignment="Center" HorizontalAlignment="Right" /><TextBlock Grid.Column="2" Text="{Binding Share}" VerticalAlignment="Center" HorizontalAlignment="Right" /><TextBlock Grid.Column="3" Text="{Binding DiskIo}" VerticalAlignment="Center" HorizontalAlignment="Right" /><TextBlock Grid.Column="4" Text="{Binding Processes}" VerticalAlignment="Center" HorizontalAlignment="Right" /><TextBlock Grid.Column="5" Text="{Binding LastActive}" VerticalAlignment="Center" HorizontalAlignment="Right" />
                 </Grid></Border></DataTemplate></ListBox.ItemTemplate>
               </ListBox>
-              <Border Grid.Row="3" Classes="actionBar"><Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6"><TextBlock x:Name="UsageSelection" Text="{local:Loc &quot;Select an app&quot;}" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" /><Button Grid.Column="1" x:Name="UsageProperties" Content="{local:Loc &quot;ⓘ Properties&quot;}" IsEnabled="False" /><Button Grid.Column="2" x:Name="CopyUsageApp" Content="{local:Loc &quot;Copy details&quot;}" IsEnabled="False" /><Button Grid.Column="3" x:Name="RevealUsageApp" Content="{local:Loc &quot;Reveal in Finder&quot;}" IsEnabled="False" /></Grid></Border>
+<Border Grid.Row="3" Classes="actionBar"><Grid ColumnDefinitions="4,*,Auto">
+                <Border Background="{DynamicResource CpuStroke}" CornerRadius="3,0,0,3" />
+                <local:ActionBarLayout Grid.Column="1" Margin="14,6,6,6">
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" VerticalAlignment="Center" Margin="0,0,12,0"><Image x:Name="UsageSelectionIcon" Width="28" Height="28" IsVisible="False" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock x:Name="UsageSelectionName" Text="{local:Loc &quot;Select an app&quot;}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="UsageSelection" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" /></StackPanel></Grid>
+                  <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" IsVisible="{Binding IsChecked, ElementName=ShowUsageActions}"><Button x:Name="UsageProperties" Content="{local:Loc &quot;Properties&quot;}" IsEnabled="False" /><Button x:Name="CopyUsageApp" Content="{local:Loc &quot;Copy details&quot;}" IsEnabled="False" /><Button x:Name="RevealUsageApp" Content="{local:Loc &quot;Reveal in Finder&quot;}" IsEnabled="False" /></WrapPanel>
+                </local:ActionBarLayout>
+                <ToggleButton Grid.Column="2" x:Name="ShowUsageActions" Content="⌄" IsChecked="True" Classes="actionCollapse" AutomationProperties.Name="{local:Loc &quot;Show or hide actions&quot;}" ToolTip.Tip="{local:Loc &quot;Show or hide actions&quot;}" />
+              </Grid></Border>
             </Grid>
           </TabItem>
         </TabControl>

@@ -988,3 +988,43 @@ smoke. Native UI inspection and the local CSV write pass. Strict ad-hoc signing,
 ZIP integrity and SHA-256 verification pass. Native diagnostic output is empty.
 Artifact: `MacMon-0.13.0-osx-arm64-dev.zip`, SHA-256:
 `6801ea2938ee227c3459c70300645d16d962771a0b30110bc9195d917511ce0e`.
+
+
+## Appearance refinements — 0.13.1/build 24
+
+A full-client-width 44px chrome background now sits behind both title layouts,
+covering their outer padding and native traffic-light inset. Midnight is verified
+edge to edge on macOS. Theme labels use WinMon's Midnight / Evergreen / Frost /
+Sapphire names. Palette labels use High-Contrast / Sophisticated / Vibrant /
+Earth Tones; English and Spanish gauge, theme and palette names match the WinMon
+resource catalog (including Bowl = Cuenco in Spanish). Saved IDs are unchanged.
+The Auto title action has plain text, and Processes shows only Processes/Threads.
+
+The user clarified that chart areas should match WinMon's translucent fill:
+14% for focus/small multiples, 8% for overlay. Heatmap intensity uses WinMon's
+8–15.5% opacity. Traces, capture markers and labels retain their full contrast.
+
+Selection action bars now share a framed header surface with an accent strip,
+16px selection name, detail, and right-aligned 28px action buttons with dividers.
+A shared measured layout moves actions below the identity when less than 240px
+would remain for its text, including when selection actions become visible.
+Collapse controls preserve the identity and remain available to reopen actions.
+Process More contains Pin and Reveal; Properties, Copy and End remain in the
+bar. Usage retains Properties/Copy/Reveal. Jobs retains Properties/Copy/Refresh
+and remains read only. Process and Usage show the selected executable's icon.
+
+Regression tests cover all theme title backgrounds in full/compact layouts,
+responsive actions on resize and visibility changes, exact display names and
+unchanged saved IDs in English/Spanish. Native checks covered Midnight chrome,
+translucent overlay, plain Auto, Process/Threads summary, selected process/job/
+usage bars, process menu pin action (restored afterward), collapse/reopen, and
+Settings' Midnight display label. Appearance preferences are preserved.
+
+Validation: full verification passes all 175 Mac tests and three release-workflow
+tests, with zero build warnings/errors and native collector/launchd smoke. The
+final neutral collapse-control template additionally passes all 18 targeted
+action-bar/table/shell/button UI tests and native visual inspection. Strict
+ad-hoc signing, ZIP integrity and SHA-256 checks pass; captured native stderr
+is empty. MacMon is left open in full Processes view with Midnight/Neon retained.
+Artifact: `MacMon-0.13.1-osx-arm64-dev.zip`, SHA-256:
+`505699e5a2869f081efd85facc48e81abe0125bc031fecc8e0a6a5db0fc748a5`.

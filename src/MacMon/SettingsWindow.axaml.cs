@@ -125,8 +125,8 @@ public sealed partial class SettingsWindow : Window
     private static Control PalettePreview(string palette, string theme, bool dark)
     {
         var row = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 10 };
-        var label = UiText.Label(palette); label.Width = 145; label.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
-        ToolTip.SetTip(label, UiText.Get(palette));
+        var label = UiText.Label(Appearance.PaletteLabel(palette)); label.Width = 145; label.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
+        ToolTip.SetTip(label, UiText.Get(Appearance.PaletteLabel(palette)));
         label.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center; row.Children.Add(label);
         var colors = Appearance.Colors(palette, dark, true, theme).All;
         var swatches = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 3 };
