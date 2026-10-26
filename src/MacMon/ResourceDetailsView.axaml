@@ -19,9 +19,9 @@
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <TextBlock Text="— means unavailable. Readings stay live while the chart is in Capture mode." Classes="label" FontSize="11" TextWrapping="Wrap" />
+        <TextBlock Text="{local:Loc &quot;— means unavailable. Readings stay live while the chart is in Capture mode.&quot;}" Classes="label" FontSize="11" TextWrapping="Wrap" />
       </StackPanel>
     </ScrollViewer>
-    <Button Grid.Row="2" x:Name="CloseDetails" Content="Close" HorizontalAlignment="Right" />
+    <Button Grid.Row="2" x:Name="CloseDetails" Content="{local:Loc &quot;Close&quot;}" HorizontalAlignment="Right" />
   </Grid>
 </UserControl>

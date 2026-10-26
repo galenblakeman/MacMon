@@ -12,7 +12,7 @@ public sealed partial class MainWindow
     private bool _processAscending;
     private bool _usageAscending;
     private sealed record RowLimit(int Count)
-    { public override string ToString() => Count == 0 ? "All" : Count.ToString(); }
+    { public override string ToString() => Count == 0 ? UiText.Get("All") : Count.ToString(); }
     private static int SelectedLimit(ComboBox box) => (box.SelectedItem as RowLimit)?.Count ?? 0;
     private void InitializeTables()
     {
@@ -79,6 +79,7 @@ public sealed partial class MainWindow
     }
     private static void Header(Button button, string label, int sort, bool ascending, string table)
     {
+        label = UiText.Get(label);
         var selected = button.Tag?.ToString() == sort.ToString();
         button.Content = label + (selected ? ascending ? " ↑" : " ↓" : "");
         AutomationProperties.SetName(button, $"Sort {table} by {label}" + (selected ? ascending ? ", ascending" : ", descending" : ""));

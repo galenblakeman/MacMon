@@ -50,6 +50,27 @@ public sealed class UsageCaptureTests
     }
 
     [Test]
+    public void GpuCaptureUsesDeviceUtilizationAndReportsBothSelectedDisks()
+    {
+        var rule = new CaptureRuleSetting(CaptureMetric.Gpu, true, 50, 2);
+        var rules = new CaptureRules([rule], TimeSpan.FromSeconds(1), 8);
+        MonitorSample SampleGpu(int second, double? value) => Sample(second) with { Resources = new()
+        { GpuPercent = value, GpuName = "Test GPU", CpuClockMhz = 2200, DiskName = "disk0", DiskReadBytesPerSecond = 1000,
+          DiskWriteBytesPerSecond = 2000, SecondaryDiskName = "disk2", SecondaryDiskReadBytesPerSecond = 3000, SecondaryDiskWriteBytesPerSecond = 4000 } };
+        Assert.That(rules.Observe(SampleGpu(1, 80)), Is.Empty);
+        Assert.That(rules.Observe(SampleGpu(2, null)), Is.Empty);
+        Assert.That(rules.Observe(SampleGpu(3, 90)), Is.Empty);
+        var fired = rules.Observe(SampleGpu(4, 70)).Single();
+        Assert.That(fired.PeakValue, Is.EqualTo(90));
+        var report = MacCaptureReports.AutomaticText(fired);
+        Assert.That(report, Does.Contain("GPU Test GPU: 90.00%"));
+        Assert.That(report, Does.Contain("Primary disk disk0: read 1000.00 B/s"));
+        Assert.That(report, Does.Contain("Second disk disk2: read 3000.00 B/s"));
+        Assert.That(report, Does.Not.Contain("Data volume disk0"));
+        Assert.That(MacCaptureOptions.SupportedMetrics, Does.Contain(CaptureMetric.Gpu));
+    }
+
+    [Test]
     public void CaptureBreaksOnMissingNetworkAndPreservesPeakAfterRearm()
     {
         var rules = new CaptureRules([new(CaptureMetric.Network, true, 1, 2)], TimeSpan.FromSeconds(1), 8);

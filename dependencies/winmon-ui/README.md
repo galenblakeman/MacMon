@@ -25,3 +25,14 @@ and `Preferences/ChartPalettes.cs` from the same clean reference commit. Their
 catalog values are in `WinMonAppearanceCatalog.cs`; macOS uses solid Avalonia
 surfaces and retains contrast adjustment. The existing MIT license covers these
 adaptations as well.
+
+
+English/Spanish labels also reuse matching entries from WinMon's
+`Resources/Strings.resx` and `Resources/Strings.es.resx`, with Mac-specific
+translations in `src/MacMon/Localization/es.json`. The retained MIT license
+covers these translations.
+
+Translation source SHA-256 values at the reference commit:
+
+- `Strings.resx`: `76bc1a4a0894c9c43da7b865fca77a56365c4d58541ebf9b7ba1493c83af9008`
+- `Strings.es.resx`: `1966b3a003e067cd10d9fabd88c59fb791e7a1454a2d3b5aa683af37394afe18`

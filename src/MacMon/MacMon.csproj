@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <Version>0.10.0</Version>
-    <MacMonBundleBuild>12</MacMonBundleBuild>
+    <Version>0.11.0</Version>
+    <MacMonBundleBuild>13</MacMonBundleBuild>
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
@@ -14,4 +14,11 @@
     <PackageReference Include="MonCore" Version="[3.4.1-macos.1]" />
     <ProjectReference Include="../MonCore.MacOS/MonCore.MacOS.csproj" />
   </ItemGroup>
+  <ItemGroup><EmbeddedResource Include="Localization/es.json" /></ItemGroup>
+  <Target Name="BuildMacDesktopIntegration" BeforeTargets="CoreCompile" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <Exec Command="bash &quot;$(MSBuildProjectDirectory)/../../tools/build-native.sh&quot; &quot;$(TargetDir)&quot; &quot;$(RuntimeIdentifier)&quot;" />
+  </Target>
+  <Target Name="PublishMacDesktopIntegration" BeforeTargets="ComputeFilesToPublish" DependsOnTargets="BuildMacDesktopIntegration" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <ItemGroup><ResolvedFileToPublish Include="$(TargetDir)libMacMonIntegration.dylib" RelativePath="libMacMonIntegration.dylib" CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" /></ItemGroup>
+  </Target>
 </Project>

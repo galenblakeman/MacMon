@@ -1,32 +1,41 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="using:MacMon" x:Class="MacMon.SettingsWindow" Title="MacMon Settings"
+        xmlns:local="using:MacMon" x:Class="MacMon.SettingsWindow" Title="{local:Loc &quot;MacMon Settings&quot;}"
         Width="860" Height="660" MinWidth="800" MinHeight="560" WindowStartupLocation="CenterOwner">
   <Grid Margin="24" RowDefinitions="Auto,*,Auto,Auto" RowSpacing="16">
-    <TextBlock Text="Settings" FontSize="26" FontWeight="SemiBold" />
+    <TextBlock Text="{local:Loc &quot;Settings&quot;}" FontSize="26" FontWeight="SemiBold" />
     <Grid Grid.Row="1" ColumnDefinitions="175,*" ColumnSpacing="24">
-      <ListBox x:Name="Sections" SelectedIndex="0" AutomationProperties.Name="Settings section" Background="Transparent" BorderThickness="0">
-        <ListBoxItem Content="{local:TitleButtonContent Settings, General}" AutomationProperties.Name="General" /><ListBoxItem Content="{local:TitleButtonContent Appearance, Appearance}" AutomationProperties.Name="Appearance" />
-        <ListBoxItem Content="{local:TitleButtonContent Monitoring, Monitoring}" AutomationProperties.Name="Monitoring" /><ListBoxItem Content="{local:TitleButtonContent Capture, 'Automatic captures'}" AutomationProperties.Name="Automatic captures" />
+      <ListBox x:Name="Sections" SelectedIndex="0" AutomationProperties.Name="{local:Loc &quot;Settings section&quot;}" Background="Transparent" BorderThickness="0">
+        <ListBoxItem Content="{local:TitleButtonContent Settings, General}" AutomationProperties.Name="{local:Loc &quot;General&quot;}" /><ListBoxItem Content="{local:TitleButtonContent Appearance, Appearance}" AutomationProperties.Name="{local:Loc &quot;Appearance&quot;}" />
+        <ListBoxItem Content="{local:TitleButtonContent Monitoring, Monitoring}" AutomationProperties.Name="{local:Loc &quot;Monitoring&quot;}" /><ListBoxItem Content="{local:TitleButtonContent Capture, 'Automatic captures'}" AutomationProperties.Name="{local:Loc &quot;Automatic captures&quot;}" />
       </ListBox>
       <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <Grid Margin="0,0,8,0">
           <StackPanel x:Name="GeneralPage" Spacing="16">
-            <TextBlock Text="General" FontSize="21" FontWeight="SemiBold" />
-            <CheckBox x:Name="TopmostSetting" Content="Always on top" />
-            <TextBlock Classes="label" TextWrapping="Wrap" Text="Keep MacMon above other windows. You can also change this from the main window." />
-            <TextBlock Classes="label" TextWrapping="Wrap" Text="Open Settings with ⌘,. Save applies every section; Cancel discards your edits." />
+            <TextBlock Text="{local:Loc &quot;General&quot;}" FontSize="21" FontWeight="SemiBold" />
+            <TextBlock Text="{local:Loc &quot;Language&quot;}" Classes="label" />
+            <ComboBox x:Name="LanguageChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Language&quot;}" />
+            <TextBlock Text="{local:Loc &quot;Startup&quot;}" FontWeight="SemiBold" />
+            <CheckBox x:Name="OpenAtLogin" Content="{local:Loc &quot;Open at login&quot;}" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBlock x:Name="StartupStatus" Classes="label" TextWrapping="Wrap" /><Button Grid.Column="1" x:Name="LoginItems" Content="{local:Loc &quot;Login Items…&quot;}" /></Grid>
+            <TextBlock Text="{local:Loc &quot;Startup view&quot;}" Classes="label" />
+            <ComboBox x:Name="StartupViewChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Startup view&quot;}" />
+            <TextBlock Text="{local:Loc &quot;Keyboard shortcut&quot;}" FontWeight="SemiBold" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"><ComboBox x:Name="ShortcutChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Show MacMon&quot;}" /><Button Grid.Column="1" x:Name="DefaultShortcut" Content="{local:Loc &quot;Default&quot;}" /></Grid>
+            <TextBlock Classes="label" TextWrapping="Wrap" Text="{local:Loc &quot;Show MacMon from another app. ⌘, opens Settings; ⌘⇧M switches compact view.&quot;}" />
+            <CheckBox x:Name="TopmostSetting" Content="{local:Loc &quot;Always on top&quot;}" />
+
           </StackPanel>
           <StackPanel x:Name="AppearancePage" Spacing="14" IsVisible="False">
-            <TextBlock Text="Appearance" FontSize="21" FontWeight="SemiBold" />
-            <TextBlock Text="Theme" Classes="label" />
-            <ComboBox x:Name="ThemeChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Theme" />
-            <TextBlock Text="Chart palette" Classes="label" />
+            <TextBlock Text="{local:Loc &quot;Appearance&quot;}" FontSize="21" FontWeight="SemiBold" />
+            <TextBlock Text="{local:Loc &quot;Theme&quot;}" Classes="label" />
+            <ComboBox x:Name="ThemeChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Theme&quot;}" />
+            <TextBlock Text="{local:Loc &quot;Chart palette&quot;}" Classes="label" />
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-              <ComboBox x:Name="PaletteChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Chart palette" />
-              <Button Grid.Column="1" x:Name="DefaultPalette" Content="Use theme palette" />
+              <ComboBox x:Name="PaletteChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Chart palette&quot;}" />
+              <Button Grid.Column="1" x:Name="DefaultPalette" Content="{local:Loc &quot;Use theme palette&quot;}" />
             </Grid>
-            <TextBlock Text="Resource gauges" Classes="label" />
-            <ComboBox x:Name="GaugeChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Resource gauge style" />
+            <TextBlock Text="{local:Loc &quot;Resource gauges&quot;}" Classes="label" />
+            <ComboBox x:Name="GaugeChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Resource gauge style&quot;}" />
             <ThemeVariantScope x:Name="PreviewScope">
               <Border Background="{DynamicResource MacWindowBrush}" CornerRadius="10" Padding="14">
                 <Border Classes="card" Padding="14">
@@ -49,25 +58,27 @@
               </Border>
             </ThemeVariantScope>
           </StackPanel>
-          <StackPanel x:Name="MonitoringPage" Spacing="14" IsVisible="False">
-            <TextBlock Text="Monitoring" FontSize="21" FontWeight="SemiBold" />
-            <CheckBox x:Name="KeepHistorySetting" Content="Keep history across restarts" />
-            <TextBlock Classes="label" TextWrapping="Wrap" Text="Save bounded resource and process history on clean exit. Usage totals start fresh. Turning this off removes saved history at the next clean exit." />
-            <TextBlock Text="History range" Classes="label" />
-            <ComboBox x:Name="RangeChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Settings history range">
-              <ComboBoxItem Content="2 minutes" /><ComboBoxItem Content="10 minutes" /><ComboBoxItem Content="30 minutes" /><ComboBoxItem Content="60 minutes" />
+          <StackPanel x:Name="MonitoringPage" Spacing="12" IsVisible="False">
+            <TextBlock Text="{local:Loc &quot;Monitoring&quot;}" FontSize="21" FontWeight="SemiBold" />
+            <TextBlock Text="{local:Loc &quot;History&quot;}" FontWeight="SemiBold" />
+            <TextBlock Text="{local:Loc &quot;Historical retention&quot;}" Classes="label" />
+            <ComboBox x:Name="RangeChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Settings history range&quot;}">
+              <ComboBoxItem Content="{local:Loc &quot;2 minutes&quot;}" /><ComboBoxItem Content="{local:Loc &quot;10 minutes&quot;}" /><ComboBoxItem Content="{local:Loc &quot;30 minutes&quot;}" /><ComboBoxItem Content="{local:Loc &quot;60 minutes&quot;}" />
             </ComboBox>
-            <TextBlock Text="Network interface" Classes="label" />
-            <ComboBox x:Name="NetworkChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Settings network interface" />
-            <TextBlock Text="Primary disk" Classes="label" />
-            <ComboBox x:Name="PrimaryDiskChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Primary disk" />
-            <TextBlock Text="Second disk" Classes="label" />
-            <ComboBox x:Name="SecondaryDiskChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Second disk" />
-            <TextBlock Classes="label" TextWrapping="Wrap" Text="Choose whole disk devices, not APFS volumes. Disk images may also appear. A disconnected selection stays unavailable until that device returns. All disks includes the selected second disk. Disk rates measure combined read/write throughput; active-time percentage is unavailable." />
-            <TextBlock Classes="label" TextWrapping="Wrap" Text="Automatic prefers an active Ethernet or Wi-Fi interface. Disk activity covers all readable block-storage drivers. Unavailable readings remain unavailable." />
+            <CheckBox x:Name="KeepHistorySetting" Content="{local:Loc &quot;Keep history across restarts&quot;}" />
+            <TextBlock Classes="label" TextWrapping="Wrap" Text="{local:Loc &quot;Resources and process history are restored. Usage totals start fresh.&quot;}" />
+            <TextBlock Text="{local:Loc &quot;Disk monitoring&quot;}" FontWeight="SemiBold" />
+            <TextBlock Text="{local:Loc &quot;Primary disk&quot;}" Classes="label" />
+            <ComboBox x:Name="PrimaryDiskChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Primary disk&quot;}" />
+            <TextBlock Text="{local:Loc &quot;Second disk&quot;}" Classes="label" />
+            <ComboBox x:Name="SecondaryDiskChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Second disk&quot;}" />
+            <TextBlock Classes="label" TextWrapping="Wrap" Text="{local:Loc &quot;Choose up to two whole disk devices. Disk images may appear; APFS volumes are excluded. All disks includes the second disk. Readings show throughput, not active-time percentage.&quot;}" />
+            <TextBlock Text="{local:Loc &quot;Network monitoring&quot;}" FontWeight="SemiBold" />
+            <TextBlock Text="{local:Loc &quot;Network interface&quot;}" Classes="label" />
+            <ComboBox x:Name="NetworkChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Settings network interface&quot;}" />
+            <TextBlock Classes="label" TextWrapping="Wrap" Text="{local:Loc &quot;Automatic follows an active Ethernet or Wi-Fi interface. Disconnected selections stay unavailable.&quot;}" />
           </StackPanel>
           <StackPanel x:Name="CapturesPage" Spacing="14" IsVisible="False">
-            <TextBlock Text="Automatic captures" FontSize="21" FontWeight="SemiBold" />
             <local:CaptureSettingsEditor x:Name="CaptureEditor" />
           </StackPanel>
         </Grid>
@@ -75,8 +86,8 @@
     </Grid>
     <TextBlock Grid.Row="2" x:Name="SettingsStatus" Classes="label" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
     <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12">
-      <Button x:Name="CancelSettings" Content="Cancel" IsCancel="True" />
-      <Button x:Name="SaveSettings" Content="Save" />
+      <Button x:Name="CancelSettings" Content="{local:Loc &quot;Cancel&quot;}" IsCancel="True" />
+      <Button x:Name="SaveSettings" Content="{local:Loc &quot;Save&quot;}" />
     </StackPanel>
   </Grid>
 </Window>

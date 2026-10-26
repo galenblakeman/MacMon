@@ -13,7 +13,7 @@ public sealed partial class MainWindow
     private CheckBox[] MetricSwitches => [CpuVisible, MemoryVisible, NetworkVisible, StorageVisible, GpuGauge.SeriesToggle, SecondDiskGauge.SeriesToggle];
     private RadioButton[] RangeChips => [Range2, Range10, Range30, Range60];
     private sealed record ChartChoice(string Label, ResourceChartMode Mode, int Focus = 0)
-    { public override string ToString() => Label; }
+    { public override string ToString() => UiText.Get(Label); }
     private static readonly ChartChoice[] ChartChoices = [new("Overlay", ResourceChartMode.Overlay),
         new("Small multiples", ResourceChartMode.SmallMultiples), new("Heatmap", ResourceChartMode.Heatmap),
         new("Focus · CPU", ResourceChartMode.Focus), new("Focus · Memory", ResourceChartMode.Focus, 1),
@@ -88,7 +88,7 @@ public sealed partial class MainWindow
     }
     private void UpdateChartReadout()
     {
-        LiveMode.Content = "● Live"; CaptureMode.Content = "◎ Capture";
+        LiveMode.Content = UiText.Get("● Live"); CaptureMode.Content = UiText.Get("◎ Capture");
         LiveMode.Classes.Set("active", !_inspection.IsHistorical);
         CaptureMode.Classes.Set("active", _inspection.IsHistorical);
         CaptureMode.IsEnabled = _session.Latest is not null;

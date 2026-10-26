@@ -1,29 +1,36 @@
-<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:local="using:MacMon" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="MacMon.CaptureSettingsEditor">
-  <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="18">
-    <CheckBox x:Name="EnabledCapture" Content="Enable automatic captures" />
-    <TextBlock Grid.Row="1" Classes="label" TextWrapping="Wrap"
-               Text="Capture a peak after consecutive readings above a threshold. A rule must fall below its threshold before it can re-arm. Reports are saved locally; the newest 200 are kept." />
-    <Grid Grid.Row="2" ColumnDefinitions="*,120,110" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
-      <TextBlock Text="Rule" Classes="label" />
-      <TextBlock Grid.Column="1" Text="Threshold" Classes="label" />
-      <TextBlock Grid.Column="2" Text="Duration (s)" Classes="label" />
-      <CheckBox Grid.Row="1" x:Name="CpuEnabled" Content="System CPU (%)" />
-      <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="CpuThreshold" Minimum="1" Maximum="100" />
-      <NumericUpDown Grid.Row="1" Grid.Column="2" x:Name="CpuSeconds" Minimum="1" Maximum="300" />
-      <CheckBox Grid.Row="2" x:Name="MemoryEnabled" Content="Memory usage estimate (%)" />
-      <NumericUpDown Grid.Row="2" Grid.Column="1" x:Name="MemoryThreshold" Minimum="1" Maximum="100" />
-      <NumericUpDown Grid.Row="2" Grid.Column="2" x:Name="MemorySeconds" Minimum="1" Maximum="300" />
-      <CheckBox Grid.Row="3" x:Name="NetworkEnabled" Content="Network · busier direction (Mbps)" />
-      <NumericUpDown Grid.Row="3" Grid.Column="1" x:Name="NetworkThreshold" Minimum="0.1" Maximum="100000" Increment="1" />
-      <NumericUpDown Grid.Row="3" Grid.Column="2" x:Name="NetworkSeconds" Minimum="1" Maximum="300" />
-      <CheckBox Grid.Row="4" x:Name="ProcessEnabled" Content="Any process CPU (% of one core)" />
-      <NumericUpDown Grid.Row="4" Grid.Column="1" x:Name="ProcessThreshold" Minimum="1" Maximum="25600" />
-      <NumericUpDown Grid.Row="4" Grid.Column="2" x:Name="ProcessSeconds" Minimum="1" Maximum="300" />
-    </Grid>
-    <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="12" VerticalAlignment="Top">
-      <TextBlock Text="Cooldown per rule (s)" VerticalAlignment="Center" Classes="label" />
-      <NumericUpDown x:Name="Cooldown" Minimum="1" Maximum="3600" Width="120" />
-    </StackPanel>
-  </Grid>
+  <UserControl.Styles><Style Selector="NumericUpDown"><Setter Property="ShowButtonSpinner" Value="False" /></Style></UserControl.Styles>
+  <StackPanel Spacing="14">
+    <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{local:Loc &quot;Automatic capture&quot;}" FontSize="21" FontWeight="SemiBold" /><CheckBox Grid.Column="1" x:Name="EnabledCapture" Content="{local:Loc &quot;Off&quot;}" AutomationProperties.Name="{local:Loc &quot;Enable automatic captures&quot;}" /></Grid>
+    <TextBlock Classes="label" TextWrapping="Wrap" Text="{local:Loc &quot;Capture a peak when a rule stays above its threshold. Readings continue while you inspect a capture.&quot;}" />
+    <Border Classes="card" BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="1" Padding="10">
+      <Grid ColumnDefinitions="*,85,Auto,65,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6" RowSpacing="8">
+        <TextBlock Text="{local:Loc &quot;Rule&quot;}" Classes="label" /><TextBlock Grid.Column="1" Text="{local:Loc &quot;Above&quot;}" Classes="label" /><TextBlock Grid.Column="3" Text="{local:Loc &quot;For&quot;}" Classes="label" />
+        <CheckBox Grid.Row="1" x:Name="CpuEnabled" Content="{local:Loc &quot;CPU&quot;}" />
+        <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="CpuThreshold" Minimum="1" Maximum="100" /><TextBlock Grid.Row="1" Grid.Column="2" Text="{local:Loc &quot;%&quot;}" VerticalAlignment="Center" />
+        <NumericUpDown Grid.Row="1" Grid.Column="3" x:Name="CpuSeconds" Minimum="1" Maximum="300" /><TextBlock Grid.Row="1" Grid.Column="4" Text="{local:Loc &quot;s&quot;}" VerticalAlignment="Center" />
+        <CheckBox Grid.Row="2" x:Name="GpuEnabled" Content="{local:Loc &quot;GPU&quot;}" />
+        <NumericUpDown Grid.Row="2" Grid.Column="1" x:Name="GpuThreshold" Minimum="1" Maximum="100" /><TextBlock Grid.Row="2" Grid.Column="2" Text="{local:Loc &quot;%&quot;}" VerticalAlignment="Center" />
+        <NumericUpDown Grid.Row="2" Grid.Column="3" x:Name="GpuSeconds" Minimum="1" Maximum="300" /><TextBlock Grid.Row="2" Grid.Column="4" Text="{local:Loc &quot;s&quot;}" VerticalAlignment="Center" />
+        <CheckBox Grid.Row="3" x:Name="MemoryEnabled" Content="{local:Loc &quot;Memory&quot;}" ToolTip.Tip="{local:Loc &quot;macOS memory usage estimate&quot;}" />
+        <NumericUpDown Grid.Row="3" Grid.Column="1" x:Name="MemoryThreshold" Minimum="1" Maximum="100" /><TextBlock Grid.Row="3" Grid.Column="2" Text="{local:Loc &quot;%&quot;}" VerticalAlignment="Center" />
+        <NumericUpDown Grid.Row="3" Grid.Column="3" x:Name="MemorySeconds" Minimum="1" Maximum="300" /><TextBlock Grid.Row="3" Grid.Column="4" Text="{local:Loc &quot;s&quot;}" VerticalAlignment="Center" />
+        <CheckBox Grid.Row="4" x:Name="NetworkEnabled" Content="{local:Loc &quot;Network&quot;}" ToolTip.Tip="{local:Loc &quot;Busier direction: download or upload&quot;}" />
+        <NumericUpDown Grid.Row="4" Grid.Column="1" x:Name="NetworkThreshold" Minimum="0.1" Maximum="100000" Increment="1" /><TextBlock Grid.Row="4" Grid.Column="2" Text="{local:Loc &quot;Mbps&quot;}" VerticalAlignment="Center" />
+        <NumericUpDown Grid.Row="4" Grid.Column="3" x:Name="NetworkSeconds" Minimum="1" Maximum="300" /><TextBlock Grid.Row="4" Grid.Column="4" Text="{local:Loc &quot;s&quot;}" VerticalAlignment="Center" />
+        <CheckBox Grid.Row="5" x:Name="ProcessEnabled" Content="{local:Loc &quot;Any process&quot;}" />
+        <NumericUpDown Grid.Row="5" Grid.Column="1" x:Name="ProcessThreshold" Minimum="1" Maximum="25600" /><TextBlock Grid.Row="5" Grid.Column="2" Text="{local:Loc &quot;% of one core&quot;}" VerticalAlignment="Center" FontSize="11" />
+        <NumericUpDown Grid.Row="5" Grid.Column="3" x:Name="ProcessSeconds" Minimum="1" Maximum="300" /><TextBlock Grid.Row="5" Grid.Column="4" Text="{local:Loc &quot;s&quot;}" VerticalAlignment="Center" />
+      </Grid>
+    </Border>
+    <WrapPanel Orientation="Horizontal"><TextBlock Text="{local:Loc &quot;Wait&quot;}" VerticalAlignment="Center" /><NumericUpDown x:Name="Cooldown" Minimum="1" Maximum="3600" Width="90" Margin="8,0" /><TextBlock Text="{local:Loc &quot;seconds before capturing the same rule again&quot;}" VerticalAlignment="Center" TextWrapping="Wrap" /></WrapPanel>
+    <TextBlock Text="{local:Loc &quot;Save location&quot;}" Classes="label" />
+    <TextBox x:Name="CaptureFolder" IsReadOnly="True" AutomationProperties.Name="{local:Loc &quot;Capture save location&quot;}" />
+    <StackPanel Orientation="Horizontal" Spacing="8"><Button x:Name="ChangeFolder" Content="{local:Loc &quot;Change…&quot;}" /><Button x:Name="OpenFolder" Content="{local:Loc &quot;Open folder&quot;}" /><Button x:Name="DefaultFolder" Content="{local:Loc &quot;Default&quot;}" /></StackPanel>
+    <TextBlock Text="{local:Loc &quot;The newest 200 MacMon reports are kept in each folder. Existing reports stay where they were saved.&quot;}" Classes="label" TextWrapping="Wrap" />
+    <CheckBox x:Name="NotifyCapture" Content="{local:Loc &quot;Notify when a report is saved&quot;}" />
+    <TextBlock Text="{local:Loc &quot;macOS asks permission when you enable notifications and save.&quot;}" Classes="label" TextWrapping="Wrap" />
+    <TextBlock x:Name="FolderStatus" Classes="label" TextWrapping="Wrap" />
+  </StackPanel>
 </UserControl>

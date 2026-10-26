@@ -57,6 +57,7 @@ public sealed partial class MainWindow : Window
         _historyOrigins = new HistoryProvenance(_bootId);
         VersionLabel.Text = typeof(MainWindow).Assembly.GetName().Version?.ToString(3);
         OpenInfo.Click += async (_, _) => await ShowHardwareInfo();
+        MacDesktopIntegration.Activated += ShowFromShortcut;
         _session = new MonitorSession(() => _source,
             () => new SamplingOptions(Retain: _retain),
             action => Dispatcher.UIThread.Post(action), identityPolicy: MacFrameSource.IdentityPolicy);
@@ -75,6 +76,7 @@ public sealed partial class MainWindow : Window
             var index = _captures.FindIndex(capture => capture.Id == record.Id);
             if (index >= 0) _captures[index] = record with { State = error is null ? "Saved" : "Failed" };
             if (error is not null) _operationStatus = $"Capture report failed: {error}";
+            else if (_captureOptions.Notify && !_closing) MacDesktopIntegration.Notify(UiText.Get("Automatic capture saved"), record.Label);
             RefreshCaptures();
         }));
         _session.LiveSampleRecorded += _gaugeHistory.Observe;
@@ -367,7 +369,7 @@ public sealed partial class MainWindow : Window
         if (firedCaptures.Count == 0) return;
         foreach (var fired in firedCaptures)
         {
-            var record = MacCaptureReports.Create(fired, Path.Combine(MacPaths.AppSupport, "Captures"));
+            var record = MacCaptureReports.Create(fired, _captureOptions.ReportFolder);
             if (!_reportWriter.Enqueue(record, MacCaptureReports.AutomaticText(fired)))
             {
                 record = record with { State = "Failed" };
@@ -496,9 +498,10 @@ public sealed partial class MainWindow : Window
     {
         if (!_preferencesWritable) return "The existing settings file is protected from replacement.";
         var snapshot = values.ApplyTo(PreferencesSnapshot(), _bootId);
-        try { await Task.Run(() => MacPreferenceStore.Save(_preferencesPath, snapshot)); }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        { return $"Settings could not be saved: {ex.Message}"; }
+        var nativeError = await SettingsEffects.Save(_preferences, snapshot, values.OpenAtLogin, new NativeDesktopSettingsServices(),
+            () => Task.Run(() => MacPreferenceStore.Save(_preferencesPath, snapshot)));
+        if (nativeError is not null) return UiText.Get(nativeError);
+        var previousFolder = _captureOptions.ReportFolder;
         _preferences = snapshot;
         AlwaysOnTop.IsChecked = snapshot.AlwaysOnTop;
         _keepHistory = snapshot.KeepHistory;
@@ -512,11 +515,23 @@ public sealed partial class MainWindow : Window
             _captureOptions.CooldownSeconds != snapshot.Captures.CooldownSeconds ||
             !_captureOptions.Rules.SequenceEqual(snapshot.Captures.Rules))
         {
-            _captureOptions = snapshot.Captures;
-            _captureRules = new(_captureOptions.Rules, TimeSpan.FromSeconds(_captureOptions.CooldownSeconds), Environment.ProcessorCount);
+            _captureRules = new(snapshot.Captures.Rules, TimeSpan.FromSeconds(snapshot.Captures.CooldownSeconds), Environment.ProcessorCount);
         }
+        _captureOptions = snapshot.Captures;
+        if (previousFolder != _captureOptions.ReportFolder)
+        {
+            var reports = await Task.Run(() => MacCaptureReports.LoadRecords(_captureOptions.ReportFolder));
+            if (!_closing)
+            {
+                var known = _captures.Select(r => r.Id).ToHashSet(); _captures.AddRange(reports.Where(r => !known.Contains(r.Id)));
+                _captures.Sort((a, b) => a.Peak.Timestamp.CompareTo(b.Peak.Timestamp));
+                if (_captures.Count > 200) _captures.RemoveRange(0, _captures.Count - 200);
+                RefreshCaptures();
+            }
+        }
+        UiText.Apply(snapshot.Language);
         (Application.Current as App)?.ApplyAppearance(snapshot.Theme, snapshot.Palette, snapshot.GaugeStyle);
-        _operationStatus = "Settings saved";
+        _operationStatus = UiText.Get(MacDesktopIntegration.LoginStatus == 2 ? "Settings saved · approve Open at login in Login Items." : "Settings saved");
         Update();
         return null;
     }
@@ -525,6 +540,7 @@ public sealed partial class MainWindow : Window
     {
         var loaded = MacPreferenceStore.Load(_preferencesPath, _bootId);
         _preferences = loaded.Preferences; _preferencesWritable = loaded.CanSave;
+        UiText.Apply(_preferences.Language);
         (Application.Current as App)?.ApplyAppearance(_preferences.Theme, _preferences.Palette, _preferences.GaugeStyle);
         if (loaded.Error is not null) _operationStatus = loaded.Error;
         Width = _preferences.Width; Height = _preferences.Height;
@@ -552,7 +568,7 @@ public sealed partial class MainWindow : Window
         _captureOptions = _preferences.Captures;
         _captureRules = new(_captureOptions.Rules, TimeSpan.FromSeconds(_captureOptions.CooldownSeconds), Environment.ProcessorCount);
         UpdateRetention();
-        _viewState = new(_preferences with { Width = Width, Height = Height });
+        _viewState = new(_preferences with { Width = Width, Height = Height, CompactMode = _preferences.StartupView switch { "Full" => false, "Compact" => true, _ => _preferences.CompactMode } });
         UpdateTabSummary();
         ApplyViewLayout();
     }
@@ -576,13 +592,22 @@ public sealed partial class MainWindow : Window
         });
     }
 
+    private void ShowFromShortcut() => Dispatcher.UIThread.Post(() =>
+    {
+        if (_closing) return;
+        Show(); if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+        Activate(); MacDesktopIntegration.Activate();
+    });
+
     private async Task StartAsync()
     {
+        var shortcutError = MacDesktopIntegration.SetShortcut(_preferences.ShowShortcut);
+        if (shortcutError is not null) _operationStatus = UiText.Get(shortcutError);
         var keep = _keepHistory;
         var range = RangeSeconds;
         var restored = await Task.Run(() => keep
             ? MacHistoryStore.Load(_historyPath, range, DateTimeOffset.UtcNow, Stopwatch.GetTimestamp()) : new HistoryLoadResult([]));
-        var reports = await Task.Run(() => MacCaptureReports.LoadRecords(Path.Combine(MacPaths.AppSupport, "Captures")));
+        var reports = await Task.Run(() => MacCaptureReports.LoadRecords(_captureOptions.ReportFolder));
         if (_closing) return;
         _historyWritable = restored.CanSave;
         _historyOrigins.Restore(restored.Entries);
@@ -621,6 +646,7 @@ public sealed partial class MainWindow : Window
         args.Cancel = true;
         if (_closing) return;
         _closing = true;
+        MacDesktopIntegration.Activated -= ShowFromShortcut; MacDesktopIntegration.Dispose();
         HideResourceDetails();
         IsEnabled = false;
         _session.Close();

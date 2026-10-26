@@ -697,3 +697,69 @@ palette. Reference sources are recorded under dependencies/winmon-ui.
 Validation: 156 Mac tests plus three release-workflow tests pass, zero build
 warnings. Added checks cover every finish/palette combination and following or
 preserving custom palettes when themes change.
+
+
+## Settings parity — General, Monitoring, Automatic Capture and localization
+
+MacMon 0.11.0/build 13 adds English/Spanish UI resources with live label updates
+on Save. Canonical theme, palette, metric and preference IDs remain unchanged.
+Unsupported system languages fall back to English; diagnostic reports retain
+invariant English labels for comparison. Some dynamic diagnostic prose still
+uses English. Language selection is a draft until Save, like other settings.
+
+General reflects SMAppService.mainApp's authoritative login status, including
+approval-required state, and links to Login Items. An optional Carbon registered
+hotkey shows/restores MacMon without Accessibility or Input Monitoring permission.
+It defaults to Off and releases its registration on exit. Startup can use the
+last view, full view or compact view. The signed bundle includes a small Swift
+library built with the macOS 13 deployment target; local development needs the
+Xcode command-line tools. An unpackaged run leaves native-only controls unavailable.
+
+Monitoring groups history, disk and network controls and makes restored-history
+versus fresh-session Usage behavior explicit. Automatic Capture uses a rule table
+with separate units, including device-wide GPU, cooldown, a native report-folder
+picker and optional local notifications. Permission is requested only when
+notifications are newly enabled and saved. Alerts follow a successful report
+write. Old report paths remain valid after a folder change; each folder retains
+only its newest 200 owned reports. User-selected folders must be writable; write
+failures remain visible in the saved-reports list.
+
+Native settings apply only on Save. Shortcut conflicts or notification denial
+leave the draft open without persisting it. A failed atomic preference write
+rolls back changed login/shortcut registrations and leaves the old preferences
+active. Granting OS notification permission is independent of preference saving.
+Tests use injected native services to cover these paths without altering login
+items or requesting notification permission on the developer's Mac.
+
+
+Packaged 0.11.0/build 13 verification on M2 Pro: the signed Swift dylib is
+included and native login status reads Off with the packaged-only controls
+available. Temporarily saving ⌃⌥M, minimizing MacMon and invoking it from Finder
+restored the app. Spanish settings navigation, selectors, palette swatches and
+all four sections were inspected; existing main-window labels update on Save.
+The compact startup choice survived a clean restart. The native folder picker
+opened with a translated title and was cancelled without changing the folder.
+Automatic Capture numeric fields display their values without cramped spinner
+buttons; typing, arrow keys and wheel stepping remain available.
+
+Login registration and notification permission were not changed on this Mac;
+these opt-in paths are covered through injected services, while OS approval
+and actual notification delivery remain to be checked after the user opts in.
+Original live preferences were verified after a clean quit: Dark/Bowl, Processes,
+Focus CPU, all five series visible, 30m, 884×990, compact width 1000, ratio 1.92,
+always-on-top off, aggregate primary disk and no second disk. CPU capture remains
+enabled at 90% for 10s with 60s cooldown, as found at the start of this task.
+Language is System, startup Last and shortcut Off. The old High contrast name
+migrates to its canonical inclusive palette; GPU capture defaults to disabled.
+No capture notifications or custom folder are enabled.
+
+Ad-hoc strict signing, packaged resource/launchd smoke, ZIP integrity and SHA-256
+verification pass. Artifact: `MacMon-0.11.0-osx-arm64-dev.zip`, SHA-256:
+`3cb439d7ef5a1f42c52082e164cd304c74de6dd58cdb21a22e1692076f10ad75`.
+
+
+Final regression validation: 163 Mac tests and three release-workflow tests pass,
+with zero build warnings/errors. New checks cover permission denial/grant,
+shortcut conflicts, rollback after failed persistence, language draft/Save and
+binding lifetime across collection, Spanish minimum-size layout and readable
+numeric editors, GPU trigger gaps and hardware fields in capture reports.

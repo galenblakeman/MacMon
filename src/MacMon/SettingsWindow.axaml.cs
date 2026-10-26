@@ -19,16 +19,36 @@ public sealed partial class SettingsWindow : Window
     public SettingsWindow(MacPreferences preferences, IReadOnlyList<MacNetworkChoice> networks, int section,
         bool canSave, Func<SettingsValues, Task<string?>> save, IReadOnlyList<MacDiskChoice>? disks = null)
     {
+        preferences = preferences.Normalized(preferences.BootId);
         _save = save;
         InitializeComponent();
+        LanguageChoice.ItemsSource = UiText.Languages;
+        LanguageChoice.ItemTemplate = new FuncDataTemplate<LanguageChoice>((choice, _) => UiText.Label(choice!.Label));
+        LanguageChoice.SelectedItem = UiText.Languages.First(c => c.Id == preferences.Language);
+        StartupViewChoice.ItemsSource = new[] { "Last view", "Full view", "Compact view" };
+        StartupViewChoice.ItemTemplate = new FuncDataTemplate<string>((value, _) => UiText.Label(value!));
+        StartupViewChoice.SelectedIndex = preferences.StartupView switch { "Full" => 1, "Compact" => 2, _ => 0 };
+        ShortcutChoice.ItemsSource = MacDesktopIntegration.Shortcuts;
+        ShortcutChoice.ItemTemplate = new FuncDataTemplate<ShortcutChoice>((choice, _) => UiText.Label(choice!.Label));
+        ShortcutChoice.SelectedItem = MacDesktopIntegration.Shortcuts.First(c => c.Id == preferences.ShowShortcut);
+        DefaultShortcut.Click += (_, _) => ShortcutChoice.SelectedItem = MacDesktopIntegration.Shortcuts[1];
+        var loginStatus = MacDesktopIntegration.LoginStatus;
+        OpenAtLogin.IsEnabled = loginStatus >= 0;
+        OpenAtLogin.IsChecked = loginStatus is 1 or 2;
+        StartupStatus.Text = UiText.Get(loginStatus switch { 1 => "Opens at login.", 2 => "Approval required in Login Items.",
+            >= 0 => "Off", _ => "Available in the packaged MacMon app." });
+        LoginItems.IsEnabled = loginStatus >= 0;
+        LoginItems.Click += (_, _) => MacDesktopIntegration.OpenLoginSettings();
         TopmostSetting.IsChecked = preferences.AlwaysOnTop;
         KeepHistorySetting.IsChecked = preferences.KeepHistory;
         RangeChoice.SelectedIndex = preferences.HistoryRange;
-        ThemeChoice.ItemTemplate = new FuncDataTemplate<string>((theme, _) => new TextBlock { Text = Appearance.ThemeLabel(theme!) });
+        ThemeChoice.ItemTemplate = new FuncDataTemplate<string>((theme, _) => UiText.Label(Appearance.ThemeLabel(theme!)));
         ThemeChoice.ItemsSource = Appearance.Themes; ThemeChoice.SelectedItem = preferences.Theme;
         PaletteChoice.ItemsSource = Appearance.Palettes; PaletteChoice.SelectedItem = preferences.Palette;
-        GaugeChoice.ItemTemplate = new FuncDataTemplate<string>((style, _) => new TextBlock { Text = ResourceGauge.StyleLabel(style) });
+        GaugeChoice.ItemTemplate = new FuncDataTemplate<string>((style, _) => UiText.Label(ResourceGauge.StyleLabel(style!)));
         GaugeChoice.ItemsSource = ResourceGauge.GaugeStyles; GaugeChoice.SelectedItem = preferences.GaugeStyle;
+        NetworkChoice.ItemTemplate = new FuncDataTemplate<MacNetworkChoice>((choice, _) => UiText.Label(choice!.Name));
+        PrimaryDiskChoice.ItemTemplate = SecondaryDiskChoice.ItemTemplate = new FuncDataTemplate<MacDiskChoice>((choice, _) => UiText.Label(choice!.Name));
         NetworkChoice.ItemsSource = networks;
         NetworkChoice.SelectedItem = networks.FirstOrDefault(network => network.Id == (preferences.NetworkId ?? ""));
         var availableDisks = disks ?? [];
@@ -59,7 +79,7 @@ public sealed partial class SettingsWindow : Window
         Sections.SelectedIndex = Math.Clamp(section, 0, 3);
         ShowSection();
         SaveSettings.IsEnabled = canSave;
-        if (!canSave) SettingsStatus.Text = "Settings cannot be saved because the existing file could not be safely loaded. The original file is preserved.";
+        if (!canSave) SettingsStatus.Text = UiText.Get("Settings cannot be saved because the existing file could not be safely loaded. The original file is preserved.");
         CancelSettings.Click += (_, _) => { if (!_saving) Close(); };
         SaveSettings.Click += async (_, _) => await Save();
         Closing += (_, args) => { if (_saving) args.Cancel = true; };
@@ -72,8 +92,8 @@ public sealed partial class SettingsWindow : Window
                 ReceiveBytesPerSecond = 4.2 * 1048576 - 100000 + Math.Sin((index - 24) * 0.4) * 1000000, SendBytesPerSecond = 100000,
                 SecondaryDiskReadBytesPerSecond = 18 * 1048576 - 1000000 + (index % 7 - 3) * 3000000, SecondaryDiskWriteBytesPerSecond = 1000000 }
         }).ToArray();
-        PreviewGpu.Update(new(32, 67, 100, "32.0%", "0–100%"), "Device utilization");
-        PreviewCpu.Update(new(24, 67, 100, "24.0%", "0–100%"), "Speed unavailable");
+        PreviewGpu.Update(new(32, 67, 100, "32.0%", "0–100%"), UiText.Get("Device utilization"));
+        PreviewCpu.Update(new(24, 67, 100, "24.0%", "0–100%"), UiText.Get("Speed unavailable"));
         PreviewMemory.Update(new(62, 72, 100, "62.0%", "0–100%"), "9.9 / 16.0 GiB");
         PreviewNetwork.Update(new(4.2 * 1048576, 8 * 1048576, 16 * 1048576, ResourceGaugeHistory.NetworkRate(4.2 * 1048576), "0–" + ResourceGaugeHistory.NetworkRate(16 * 1048576)), "↑ 800.0 Kbps");
         PreviewStorage.Update(new(18 * 1048576, 32 * 1048576, 64 * 1048576, "18 MiB/s", "0–64 MiB/s"), "18 MiB/s combined");
@@ -105,7 +125,9 @@ public sealed partial class SettingsWindow : Window
     private static Control PalettePreview(string palette, string theme, bool dark)
     {
         var row = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 10 };
-        row.Children.Add(new TextBlock { Text = palette, MinWidth = 230, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center });
+        var label = UiText.Label(palette); label.Width = 145; label.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
+        ToolTip.SetTip(label, UiText.Get(palette));
+        label.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center; row.Children.Add(label);
         var colors = Appearance.Colors(palette, dark, true, theme).All;
         var swatches = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 3 };
         foreach (var i in new[] { 0, 1, 3, 2, 4, 5 })
@@ -122,18 +144,21 @@ public sealed partial class SettingsWindow : Window
         var primaryId = (PrimaryDiskChoice.SelectedItem as MacDiskChoice)?.Id;
         var secondaryId = (SecondaryDiskChoice.SelectedItem as MacDiskChoice)?.Id;
         if (!string.IsNullOrEmpty(primaryId) && primaryId == secondaryId)
-        { SettingsStatus.Text = "Choose a different second disk, or turn it off."; return; }
+        { SettingsStatus.Text = UiText.Get("Choose a different second disk, or turn it off."); return; }
         _saving = true; SaveSettings.IsEnabled = CancelSettings.IsEnabled = false;
-        SettingsStatus.Text = "Saving settings…";
+        SettingsStatus.Text = UiText.Get("Saving settings…");
         try
         {
             var values = new SettingsValues(ThemeChoice.SelectedItem as string ?? "Dark",
                 PaletteChoice.SelectedItem as string ?? "Classic", TopmostSetting.IsChecked == true,
                 KeepHistorySetting.IsChecked == true, RangeChoice.SelectedIndex,
                 (NetworkChoice.SelectedItem as MacNetworkChoice)?.Id, CaptureEditor.Value, GaugeChoice.SelectedItem as string ?? "Bowl",
-                string.IsNullOrEmpty(primaryId) ? null : primaryId, string.IsNullOrEmpty(secondaryId) ? null : secondaryId);
+                string.IsNullOrEmpty(primaryId) ? null : primaryId, string.IsNullOrEmpty(secondaryId) ? null : secondaryId,
+                (LanguageChoice.SelectedItem as LanguageChoice)?.Id ?? "System",
+                StartupViewChoice.SelectedIndex switch { 1 => "Full", 2 => "Compact", _ => "Last" },
+                (ShortcutChoice.SelectedItem as ShortcutChoice)?.Id ?? "Off", OpenAtLogin.IsEnabled ? OpenAtLogin.IsChecked == true : null);
             var error = await _save(values);
-            if (error is not null) { SettingsStatus.Text = error; return; }
+            if (error is not null) { SettingsStatus.Text = UiText.Get(error); return; }
             _saving = false;
             Close();
         }

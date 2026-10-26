@@ -115,7 +115,7 @@ public sealed class CpuChart : Control
     private double X(long time, Rect plot) => plot.X + plot.Width * (1 -
         (_samples[^1].MonotonicTimestamp - time) / (double)Stopwatch.Frequency / RangeSeconds);
     private static int CaptureMetricIndex(MacCaptureRecord capture) => capture.Metric switch
-    { CaptureMetric.Memory => 1, CaptureMetric.Network => 2, _ => 0 };
+    { CaptureMetric.Memory => 1, CaptureMetric.Network => 2, CaptureMetric.Gpu => 4, _ => 0 };
     private bool MarkerVisible(MacCaptureRecord capture, ChartPanel panel) => _samples.Count > 0 &&
         capture.Peak.MonotonicTimestamp > 0 && panel.Metrics.Contains(CaptureMetricIndex(capture)) &&
         (_samples[^1].MonotonicTimestamp - capture.Peak.MonotonicTimestamp) / (double)Stopwatch.Frequency is var age && age >= 0 && age <= RangeSeconds;
@@ -150,7 +150,7 @@ public sealed class CpuChart : Control
         _visible = HistoryInspection.VisibleSamples(samples, RangeSeconds);
         _maxima = Enumerable.Range(0, ResourceCharts.Names.Length).Select(i => ResourceCharts.Maximum(_visible, RangeSeconds, i)).ToArray();
         var captured = _visible.FirstOrDefault(s => s.MonotonicTimestamp == SelectedTimestamp);
-        AutomationProperties.SetName(this, SelectedTimestamp is null ? "Resource history. Live" : captured is null
+        AutomationProperties.SetName(this, SelectedTimestamp is null ? UiText.Get("Resource history. Live") : captured is null
             ? "Resource history. Captured sample is outside the visible range" : $"Resource history. Captured {ResourceCharts.Describe(captured)}");
         RefreshHover();
     }
@@ -174,11 +174,11 @@ public sealed class CpuChart : Control
             var metric = panel.Metrics[0];
             if (panel.SideLabel)
             {
-                Label(context, ResourceCharts.Names[metric], new(panel.Bounds.X + 2, panel.Bounds.Y + Math.Max(0, panel.Bounds.Height / 2 - 13)), Brush(metric));
+                Label(context, UiText.Get(ResourceCharts.Names[metric]), new(panel.Bounds.X + 2, panel.Bounds.Y + Math.Max(0, panel.Bounds.Height / 2 - 13)), Brush(metric));
                 if (panel.Bounds.Height >= 32) Label(context, ResourceCharts.Scale(metric, Maximum(metric)),
                     new(panel.Bounds.X + 2, panel.Bounds.Y + panel.Bounds.Height / 2 + 1), MarkerBrush);
             }
-            else if (panel.Metrics.Length == 1) Label(context, ResourceCharts.Names[metric], panel.Bounds.TopLeft + new Vector(5, 4), Brush(metric));
+            else if (panel.Metrics.Length == 1) Label(context, UiText.Get(ResourceCharts.Names[metric]), panel.Bounds.TopLeft + new Vector(5, 4), Brush(metric));
             for (var i = 0; i <= 4; i++) context.DrawLine(new Pen(GridBrush, 1),
                 new(plot.X, plot.Y + plot.Height * i / 4), new(plot.Right, plot.Y + plot.Height * i / 4));
             for (var i = 0; i <= 4; i++) context.DrawLine(new Pen(GridBrush, 1),

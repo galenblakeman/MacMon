@@ -35,6 +35,9 @@ public sealed record MacPreferences
     public double CompactWidth { get; init; } = 1000;
     public bool AlwaysOnTop { get; init; }
     public string Theme { get; init; } = "Dark";
+    public string Language { get; init; } = "System";
+    public string StartupView { get; init; } = "Last";
+    public string ShowShortcut { get; init; } = "Off";
     public string GaugeStyle { get; init; } = "Bowl";
     public string Palette { get; init; } = "Classic";
     public double Width { get; init; } = 1000;
@@ -48,6 +51,8 @@ public sealed record MacPreferences
     {
         BootId = bootId, Theme = Appearance.NormalizeTheme(Theme), Palette = Appearance.NormalizePalette(Palette),
         GaugeStyle = ResourceGauge.NormalizeStyle(GaugeStyle),
+        Language = UiText.NormalizeLanguage(Language), StartupView = StartupView is "Full" or "Compact" ? StartupView : "Last",
+        ShowShortcut = MacDesktopIntegration.NormalizeShortcut(ShowShortcut),
         ChartMode = Enum.IsDefined(ChartMode) ? ChartMode : ResourceChartMode.Overlay,
         VisibleMetrics = VisibleMetrics & 63, FocusMetric = ResourceCharts.Focus(VisibleMetrics & 63, FocusMetric),
         ProcessSort = Math.Clamp(ProcessSort, 0, 5), UsageSort = Math.Clamp(UsageSort, 0, 5),

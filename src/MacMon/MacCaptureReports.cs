@@ -49,11 +49,17 @@ public static class MacCaptureReports
         text.AppendLine($"MacMon capture · {sample.Timestamp.ToLocalTime():yyyy-MM-dd HH:mm:ss zzz} ({TimeZoneInfo.Local.Id})");
         text.AppendLine($"UTC: {sample.Timestamp.ToUniversalTime():O}");
         text.AppendLine($"CPU: {Number(sample.TotalCpuPercent)}% of machine capacity");
+        text.AppendLine($"CPU clock estimate: {Number(r.CpuClockMhz)} MHz (requested-state residency)");
+        text.AppendLine($"GPU {Clean(r.GpuName)}: {Number(r.GpuPercent)}% device utilization");
         text.AppendLine($"Memory estimate: {Number(r.MemoryPercent)}% · {r.UsedMemoryBytes?.ToString(CultureInfo.InvariantCulture) ?? "—"} bytes used");
         text.AppendLine($"Network {Clean(r.NetworkName)}: receive {Number(r.ReceiveBytesPerSecond)} B/s · send {Number(r.SendBytesPerSecond)} B/s");
-        text.AppendLine($"All block-storage drivers: read {Number(r.SecondaryDiskReadBytesPerSecond)} B/s · write {Number(r.SecondaryDiskWriteBytesPerSecond)} B/s");
-        text.AppendLine($"Data volume {Clean(r.DiskName)}: {r.DiskFreeBytes?.ToString(CultureInfo.InvariantCulture) ?? "—"} bytes available");
+        var legacyDisk = ResourceCharts.LegacyDisk(r);
+        text.AppendLine($"Primary disk {Clean(legacyDisk ? r.SecondaryDiskName : r.DiskName)}: read {Number(legacyDisk ? r.SecondaryDiskReadBytesPerSecond : r.DiskReadBytesPerSecond)} B/s · write {Number(legacyDisk ? r.SecondaryDiskWriteBytesPerSecond : r.DiskWriteBytesPerSecond)} B/s");
+        if (!legacyDisk && r.SecondaryDiskName.Length > 0)
+            text.AppendLine($"Second disk {Clean(r.SecondaryDiskName)}: read {Number(r.SecondaryDiskReadBytesPerSecond)} B/s · write {Number(r.SecondaryDiskWriteBytesPerSecond)} B/s");
+        if (legacyDisk) text.AppendLine($"Data volume {Clean(r.DiskName)}: {r.DiskFreeBytes?.ToString(CultureInfo.InvariantCulture) ?? "—"} bytes available");
         text.AppendLine("— means unavailable. Process disk I/O excludes network traffic. Resident sums can count shared pages repeatedly.");
+        text.AppendLine("Per-process GPU attribution is unavailable; process rows do not identify GPU usage.");
         text.AppendLine("Per-process network attribution is unavailable; the rows below do not identify network usage.");
         text.AppendLine(processNote);
         text.AppendLine("Name\tPID\tCPU % machine\tResident bytes\tDisk I/O B/s\tThreads");

@@ -1,13 +1,13 @@
-<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+<Window xmlns="https://github.com/avaloniaui" xmlns:local="using:MacMon" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="MacMon.ProcessDialog" Width="660" Height="480" MinWidth="480" MinHeight="320"
         WindowStartupLocation="CenterOwner">
   <Grid Margin="24" RowDefinitions="*,Auto" RowSpacing="16">
     <TextBox x:Name="Details" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
-             AutomationProperties.Name="Process details" FontFamily="Menlo" FontSize="13" />
+             AutomationProperties.Name="{local:Loc &quot;Process details&quot;}" FontFamily="Menlo" FontSize="13" />
     <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12">
-      <Button x:Name="CopyDetails" Content="Copy details" />
-      <Button x:Name="CancelAction" Content="Close" />
-      <Button x:Name="ConfirmAction" Content="Request termination" IsVisible="False" />
+      <Button x:Name="CopyDetails" Content="{local:Loc &quot;Copy details&quot;}" />
+      <Button x:Name="CancelAction" Content="{local:Loc &quot;Close&quot;}" />
+      <Button x:Name="ConfirmAction" Content="{local:Loc &quot;Request termination&quot;}" IsVisible="False" />
     </StackPanel>
   </Grid>
 </Window>

@@ -99,9 +99,9 @@ public sealed class ResourceGauge : UserControl
     private void Refresh()
     {
         Height = 98;
-        _name.Text = Title; SeriesToggle.Foreground = _name.Foreground = _value.Foreground = TextAccent ?? Fill;
+        _name.Text = UiText.Get(Title); SeriesToggle.Foreground = _name.Foreground = _value.Foreground = TextAccent ?? Fill;
         RefreshCheck();
-        AutomationProperties.SetName(SeriesToggle, $"Show {Title} on chart");
+        AutomationProperties.SetName(SeriesToggle, UiText.Format("Show {0} on chart", UiText.Get(Title)));
         var number = _reading.Text; var unit = "";
         var space = number.LastIndexOf(' ');
         if (space >= 0) { unit = number[(space + 1)..]; number = number[..space]; }

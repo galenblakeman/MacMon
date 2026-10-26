@@ -7,6 +7,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using MacMon;
 using MonCore.MacOS;
 using NUnit.Framework;
@@ -23,6 +24,63 @@ public static class AppearanceTestAppBuilder
 
 public sealed class SettingsWindowTests
 {
+    [AvaloniaTest]
+    public void SpanishSectionsRenderAtMinimumSizeWithLocalizedActions()
+    {
+        UiText.Apply("es");
+        var directory = Environment.GetEnvironmentVariable("MACMON_RENDER_OUTPUT");
+        if (directory is not null) Directory.CreateDirectory(directory);
+        var window = new SettingsWindow(new MacPreferences { Language = "es" }, [new("", "Automatic")], 0, true,
+            _ => Task.FromResult<string?>(null)) { Width = 800, Height = 560 };
+        try
+        {
+            window.Show();
+            foreach (var section in new[] { 0, 1, 2, 3 })
+            {
+                Get<ListBox>(window, "Sections").SelectedIndex = section;
+                Dispatcher.UIThread.RunJobs();
+                using var frame = window.CaptureRenderedFrame();
+                Assert.That(frame, Is.Not.Null);
+                Assert.That(Get<Button>(window, "SaveSettings").Content, Is.EqualTo("Guardar"));
+                if (section == 3)
+                {
+                    foreach (var input in Get<CaptureSettingsEditor>(window, "CaptureEditor").GetVisualDescendants().OfType<NumericUpDown>())
+                    {
+                        var text = input.GetVisualDescendants().OfType<TextBox>().First();
+                        Assert.That(text.Bounds.Width, Is.GreaterThanOrEqualTo(40), input.Name);
+                    }
+                }
+                if (directory is not null) frame!.Save(Path.Combine(directory, $"settings-es-{section}.png"), PngBitmapEncoderOptions.Default);
+            }
+        }
+        finally { window.Close(); UiText.Apply("en"); }
+    }
+
+    [AvaloniaTest]
+    public void LanguageDraftWaitsForSaveAndExistingLabelsRefreshWithoutChangingIds()
+    {
+        UiText.Apply("en");
+        SettingsValues? saved = null;
+        var label = UiText.Label("Settings");
+        var window = Window(values => { saved = values; return Task.FromResult<string?>(null); }, section: 0);
+        try
+        {
+            window.Show();
+            Get<ComboBox>(window, "LanguageChoice").SelectedItem = UiText.Languages.First(c => c.Id == "es");
+            Assert.That(UiText.Language, Is.EqualTo("en"));
+            Click(window, "SaveSettings");
+            Assert.That(saved!.Language, Is.EqualTo("es"));
+            GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect();
+            UiText.Apply(saved.Language);
+            Dispatcher.UIThread.RunJobs();
+            Assert.That(label.Text, Is.EqualTo("Configuración"));
+            Assert.That(UiText.Get("Save"), Is.EqualTo("Guardar"));
+            Assert.That(UiText.NormalizeLanguage("unknown"), Is.EqualTo("System"));
+            Assert.That(Appearance.Themes, Does.Contain("Copper"));
+        }
+        finally { window.Close(); UiText.Apply("en"); }
+    }
+
     [AvaloniaTest]
     public void ThemePaletteFollowsItsDefaultUntilACustomPaletteIsChosen()
     {

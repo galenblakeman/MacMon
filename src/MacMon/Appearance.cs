@@ -83,13 +83,16 @@ public static class Appearance
 
 /// <summary>Only fields edited in Settings are merged; live view, window and pin state stay current.</summary>
 public sealed record SettingsValues(string Theme, string Palette, bool AlwaysOnTop, bool KeepHistory,
-    int HistoryRange, string? NetworkId, MacCaptureOptions Captures, string GaugeStyle = "Bowl", string? PrimaryDiskId = null, string? SecondaryDiskId = null)
+    int HistoryRange, string? NetworkId, MacCaptureOptions Captures, string GaugeStyle = "Bowl", string? PrimaryDiskId = null, string? SecondaryDiskId = null,
+    string Language = "System", string StartupView = "Last", string ShowShortcut = "Off", bool? OpenAtLogin = null)
 {
     public static SettingsValues From(MacPreferences preferences) => new(preferences.Theme, preferences.Palette,
-        preferences.AlwaysOnTop, preferences.KeepHistory, preferences.HistoryRange, preferences.NetworkId, preferences.Captures, preferences.GaugeStyle, preferences.PrimaryDiskId, preferences.SecondaryDiskId);
+        preferences.AlwaysOnTop, preferences.KeepHistory, preferences.HistoryRange, preferences.NetworkId, preferences.Captures, preferences.GaugeStyle, preferences.PrimaryDiskId, preferences.SecondaryDiskId,
+        preferences.Language, preferences.StartupView, preferences.ShowShortcut);
     public MacPreferences ApplyTo(MacPreferences current, string? bootId) => (current with
     {
         Theme = Theme, Palette = Palette, GaugeStyle = GaugeStyle, AlwaysOnTop = AlwaysOnTop, KeepHistory = KeepHistory,
-        HistoryRange = HistoryRange, NetworkId = NetworkId, Captures = Captures, PrimaryDiskId = PrimaryDiskId, SecondaryDiskId = SecondaryDiskId
+        HistoryRange = HistoryRange, NetworkId = NetworkId, Captures = Captures, PrimaryDiskId = PrimaryDiskId, SecondaryDiskId = SecondaryDiskId,
+        Language = Language, StartupView = StartupView, ShowShortcut = ShowShortcut
     }).Normalized(bootId);
 }

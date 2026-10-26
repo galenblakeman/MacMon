@@ -42,7 +42,7 @@ public sealed class ShellLayoutTests
         Assert.That(chart.RangeSeconds, Is.EqualTo(1800));
         Assert.That(main.FindControl<RadioButton>("Range2")!.IsChecked, Is.False);
         var tabs = main.FindControl<TabControl>("DataTabs")!;
-        Assert.That(tabs.Items.OfType<TabItem>().Select(t => t.Header?.ToString()), Is.EqualTo(new[] { "Processes", "Jobs", "Usage" }));
+        Assert.That(tabs.Items.OfType<TabItem>().Select(t => t.Header?.ToString()), Is.EqualTo(new[] { "Processes", "Jobs", "Usage" }.Select(UiText.Get)));
         foreach (var index in new[] { 0, 1, 2 })
         {
             tabs.SelectedIndex = index;

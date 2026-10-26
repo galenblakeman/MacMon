@@ -38,7 +38,7 @@ public static class ResourceCharts
     public static string Reading(MonitorSample sample, int metric) => Value(sample, metric) is not { } value ? "—" :
         IsPercent(metric) ? $"{value:F1}%" : metric == 2 ? ResourceGaugeHistory.NetworkRate(value) : ResourceGaugeHistory.Rate(value);
     public static string Describe(MonitorSample sample) => $"{sample.Timestamp:HH:mm:ss zzz} · " +
-        string.Join(" · ", Enumerable.Range(0, Names.Length).Select(i => $"{Names[i]} {Reading(sample, i)}")) + (sample.IsGap ? " · interval gap" : "");
+        string.Join(" · ", Enumerable.Range(0, Names.Length).Select(i => $"{UiText.Get(Names[i])} {Reading(sample, i)}")) + (sample.IsGap ? " · interval gap" : "");
     public static string Scale(int metric, double maximum) => IsPercent(metric) ? "0–100%" : $"0–{(metric == 2 ? ResourceGaugeHistory.NetworkRate(maximum) : ResourceGaugeHistory.Rate(maximum))}";
     public static ChartPanel[] Panels(Size size, int mask, ResourceChartMode mode, int focus)
     {

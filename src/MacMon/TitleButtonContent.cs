@@ -22,7 +22,7 @@ public sealed class TitleButtonContentExtension(string icon, string label) : Mar
             "Full" => "M1,6 L1,1 L6,1 M10,1 L15,1 L15,6 M1,10 L1,15 L6,15 M10,15 L15,15 L15,10",
             _ => "M1,1 L15,1 L15,15 L1,15 Z M6,6 L14,6 L14,14 L6,14 Z"
         };
-        var caption = new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center };
+        var caption = UiText.Label(label); caption.VerticalAlignment = VerticalAlignment.Center;
         return new StackPanel
         {
             Orientation = Orientation.Horizontal, Spacing = 5, VerticalAlignment = VerticalAlignment.Center,
