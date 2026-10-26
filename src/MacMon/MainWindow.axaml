@@ -36,7 +36,10 @@
         </UniformGrid>
         <Border Grid.Row="1" Classes="sectionHeader" Padding="0,5">
           <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="8">
-            <ComboBox x:Name="ChartModeBox" Width="142" HorizontalAlignment="Left" AutomationProperties.Name="{local:Loc &quot;Chart layout or focus metric&quot;}" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBlock Text="{local:Loc &quot;System&quot;}" Classes="toolbarLabel" />
+              <ComboBox x:Name="ChartModeBox" Width="142" HorizontalAlignment="Left" AutomationProperties.Name="{local:Loc &quot;Chart layout or focus metric&quot;}" />
+            </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
               <Button x:Name="LiveMode" Content="{local:Loc &quot;● Live&quot;}" Classes="chip" /><Button x:Name="CaptureMode" Content="{local:Loc &quot;◎ Capture&quot;}" Classes="chip" />
             </StackPanel>

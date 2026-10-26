@@ -841,3 +841,13 @@ GPU Focus, Disk throughput ticks and final Network ticks of 20/15/10/5 Mbps and
 Strict ad-hoc signing, packaged resource/launchd smoke, ZIP integrity and checksum
 verification pass. Artifact: `MacMon-0.11.4-osx-arm64-dev.zip`, SHA-256:
 `54622978f9b3b5b69a34d0729ab01430ce8aeea70fc8d232e59b0a444ee5190a`.
+
+
+## System chart header — 0.11.5/build 18
+
+A vertically centered System label precedes the chart selector, matching WinMon.
+It uses the existing English/Spanish resource (Sistema). Four shell layout
+checks pass with zero build warnings/errors; native inspection confirms the
+label and selector fit the existing header. Packaged signing, resource/launchd
+smoke and ZIP/checksum verification pass. The app remains open in CPU Focus/Live.
+Artifact: `MacMon-0.11.5-osx-arm64-dev.zip`, SHA-256: `85758776b5347b9c2611cc3615ad007912f4f98f4855758d62b9367c70619bb2`.
