@@ -44,7 +44,7 @@ public sealed class ResourceGaugeHistory
         {
             if (values[index] is not { } value) return GaugeReading.Empty;
             var peak = _samples.Max(entry => entry.Values[index]) ?? value;
-            var maximum = IsPercent(index) ? 100 : RateMaximum(peak);
+            var maximum = IsPercent(index) ? 100 : index == 2 ? NetworkMaximum(peak) : RateMaximum(peak);
             return new GaugeReading(value, peak, maximum, IsPercent(index) ? $"{value:F1}%" : index == 2 ? NetworkRate(value) : Rate(value),
                 IsPercent(index) ? "0–100%" : $"0–{(index == 2 ? NetworkRate(maximum) : Rate(maximum))}");
         }).ToArray();
@@ -58,6 +58,18 @@ public sealed class ResourceGaugeHistory
         var scale = 1024d;
         while (scale < peak && scale < double.MaxValue / 2) scale *= 2;
         return Math.Max(peak, scale);
+    }
+    public static double NetworkMaximum(double bytesPerSecond)
+    {
+        var bits = Math.Max(bytesPerSecond * 8, 1_000_000);
+        var magnitude = Math.Pow(10, Math.Floor(Math.Log10(bits)));
+        var step = bits / magnitude;
+        return (step <= 1 ? 1 : step <= 2 ? 2 : step <= 5 ? 5 : 10) * magnitude / 8;
+    }
+    public static string NetworkScaleLabel(double maximum)
+    {
+        var bits = maximum * 8;
+        return bits >= 1e9 ? $"{bits / 1e9:F1}G" : $"{bits / 1e6:F1}M";
     }
     public static string Rate(double? value) => value is not { } bytes ? "—" : bytes >= 1073741824 ? $"{bytes / 1073741824:F1} GiB/s" :
         bytes >= 1048576 ? $"{bytes / 1048576:F1} MiB/s" : $"{bytes / 1024:F1} KiB/s";

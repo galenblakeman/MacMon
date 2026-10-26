@@ -35,13 +35,13 @@ public sealed class ResourceGauge : UserControl
     public static readonly StyledProperty<string> TitleProperty = AvaloniaProperty.Register<ResourceGauge, string>(nameof(Title), "");
     public string Title { get => GetValue(TitleProperty); set => SetValue(TitleProperty, value); }
     public CheckBox SeriesToggle { get; } = new() { IsChecked = true, FontSize = 14, MinHeight = 20, Padding = new Thickness(0) };
-    private readonly TextBlock _name = new() { FontSize = 14 };
+    private readonly TextBlock _name = new() { Name = "GaugeName", FontSize = 14, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly TextBlock _checkMark = new() { Text = "✓", FontSize = 12, FontWeight = FontWeight.Bold,
         HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
     private readonly Border _checkBox = new() { Width = 15, Height = 15, CornerRadius = new(3), BorderThickness = new(1),
         VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
-    private readonly TextBlock _value = new() { FontWeight = FontWeight.SemiBold };
-    private readonly TextBlock _scale = new() { Classes = { "label" }, FontSize = 10, VerticalAlignment = VerticalAlignment.Center };
+    private readonly TextBlock _value = new() { Name = "GaugeValue", FontWeight = FontWeight.SemiBold };
+    private readonly TextBlock _scale = new() { Name = "GaugeCorner", Classes = { "label" }, FontSize = 10, VerticalAlignment = VerticalAlignment.Center };
     private readonly TextBlock _detail = new() { FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly ResourceGaugeMarks _marks = new() { IsHitTestVisible = false };
     private readonly ResourceDetailsView _tip = new();
@@ -122,7 +122,15 @@ public sealed class ResourceGauge : UserControl
         _value.FontSize = fontSize;
         _detail.FontSize = IsCompact ? 11 : arc ? 13 : 14;
         _value.Inlines!.Clear(); _value.Inlines.Add(new Run(number)); _value.Inlines.Add(new Run(unit.Length > 0 ? " " + unit : "") { FontSize = unitSize });
-        _scale.Text = _reading.Value is not null && _reading.Maximum != 100 ? _reading.Scale.Replace("0–", "") : "";
+        var showCorner = _reading.Value is not null && GaugeStyle is "Bowl" or "Needle" or "SegmentedArc";
+        var peakLabel = _reading.Peak is { } peakValue ? $"{peakValue:F1}%" : "—";
+        var corner = _reading.Maximum == 100 ? UiText.Format("Peak {0}", peakLabel) : _reading.Scale.Replace("0–", "");
+        _scale.Text = !showCorner ? "" : _reading.Maximum != 100 ? ResourceGaugeHistory.NetworkScaleLabel(_reading.Maximum)
+            : Bounds.Width is > 0 and < 155 ? peakLabel : corner;
+        AutomationProperties.SetName(_scale, corner);
+        ToolTip.SetTip(_scale, corner);
+        var outerInset = Parent is Border border ? border.Padding.Right + border.BorderThickness.Right : 0;
+        _scale.Margin = new Thickness(4, 0, Math.Max(0, 12 - outerInset), 0);
         _detail.Text = (Title is "Memory" or "CPU" ? _description.Split('\n').FirstOrDefault() : _description.Split('\n').LastOrDefault()) ?? "";
         if (Title == "CPU") _detail.Text = _detail.Text.Split(" · ").Last();
         var peak = _reading.Peak is { } p ? (_reading.Scale == "0–100%" ? $"{p:F1}%" : Title == "Network" ? ResourceGaugeHistory.NetworkRate(p) : ResourceGaugeHistory.Rate(p)) : "—";
@@ -160,8 +168,14 @@ public sealed class ResourceGauge : UserControl
         Content = null;
         var heading = new Grid { ColumnDefinitions = new("*,Auto"), ColumnSpacing = 4 };
         _name.VerticalAlignment = VerticalAlignment.Center;
-        heading.Children.Add(IsCompact ? _name : new StackPanel { Orientation = Orientation.Horizontal,
-            VerticalAlignment = VerticalAlignment.Center, Spacing = 2, Children = { SeriesToggle, _name } });
+        Grid.SetColumn(_name, 0);
+        if (IsCompact) heading.Children.Add(_name);
+        else
+        {
+            var label = new Grid { ColumnDefinitions = new("Auto,*"), ColumnSpacing = 2 };
+            label.Children.Add(SeriesToggle); label.Children.Add(_name); Grid.SetColumn(_name, 1);
+            heading.Children.Add(label);
+        }
         heading.Children.Add(_scale); Grid.SetColumn(_scale, 1);
         _marks.Width = double.NaN; _marks.Height = double.NaN; _marks.Margin = default;
         _value.Margin = default; _value.HorizontalAlignment = HorizontalAlignment.Left;

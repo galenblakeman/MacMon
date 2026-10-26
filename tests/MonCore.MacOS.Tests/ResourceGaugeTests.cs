@@ -45,7 +45,7 @@ public sealed class ResourceGaugeTests
         history.Observe(Sample(0, 90, rate: 8192));
         history.Observe(Sample(1, 0, "en1", 0));
         Assert.That(history.Readings[2].Peak, Is.Zero);
-        Assert.That(history.Readings[2].Maximum, Is.EqualTo(1024));
+        Assert.That(history.Readings[2].Maximum, Is.EqualTo(125000));
         Assert.That(history.Readings[3].Peak, Is.EqualTo(90));
         history.Observe(Sample(2, double.NaN, "en1", null));
         Assert.That(history.Readings[0].Value, Is.Null);

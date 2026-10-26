@@ -38,11 +38,7 @@ public static class ResourceCharts
         if (IsPercent(metric)) return 100;
         var peak = HistoryInspection.VisibleSamples(samples, rangeSeconds).Select(s => Value(s, metric) ?? 0).DefaultIfEmpty().Max();
         if (metric != 2) return ResourceGaugeHistory.RateMaximum(peak);
-        // WinMon's 1-2-5 bit-rate scale keeps tick labels round, with a 1 Mbps floor.
-        var target = Math.Max(peak * 8, 1_000_000);
-        var magnitude = Math.Pow(10, Math.Floor(Math.Log10(target)));
-        var step = target / magnitude;
-        return (step <= 1 ? 1 : step <= 2 ? 2 : step <= 5 ? 5 : 10) * magnitude / 8;
+        return ResourceGaugeHistory.NetworkMaximum(peak);
     }
     public static string Reading(MonitorSample sample, int metric) => Value(sample, metric) is not { } value ? "—" :
         IsPercent(metric) ? $"{value:F1}%" : metric == 2 ? ResourceGaugeHistory.NetworkRate(value) : ResourceGaugeHistory.Rate(value);

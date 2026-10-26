@@ -20,12 +20,12 @@
       </Grid>
       <Grid Grid.Row="1" RowDefinitions="98,Auto,*" RowSpacing="8">
         <UniformGrid x:Name="ResourceCards" Columns="5">
-          <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="0,0,12,0"><local:ResourceGauge x:Name="CpuGauge" Title="CPU" Fill="{DynamicResource CpuStroke}" TextAccent="{DynamicResource CpuText}" /></Border>
-          <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="12,0"><local:ResourceGauge x:Name="MemoryGauge" Title="Memory" Fill="{DynamicResource MemoryStroke}" TextAccent="{DynamicResource MemoryText}" /></Border>
-          <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="12,0"><local:ResourceGauge x:Name="StorageGauge" Title="Disk" Fill="{DynamicResource StorageStroke}" TextAccent="{DynamicResource StorageText}" /></Border>
-          <Border x:Name="SecondDiskCard" IsVisible="False" BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="8,0"><local:ResourceGauge x:Name="SecondDiskGauge" Title="Disk 2" Fill="{DynamicResource SecondDiskStroke}" TextAccent="{DynamicResource SecondDiskText}" /></Border>
-          <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="12,0,0,0"><local:ResourceGauge x:Name="NetworkGauge" Title="Network" Fill="{DynamicResource NetworkStroke}" TextAccent="{DynamicResource NetworkText}" /></Border>
-          <Border Padding="8,0"><local:ResourceGauge x:Name="GpuGauge" Title="GPU" Fill="{DynamicResource GpuStroke}" TextAccent="{DynamicResource GpuText}" /></Border>
+          <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="5,0"><local:ResourceGauge x:Name="CpuGauge" Title="CPU" Fill="{DynamicResource CpuStroke}" TextAccent="{DynamicResource CpuText}" /></Border>
+          <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="5,0"><local:ResourceGauge x:Name="MemoryGauge" Title="Memory" Fill="{DynamicResource MemoryStroke}" TextAccent="{DynamicResource MemoryText}" /></Border>
+          <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="5,0"><local:ResourceGauge x:Name="StorageGauge" Title="Disk" Fill="{DynamicResource StorageStroke}" TextAccent="{DynamicResource StorageText}" /></Border>
+          <Border x:Name="SecondDiskCard" IsVisible="False" BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="5,0"><local:ResourceGauge x:Name="SecondDiskGauge" Title="Disk 2" Fill="{DynamicResource SecondDiskStroke}" TextAccent="{DynamicResource SecondDiskText}" /></Border>
+          <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="5,0"><local:ResourceGauge x:Name="NetworkGauge" Title="Network" Fill="{DynamicResource NetworkStroke}" TextAccent="{DynamicResource NetworkText}" /></Border>
+          <Border Padding="5,0"><local:ResourceGauge x:Name="GpuGauge" Title="GPU" Fill="{DynamicResource GpuStroke}" TextAccent="{DynamicResource GpuText}" /></Border>
         </UniformGrid>
         <Border Grid.Row="1" Classes="sectionHeader" Padding="20,5">
           <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="8">

@@ -320,5 +320,6 @@
   "More…": "Más…",
   "Auto {0}": "Auto {0}",
   "Automatic captures enabled · Captures in history: {0}": "Capturas automáticas activadas · Capturas en el historial: {0}",
-  "Automatic captures disabled · Captures in history: {0}": "Capturas automáticas desactivadas · Capturas en el historial: {0}"
+  "Automatic captures disabled · Captures in history: {0}": "Capturas automáticas desactivadas · Capturas en el historial: {0}",
+  "Peak {0}": "Pico {0}"
 }

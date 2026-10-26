@@ -1199,3 +1199,26 @@ Validation: all 192 Mac tests, three release-workflow tests and collector/launch
 smoke checks pass with no build warnings/errors. The packaged native app shows
 Auto 1 beside the selector and exposes enabled status/count through accessibility.
 Strict signing and ZIP integrity pass; native stderr is empty.
+
+
+## Parity slice 2: gauge context and tooltips — 0.13.9/build 32
+
+Arc gauges show localized two-minute Peak percentages, falling back to the
+percentage alone below 155px. Network keeps a short one-decimal M/G scale label
+with its full unit in the tooltip/accessibility text, using the chart's 1–2–5
+bit-rate scale and 1 Mbps floor. Bars/None and unavailable readings hide corner
+labels. Full/compact cards use balanced horizontal insets and corner labels sit
+12px from each tile's right edge. Titles can trim without overlapping corners.
+
+Gauge tooltips previously fixed their content to 340px inside Fluent's 320px
+ToolTip (302px content area), producing a negative content origin and clipping.
+The detail view now has a maximum width instead, with wrapping titles/status,
+so long values and definitions fit the popup. Tests inspect actual popup
+geometry and horizontal scroll extents at both horizontal/vertical window
+edges; peak regressions cover both languages, widths, full/compact and styles.
+
+Validation: all 199 Mac tests, three release-workflow tests and collector/launchd
+smoke checks pass, with zero build warnings/errors. Actual tooltip-popup tests
+confirm nonnegative content origins and no horizontal overflow with long values.
+Native Full/Compact checks confirm peak corners, centered gauges and rounded
+network scales. Signing and ZIP integrity pass; native stderr is empty.

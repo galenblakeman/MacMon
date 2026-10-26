@@ -10,12 +10,12 @@
       <ToggleButton Grid.Column="6" x:Name="CompactOnTop" Content="{local:TitleButtonContent AlwaysOnTop, Always on top}" AutomationProperties.Name="{local:Loc &quot;Always on top&quot;}" Classes="titleAction" />
     </Grid>
     <UniformGrid x:Name="ResourceCards" Grid.Row="1" Columns="5">
-      <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="8"><local:ResourceGauge x:Name="Cpu" Title="CPU" IsCompact="True" Fill="{DynamicResource CpuText}" /></Border>
-      <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="8"><local:ResourceGauge x:Name="Memory" Title="Memory" IsCompact="True" Fill="{DynamicResource MemoryText}" /></Border>
-      <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="8"><local:ResourceGauge x:Name="Storage" Title="Disk" IsCompact="True" Fill="{DynamicResource StorageText}" /></Border>
-      <Border x:Name="SecondDiskCard" IsVisible="False" BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="8,0"><local:ResourceGauge x:Name="SecondDisk" Title="Disk 2" Fill="{DynamicResource SecondDiskStroke}" IsCompact="True" /></Border>
-      <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="8"><local:ResourceGauge x:Name="Network" Title="Network" IsCompact="True" Fill="{DynamicResource NetworkText}" /></Border>
-      <Border Padding="8,0"><local:ResourceGauge x:Name="Gpu" Title="GPU" Fill="{DynamicResource GpuStroke}" IsCompact="True" /></Border>
+      <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="5,8"><local:ResourceGauge x:Name="Cpu" Title="CPU" IsCompact="True" Fill="{DynamicResource CpuText}" /></Border>
+      <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="5,8"><local:ResourceGauge x:Name="Memory" Title="Memory" IsCompact="True" Fill="{DynamicResource MemoryText}" /></Border>
+      <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="5,8"><local:ResourceGauge x:Name="Storage" Title="Disk" IsCompact="True" Fill="{DynamicResource StorageText}" /></Border>
+      <Border x:Name="SecondDiskCard" IsVisible="False" BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="5,8"><local:ResourceGauge x:Name="SecondDisk" Title="Disk 2" Fill="{DynamicResource SecondDiskStroke}" IsCompact="True" /></Border>
+      <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="5,8"><local:ResourceGauge x:Name="Network" Title="Network" IsCompact="True" Fill="{DynamicResource NetworkText}" /></Border>
+      <Border Padding="5,8"><local:ResourceGauge x:Name="Gpu" Title="GPU" Fill="{DynamicResource GpuStroke}" IsCompact="True" /></Border>
     </UniformGrid>
     <TextBlock Grid.Row="2" x:Name="LiveStatus" Text="{local:Loc &quot;Waiting for live readings…&quot;}" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" />
   </Grid>
