@@ -9,6 +9,7 @@ namespace MacMon;
 
 public sealed partial class MainWindow
 {
+    private ActionBarState _actionBars = null!;
     private bool _restoringTables;
     private bool _changingTableSort;
     private bool _processAscending;
@@ -18,6 +19,7 @@ public sealed partial class MainWindow
     private static int SelectedLimit(ComboBox box) => (box.SelectedItem as RowLimit)?.Count ?? 0;
     private void InitializeTables()
     {
+        _actionBars = new(ShowProcessActions, JobsView.FindControl<Avalonia.Controls.Primitives.ToggleButton>("ShowJobActions")!, ShowUsageActions);
         TableInteractions.AddSearchClear(ProcessSearchBox);
         TableInteractions.AddSearchClear(UsageSearch);
         DataTabs.Loaded += (_, _) =>
@@ -58,7 +60,7 @@ public sealed partial class MainWindow
             ProcessLimitBox.SelectedIndex = Array.IndexOf(TablePresentation.Limits, _preferences.ProcessLimit);
             UsageLimitBox.SelectedIndex = Array.IndexOf(TablePresentation.Limits, _preferences.UsageLimit);
             ProcessAppsOnly.IsChecked = _preferences.ProcessAppsOnly; UsageAppsOnly.IsChecked = _preferences.UsageAppsOnly;
-            ShowProcessActions.IsChecked = !_preferences.ProcessActionsHidden;
+            _actionBars.Hidden = _preferences.ActionsHidden ?? _preferences.ProcessActionsHidden;
         }
         finally { _restoringTables = false; }
         UpdateProcessHeaders(); UpdateUsageHeaders();

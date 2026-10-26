@@ -19,6 +19,7 @@ public sealed record MacPreferences
     public bool ProcessAppsOnly { get; init; }
     public bool UsageAppsOnly { get; init; }
     public bool ProcessActionsHidden { get; init; }
+    public bool? ActionsHidden { get; init; }
     public int TabOrderVersion { get; init; } = 1;
     public int JobLimit { get; init; }
     public int DataTab { get; init; }
@@ -50,6 +51,7 @@ public sealed record MacPreferences
 
     public MacPreferences Normalized(string? bootId) => this with
     {
+        ActionsHidden = ActionsHidden ?? ProcessActionsHidden, ProcessActionsHidden = ActionsHidden ?? ProcessActionsHidden,
         BootId = bootId, Theme = Appearance.NormalizeTheme(Theme), Palette = Appearance.NormalizePalette(Palette),
         GaugeStyle = ResourceGauge.NormalizeStyle(GaugeStyle),
         Language = UiText.NormalizeLanguage(Language), StartupView = StartupView is "Full" or "Compact" ? StartupView : "Last",

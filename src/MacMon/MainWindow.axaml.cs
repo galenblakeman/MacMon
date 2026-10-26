@@ -237,8 +237,7 @@ public sealed partial class MainWindow : Window
             gauge.Update(GaugeReading.Empty, "Waiting for live readings…");
     }
 
-    private static string Rate(double? value) => value is { } bytes
-        ? bytes >= 1048576 ? $"{bytes / 1048576:F1} MiB/s" : $"{bytes / 1024:F1} KiB/s" : "—";
+    private static string Rate(double? value) => TableUnits.IoRate(value);
 
     private ProcessSort Sort => ProcessSortBox.SelectedIndex switch
     {
@@ -594,7 +593,7 @@ public sealed partial class MainWindow : Window
             ProcessAscending = _processAscending, UsageAscending = _usageAscending,
             ProcessLimit = SelectedLimit(ProcessLimitBox), UsageLimit = SelectedLimit(UsageLimitBox),
             ProcessAppsOnly = ProcessAppsOnly.IsChecked == true, UsageAppsOnly = UsageAppsOnly.IsChecked == true,
-            ProcessActionsHidden = ShowProcessActions.IsChecked != true,
+            ActionsHidden = _actionBars.Hidden, ProcessActionsHidden = _actionBars.Hidden,
             ChartMode = Chart.Mode, VisibleMetrics = Chart.VisibleMetrics, FocusMetric = Chart.FocusMetric,
             BootId = _bootId, Grouped = Grouped, PinnedOnly = PinnedOnly.IsChecked == true,
             Pins = _pins.Snapshot(), ProcessSort = ProcessSortBox.SelectedIndex, UsageSort = UsageSortBox.SelectedIndex,

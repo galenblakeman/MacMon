@@ -1277,3 +1277,18 @@ Validation: all 206 tests, three release checks and collector/launchd smoke pass
 the Release build has zero warnings/errors. Unit assertions distinguish decimal
 I/O from unchanged binary memory at matching byte values and verify invalid
 readings, rounding and localized one-decimal output.
+
+## Parity slice 6: shared action-bar state — 0.13.13/build 36
+
+Changing any tab's collapse control updates Processes, Jobs and Usage together,
+including chevrons and the existing single-row collapsed layout. A shared
+ActionsHidden preference survives restart. Older settings inherit their saved
+Processes choice; the legacy field stays synchronized for downgrade compatibility.
+Settings changes preserve the live choice. Regressions exercise each tab's toggle,
+legacy migration, serialization and Settings merge.
+
+Validation: all 208 tests, three release checks and collector/launchd smoke pass,
+with zero build warnings/errors. Native Jobs → Usage → Processes checks confirm
+shared collapse and expansion, restored to the original expanded Jobs view.
+The remaining main-window gauge-detail rate helper now delegates to the decimal
+formatter; its focused unit regression passes after that cleanup.

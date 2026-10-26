@@ -58,3 +58,5 @@ GPU reports device-wide IOAccelerator utilization for one stable adapter where t
 Table searches include clear buttons. Right-click rows for their actions; Jobs stays read-only. Usage’s **Show processes** returns to Live and filters by the exact executable path (`path:…`). Click Jobs column headings to sort or reverse direction.
 
 Memory uses adaptive binary units (KiB/MiB/GiB); I/O rates and totals use decimal units (KB/MB/GB), with one decimal throughout. I/O columns describe disk reads and writes, excluding network traffic.
+
+Collapsing or expanding an action bar applies across Processes, Jobs and Usage and is remembered on restart.
