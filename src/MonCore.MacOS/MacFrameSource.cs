@@ -116,6 +116,7 @@ public sealed class MacFrameSource : IFrameSource
             Resources = new ResourceSample
             {
                 CpuKernelPercent = kernel,
+                CpuClockMhz = intervalValid ? current.CpuClockMhz : null,
                 TotalMemoryBytes = current.TotalMemoryBytes,
                 UsedMemoryBytes = current.Memory.UsedBytes,
                 AvailableMemoryBytes = current.Memory.UsedBytes is { } used && current.TotalMemoryBytes is { } totalMemory
@@ -170,6 +171,7 @@ internal sealed record SystemObservation(
     DateTimeOffset Timestamp, long MonotonicTimestamp, CpuCounters? Cpu, int LogicalProcessors,
     ulong? TotalMemoryBytes, string VolumePath, ulong? VolumeFreeBytes, ulong? VolumeTotalBytes)
 {
+    public double? CpuClockMhz { get; init; }
     public MacActivitySnapshot Activity { get; init; } = MacActivitySnapshot.Empty;
     public MacMemorySnapshot Memory { get; init; } = new(null, null, null, "Unavailable");
 }

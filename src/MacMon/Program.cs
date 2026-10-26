@@ -45,7 +45,7 @@ internal static class Program
             var frame = source.Capture(new SamplingOptions());
             history.Add(frame.Full);
             Console.WriteLine($"{frame.Full.Timestamp:O} CPU={frame.Full.TotalCpuPercent?.ToString("F1") ?? "unavailable"} " +
-                              $"RAM={frame.Full.Resources.TotalMemoryBytes} Used={frame.Full.Resources.UsedMemoryBytes} Pressure={source.Memory.Pressure} " +
+                              $"ClockMHz={frame.Full.Resources.CpuClockMhz} RAM={frame.Full.Resources.TotalMemoryBytes} Used={frame.Full.Resources.UsedMemoryBytes} Pressure={source.Memory.Pressure} " +
                               $"VolumeFree={frame.Full.Resources.DiskFreeBytes} Network={frame.Full.Resources.NetworkName} Rx={frame.Full.Resources.ReceiveBytesPerSecond} Tx={frame.Full.Resources.SendBytesPerSecond} DiskRead={frame.Full.Resources.SecondaryDiskReadBytesPerSecond} DiskWrite={frame.Full.Resources.SecondaryDiskWriteBytesPerSecond} " +
                               $"Processes={frame.Full.Processes.Count} Unavailable={frame.Full.UnavailableProcesses} " +
                               $"SelfCpu={frame.Full.Processes.FirstOrDefault(p => p.ProcessId == Environment.ProcessId)?.ObservedCpuPercent} " +

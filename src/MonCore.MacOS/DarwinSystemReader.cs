@@ -10,6 +10,7 @@ internal sealed unsafe partial class DarwinSystemReader : IMacSystemReader
     private readonly int _logicalProcessors;
     private bool _disposed;
     private readonly MacActivityReader _activity = new();
+    private readonly DarwinCpuFrequency _frequency = new();
 
     public DarwinSystemReader()
     {
@@ -48,7 +49,7 @@ internal sealed unsafe partial class DarwinSystemReader : IMacSystemReader
         }
 
         return new SystemObservation(timestamp, instant, cpu, _logicalProcessors,
-            memory, volumePath, free, total) { Memory = ReadMemory(memory), Activity = _activity.Read(networkId) };
+            memory, volumePath, free, total) { Memory = ReadMemory(memory), Activity = _activity.Read(networkId), CpuClockMhz = _frequency.Read(true, _logicalProcessors) };
     }
 
     private MacMemorySnapshot ReadMemory(ulong? total)
@@ -89,6 +90,7 @@ internal sealed unsafe partial class DarwinSystemReader : IMacSystemReader
     {
         if (_disposed) return;
         _disposed = true;
+        _frequency.Dispose();
         if (_host != 0) _ = MachPortDeallocate(TaskSelfTrap(), _host);
     }
 

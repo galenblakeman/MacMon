@@ -217,7 +217,7 @@ public sealed partial class MainWindow : Window
     {
         var r = sample.Resources;
         string[] descriptions = [
-            r.CpuClockMhz is > 0 ? $"{r.CpuClockMhz.Value / 1000:F2} GHz" : "Speed unavailable",
+            r.CpuClockMhz is > 0 ? $"{r.CpuClockMhz.Value / 1000:F2} GHz est." : "Speed unavailable",
             $"{GiB(r.UsedMemoryBytes)} / {GiB(r.TotalMemoryBytes)}\nPressure: {_source.Memory.Pressure} · compressed {GiB(_source.Memory.CompressedBytes)}",
             $"{r.NetworkName} · download\n↑ {ResourceGaugeHistory.NetworkRate(r.SendBytesPerSecond)}",
             $"All block drivers · read + write\n{Rate(r.SecondaryDiskReadBytesPerSecond + r.SecondaryDiskWriteBytesPerSecond)} combined"];

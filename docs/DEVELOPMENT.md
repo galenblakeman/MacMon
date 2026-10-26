@@ -563,3 +563,27 @@ readouts, time labels and click capture/arrow/Escape. Native popup pixels remain
 outside the automation screenshot surface; tooltip behavior is asserted in the
 headless UI tests. The user's current Focus CPU/30m/Processes preferences restored
 on package launch; the checked app is left open in Live mode.
+
+## Hardware monitoring slice 1 — CPU clock estimate
+
+Added an optional, in-process IOReport reader for known Apple M1–M4 two-tier
+CPU layouts. It reads frequency tables from IOKit instead of model constants,
+then computes an active-residency-weighted requested-state frequency across all
+logical cores. The gauge labels this “GHz est.” and its tooltip explains that
+it is not a direct hardware clock measurement. Zero active residency, missing
+channels, state-count/name changes, resets, wake gaps, malformed tables and unknown
+chip/layout/library/symbol availability produce no reading. CPU/memory/process
+sampling continues independently. Native handles and samples are released.
+No root command, helper installation or fabricated nominal clock is used.
+
+API signatures/state-layout behavior were checked against the primary reference
+[vladkens/macmon sources](https://github.com/vladkens/macmon/blob/main/src/sources.rs)
+and [residency interpretation](https://github.com/vladkens/macmon/blob/main/src/metrics.rs).
+This is an independent C# implementation; these undocumented interfaces can change.
+Intel, newer tiers and VMs remain unavailable until their semantics are validated.
+
+Validation: 146 Mac tests, three release-workflow tests, zero build warnings,
+native resource and launchd smoke passed. The M2 Pro returned varying estimates
+of 1.407, 1.674 and 1.607 GHz after the initial baseline. Tests cover weighting,
+channel reordering, unknown/missing/duplicate cores, layout mismatch, no activity,
+counter rollback, invalid units and malformed/nonmonotonic frequency tables.

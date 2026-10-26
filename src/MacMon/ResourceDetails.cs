@@ -20,12 +20,13 @@ public static class ResourceDetails
         switch (metric)
         {
             case ResourceMetric.Cpu:
-                definition = "CPU is a share of total machine capacity over the latest measured interval. Enumerated processes include processes whose readings could not be obtained.";
+                definition = "CPU is a share of total machine capacity over the latest measured interval. Clock speed is an active-residency-weighted requested-state estimate from optional IOReport channels, not a hardware clock measurement. Enumerated processes include processes whose readings could not be obtained.";
                 var total = PercentValue(sample?.TotalCpuPercent);
                 var system = PercentValue(r?.CpuKernelPercent);
                 rows.AddRange([
                     new("User CPU", total is { } t && system is { } k && k <= t ? Percent(t - k) : "—"),
                     new("System CPU", Percent(system)),
+                    new("Clock estimate", r?.CpuClockMhz is > 0 ? $"{r.CpuClockMhz / 1000:F2} GHz" : "—"),
                     new("Logical cores", sample is not null && logicalCores > 0 ? logicalCores.ToString() : "—"),
                     new("Enumerated processes", r?.ProcessCount?.ToString() ?? "—"),
                     new("Measured interval", sample?.IntervalSeconds is > 0 and <= 5 ? $"{sample.IntervalSeconds:F2} s" : "—")]);
