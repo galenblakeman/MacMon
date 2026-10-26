@@ -19,7 +19,7 @@ public sealed class ShellLayoutTests
         var main = new MainWindow();
         var mode = main.FindControl<ComboBox>("ChartModeBox")!;
         var chart = main.FindControl<CpuChart>("Chart")!;
-        foreach (var name in new[] { "CpuGauge", "MemoryGauge", "NetworkGauge", "StorageGauge", "GpuGauge" })
+        foreach (var name in new[] { "CpuGauge", "MemoryGauge", "NetworkGauge", "StorageGauge", "GpuGauge", "SecondDiskGauge" })
             main.FindControl<ResourceGauge>(name)!.SeriesToggle.IsChecked = false;
         Assert.That(chart.VisibleMetrics, Is.Zero);
         mode.SelectedIndex = 6; // Combined Focus · Network choice.
@@ -77,19 +77,22 @@ public sealed class ShellLayoutTests
     }
 
     [AvaloniaTest]
-    public void FullShellKeepsFiveCardsAndDataPaneAtSupportedSizes()
+    public void FullShellKeepsOptionalCardsAndDataPaneAtSupportedSizes()
     {
         var app = (App)Application.Current!;
         var output = Environment.GetEnvironmentVariable("MACMON_RENDER_OUTPUT");
         if (output is not null) Directory.CreateDirectory(output);
         foreach (var size in new[] { new Size(800, 760), new Size(1000, 900) })
         foreach (var theme in new[] { "Light", "Dark" })
+        foreach (var secondDisk in new[] { false, true })
         {
             app.ApplyAppearance(theme, "Classic", "Bowl");
             // Host the initialized shell without opening the collector-owning main window.
             var main = new MainWindow();
             app.ApplyAppearance(theme, "Classic", "Bowl");
             main.FindControl<TabControl>("DataTabs")!.SelectedIndex = 0;
+            main.FindControl<Border>("SecondDiskCard")!.IsVisible = secondDisk;
+            main.FindControl<Avalonia.Controls.Primitives.UniformGrid>("ResourceCards")!.Columns = secondDisk ? 6 : 5;
             var history = ResourceChartTests.Samples();
             main.FindControl<CpuChart>("Chart")!.Update(history);
             var peaks = new ResourceGaugeHistory(); foreach (var sample in history) peaks.Observe(sample);
@@ -103,8 +106,8 @@ public sealed class ShellLayoutTests
             var window = new Window { Width = size.Width, Height = size.Height, Content = shell };
             window.Show();
             Dispatcher.UIThread.RunJobs();
-            var gauges = window.GetVisualDescendants().OfType<ResourceGauge>().Where(g => !g.IsCompact).ToArray();
-            Assert.That(gauges, Has.Length.EqualTo(5));
+            var gauges = window.GetVisualDescendants().OfType<ResourceGauge>().Where(g => !g.IsCompact && g.IsEffectivelyVisible).ToArray();
+            Assert.That(gauges, Has.Length.EqualTo(secondDisk ? 6 : 5));
             Assert.That(gauges.Select(g => g.TranslatePoint(default, window)!.Value.Y).Distinct().Count(), Is.EqualTo(1), string.Join("; ", gauges.Select(g => $"{g.Title}: {g.TranslatePoint(default, window)} {g.Bounds}")));
             var tabs = window.GetVisualDescendants().OfType<TabControl>().Single();
             Assert.That(tabs.Bounds.Height, Is.GreaterThanOrEqualTo(276));
@@ -115,7 +118,7 @@ public sealed class ShellLayoutTests
             }
             using var frame = window.CaptureRenderedFrame();
             Assert.That(frame, Is.Not.Null);
-            if (output is not null) frame!.Save(Path.Combine(output, $"shell-{size.Width}-{theme}.png"), PngBitmapEncoderOptions.Default);
+            if (output is not null) frame!.Save(Path.Combine(output, $"shell-{size.Width}-{theme}{(secondDisk ? "-disk2" : "")}.png"), PngBitmapEncoderOptions.Default);
             window.Close();
         }
         app.ApplyAppearance("Dark", "Classic", "Bowl");

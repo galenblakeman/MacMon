@@ -15,7 +15,7 @@ public sealed partial class CompactView : UserControl
     public CompactView()
     {
         InitializeComponent();
-        Gauges = [Cpu, Memory, Network, Storage, Gpu];
+        Gauges = [Cpu, Memory, Network, Storage, Gpu, SecondDisk];
         CompactInfo.Click += (_, _) => InfoRequested?.Invoke();
         CompactResourcesCsv.Click += (_, _) => { CompactExport.Flyout?.Hide(); ExportRequested?.Invoke(WinMon.Monitoring.CsvExportKind.ResourceHistory); };
         CompactProcessesCsv.Click += (_, _) => { CompactExport.Flyout?.Hide(); ExportRequested?.Invoke(WinMon.Monitoring.CsvExportKind.ProcessSamples); };
@@ -24,6 +24,7 @@ public sealed partial class CompactView : UserControl
         CompactSettings.Click += (_, _) => SettingsRequested?.Invoke();
         CompactOnTop.IsCheckedChanged += (_, _) => TopmostChanged?.Invoke(AlwaysOnTop);
     }
+    public void SetSecondDiskVisible(bool visible) { SecondDiskCard.IsVisible = visible; ResourceCards.Columns = visible ? 6 : 5; }
     public void SetTitleInset(double inset) => CompactTitleActions.Margin = new Avalonia.Thickness(inset, 0, 0, 0);
     public void FocusFullView() => ExpandView.Focus();
 }

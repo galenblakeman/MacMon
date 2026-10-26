@@ -212,7 +212,7 @@ public sealed partial class MainWindow : Window
         StatusLabel.IsVisible = _session.Error is not null || _operationStatus.Length > 0;
     }
 
-    private ResourceGauge[] VisibleGauges => CompactMode ? CompactPanel.Gauges : [CpuGauge, MemoryGauge, NetworkGauge, StorageGauge, GpuGauge];
+    private ResourceGauge[] VisibleGauges => CompactMode ? CompactPanel.Gauges : [CpuGauge, MemoryGauge, NetworkGauge, StorageGauge, GpuGauge, SecondDiskGauge];
     private void UpdateResourceGauges(MonitorSample sample)
     {
         var r = sample.Resources;
@@ -220,8 +220,9 @@ public sealed partial class MainWindow : Window
             r.CpuClockMhz is > 0 ? $"{r.CpuClockMhz.Value / 1000:F2} GHz est." : "Speed unavailable",
             $"{GiB(r.UsedMemoryBytes)} / {GiB(r.TotalMemoryBytes)}\nPressure: {_source.Memory.Pressure} · compressed {GiB(_source.Memory.CompressedBytes)}",
             $"{r.NetworkName} · download\n↑ {ResourceGaugeHistory.NetworkRate(r.SendBytesPerSecond)}",
-            $"All block drivers · read + write\n{Rate(r.SecondaryDiskReadBytesPerSecond + r.SecondaryDiskWriteBytesPerSecond)} combined",
-            r.GpuName.Length > 0 ? r.GpuName : "Device utilization unavailable"];
+            $"{r.DiskName} · read + write\n{Rate(ResourceCharts.DiskRate(r, false))} combined",
+            r.GpuName.Length > 0 ? r.GpuName : "Device utilization unavailable",
+            $"{r.SecondaryDiskName} · read + write\n{Rate(ResourceCharts.DiskRate(r, true))} combined"];
         var gauges = VisibleGauges;
         for (var index = 0; index < gauges.Length; index++) gauges[index].Update(_gaugeHistory.Readings[index], descriptions[index]);
     }
@@ -483,7 +484,7 @@ public sealed partial class MainWindow : Window
         if (_source.NetworkInterfaceId is { Length: > 0 } id && networks.All(choice => choice.Id != id))
             networks.Add(new(id, $"{id} · disconnected"));
         var window = new SettingsWindow(PreferencesSnapshot(), networks, section ?? _settingsSection,
-            _preferencesWritable, SaveSettings);
+            _preferencesWritable, SaveSettings, _source.DiskChoices);
         if (CompactMode) window.WindowStartupLocation = WindowStartupLocation.CenterScreen;
         try { await window.ShowDialog(this); }
         finally { _settingsSection = window.Section; _settingsOpen = false; }
@@ -503,6 +504,10 @@ public sealed partial class MainWindow : Window
         _keepHistory = snapshot.KeepHistory;
         SetHistoryRange(snapshot.HistoryRange);
         _source.NetworkInterfaceId = snapshot.NetworkId;
+        var previousSecondDisk = _source.SecondaryDiskId;
+        _source.PrimaryDiskId = snapshot.PrimaryDiskId; _source.SecondaryDiskId = snapshot.SecondaryDiskId;
+        if (snapshot.SecondaryDiskId is not null && snapshot.SecondaryDiskId != previousSecondDisk) SecondDiskGauge.SeriesToggle.IsChecked = true;
+        UpdateDiskLayout();
         if (_captureOptions.Enabled != snapshot.Captures.Enabled ||
             _captureOptions.CooldownSeconds != snapshot.Captures.CooldownSeconds ||
             !_captureOptions.Rules.SequenceEqual(snapshot.Captures.Rules))
@@ -536,6 +541,8 @@ public sealed partial class MainWindow : Window
         IndividualProcesses.IsChecked = !Grouped;
         RestoreTables();
         JobsView.SortIndex = _preferences.JobSort; JobsView.FilterIndex = _preferences.JobFilter; JobsView.RowLimit = _preferences.JobLimit;
+        _source.PrimaryDiskId = _preferences.PrimaryDiskId; _source.SecondaryDiskId = _preferences.SecondaryDiskId;
+        UpdateDiskLayout();
         RestoreCharts();
         DataTabs.SelectedIndex = _preferences.DataTab; SetHistoryRange(_preferences.HistoryRange);
         AlwaysOnTop.IsChecked = _preferences.AlwaysOnTop;

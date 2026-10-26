@@ -102,9 +102,13 @@ public sealed class CompactViewTests
         foreach (var theme in new[] { "Light", "Dark" })
         foreach (var palette in Appearance.Palettes)
         foreach (var style in ResourceGauge.GaugeStyles)
+        foreach (var secondDisk in new[] { false, true })
         {
             app.ApplyAppearance(theme, palette, style);
             var view = new CompactView { Status = "Live · updated 12:34:56 · peak markers show the last 2 minutes" };
+            view.SetSecondDiskVisible(secondDisk);
+            view.Gauges[4].Update(new(42, 80, 100, "42.0%", "0–100%"), "GPU device");
+            view.Gauges[5].Update(new(1023.9 * 1024, 1048576, 2097152, "1023.9 KiB/s", "0–2.0 MiB/s"), "disk1 · External SSD");
             view.Gauges[0].Update(new(24, 67, 100, "24.0%", "0–100%"), "Machine capacity");
             view.Gauges[1].Update(new(62, 72, 100, "62.0%", "0–100%"), "Physical usage");
             view.Gauges[2].Update(new(999.9 * 1024, 1048576, 2097152, "999.9 KiB/s", "0–2.0 MiB/s"), "en1 · receive + send");
@@ -116,19 +120,19 @@ public sealed class CompactViewTests
             Dispatcher.UIThread.RunJobs();
             using var frame = window.CaptureRenderedFrame();
             Assert.That(frame, Is.Not.Null);
-            foreach (var gauge in view.Gauges)
+            foreach (var gauge in view.Gauges.Where(g => g.IsEffectivelyVisible))
             {
                 Assert.That(gauge.GaugeStyle, Is.EqualTo(style));
                 var origin = gauge.TranslatePoint(default, window)!.Value;
                 Assert.That(origin.Y + gauge.Bounds.Height, Is.LessThanOrEqualTo(window.ClientSize.Height));
                 Assert.That(origin.X + gauge.Bounds.Width, Is.LessThanOrEqualTo(window.ClientSize.Width));
                 Assert.That(gauge.Bounds.Height, Is.EqualTo(98));
-                var number = gauge.GetVisualDescendants().OfType<TextBlock>().Single(text => text.FontSize == 20);
+                var number = gauge.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Classes.Contains("gaugeValue"));
                 Assert.That(number.TextLayout.WidthIncludingTrailingWhitespace, Is.LessThanOrEqualTo(number.Bounds.Width), $"{width}/{theme}/{palette}/{style}");
             }
             var button = view.FindControl<Button>("ExpandView")!;
             Assert.That(button.TranslatePoint(default, window)!.Value.Y + button.Bounds.Height, Is.LessThanOrEqualTo(window.ClientSize.Height));
-            if (output is not null && palette == "Classic") frame!.Save(Path.Combine(output, $"compact-{width}-{theme}-{style}.png"), PngBitmapEncoderOptions.Default);
+            if (!secondDisk && output is not null && palette == "Classic") frame!.Save(Path.Combine(output, $"compact-{width}-{theme}-{style}.png"), PngBitmapEncoderOptions.Default);
             window.Close();
         }
         app.ApplyAppearance("Dark", "Classic", "Bowl");

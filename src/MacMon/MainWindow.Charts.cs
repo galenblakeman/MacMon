@@ -10,19 +10,35 @@ public sealed partial class MainWindow
     private CheckBox MemoryVisible => MemoryGauge.SeriesToggle;
     private CheckBox NetworkVisible => NetworkGauge.SeriesToggle;
     private CheckBox StorageVisible => StorageGauge.SeriesToggle;
-    private CheckBox[] MetricSwitches => [CpuVisible, MemoryVisible, NetworkVisible, StorageVisible, GpuGauge.SeriesToggle];
+    private CheckBox[] MetricSwitches => [CpuVisible, MemoryVisible, NetworkVisible, StorageVisible, GpuGauge.SeriesToggle, SecondDiskGauge.SeriesToggle];
     private RadioButton[] RangeChips => [Range2, Range10, Range30, Range60];
     private sealed record ChartChoice(string Label, ResourceChartMode Mode, int Focus = 0)
     { public override string ToString() => Label; }
     private static readonly ChartChoice[] ChartChoices = [new("Overlay", ResourceChartMode.Overlay),
         new("Small multiples", ResourceChartMode.SmallMultiples), new("Heatmap", ResourceChartMode.Heatmap),
         new("Focus · CPU", ResourceChartMode.Focus), new("Focus · Memory", ResourceChartMode.Focus, 1),
-        new("Focus · Disk", ResourceChartMode.Focus, 3), new("Focus · Network", ResourceChartMode.Focus, 2), new("Focus · GPU", ResourceChartMode.Focus, 4)];
+        new("Focus · Disk", ResourceChartMode.Focus, 3), new("Focus · Network", ResourceChartMode.Focus, 2), new("Focus · GPU", ResourceChartMode.Focus, 4), new("Focus · Disk 2", ResourceChartMode.Focus, 5)];
+    private ChartChoice[] AvailableChartChoices => ChartChoices.Where(c => c.Focus != 5 || SecondDiskCard.IsVisible).ToArray();
+    private void UpdateDiskLayout()
+    {
+        var enabled = _source.SecondaryDiskId is not null;
+        var selected = ChartModeBox.SelectedItem;
+        SecondDiskCard.IsVisible = enabled; ResourceCards.Columns = enabled ? 6 : 5;
+        CompactPanel.SetSecondDiskVisible(enabled);
+        _restoringCharts = true;
+        try
+        {
+            ChartModeBox.ItemsSource = AvailableChartChoices;
+            ChartModeBox.SelectedItem = AvailableChartChoices.Contains(selected) ? selected : AvailableChartChoices[0];
+        }
+        finally { _restoringCharts = false; }
+        ApplyChartChoices(false);
+    }
     private void InitializeCharts()
     {
         Chart.SampleHovered += _ => UpdateChartReadout();
         Chart.LiveRequested += ReturnToLive;
-        ChartModeBox.ItemsSource = ChartChoices;
+        ChartModeBox.ItemsSource = AvailableChartChoices;
         ChartModeBox.SelectionChanged += (_, _) => ApplyChartChoices(true);
         foreach (var toggle in MetricSwitches) toggle.IsCheckedChanged += (_, _) => ApplyChartChoices(false);
         foreach (var (chip, index) in RangeChips.Select((chip, index) => (chip, index)))
@@ -42,7 +58,7 @@ public sealed partial class MainWindow
         _restoringCharts = true;
         try
         {
-            ChartModeBox.SelectedIndex = Array.FindIndex(ChartChoices, c => c.Mode == _preferences.ChartMode &&
+            ChartModeBox.SelectedIndex = Array.FindIndex(AvailableChartChoices, c => c.Mode == _preferences.ChartMode &&
                 (c.Mode != ResourceChartMode.Focus || c.Focus == _preferences.FocusMetric));
             for (var i = 0; i < MetricSwitches.Length; i++) MetricSwitches[i].IsChecked = (_preferences.VisibleMetrics & (1 << i)) != 0;
         }
@@ -59,13 +75,13 @@ public sealed partial class MainWindow
             finally { _restoringCharts = false; }
         }
         Chart.Mode = choice.Mode;
-        Chart.VisibleMetrics = MetricSwitches.Select((toggle, i) => toggle.IsChecked == true ? 1 << i : 0).Sum();
+        Chart.VisibleMetrics = MetricSwitches.Select((toggle, i) => toggle.IsChecked == true ? 1 << i : 0).Sum() & (SecondDiskCard.IsVisible ? 63 : 31);
         Chart.FocusMetric = ResourceCharts.Focus(Chart.VisibleMetrics, choice.Focus);
         _restoringCharts = true;
         try
         {
             if (choice.Mode == ResourceChartMode.Focus && Chart.VisibleMetrics != 0)
-                ChartModeBox.SelectedIndex = Array.FindIndex(ChartChoices, c => c.Mode == ResourceChartMode.Focus && c.Focus == Chart.FocusMetric);
+                ChartModeBox.SelectedIndex = Array.FindIndex(AvailableChartChoices, c => c.Mode == ResourceChartMode.Focus && c.Focus == Chart.FocusMetric);
         }
         finally { _restoringCharts = false; }
         Chart.ClearHover(); Chart.InvalidateVisual(); UpdateChartLabels();

@@ -21,10 +21,10 @@ public sealed class MacActivityTests
         Assert.Multiple(() =>
         {
             Assert.That(resources.ReceiveBytesPerSecond, Is.EqualTo(100));
-            Assert.That(resources.SecondaryDiskReadBytesPerSecond, Is.EqualTo(100));
-            Assert.That(resources.DiskName, Is.EqualTo("/data"));
-            Assert.That(resources.DiskReadBytesPerSecond, Is.Null);
-            Assert.That(resources.SecondaryDiskName, Is.EqualTo("All block-storage drivers"));
+            Assert.That(resources.DiskReadBytesPerSecond, Is.EqualTo(100));
+            Assert.That(resources.DiskName, Is.EqualTo("All block-storage drivers"));
+            Assert.That(resources.SecondaryDiskReadBytesPerSecond, Is.Null);
+            Assert.That(resources.SecondaryDiskName, Is.Empty);
         });
     }
 
@@ -39,7 +39,7 @@ public sealed class MacActivityTests
         source.Capture(new());
         var resource = source.Capture(new()).Full.Resources;
         Assert.That(resource.ReceiveBytesPerSecond is null, Is.EqualTo(missingNetwork));
-        Assert.That(resource.SecondaryDiskReadBytesPerSecond is null, Is.EqualTo(missingDisk));
+        Assert.That(resource.DiskReadBytesPerSecond is null, Is.EqualTo(missingDisk));
     }
 
     [Test]

@@ -10,6 +10,7 @@ public sealed record MacNetworkChoice(string Id, string Name)
 internal sealed record MacActivitySnapshot(string NetworkId, string NetworkName, ulong? Received, ulong? Sent,
     string StorageSet, ulong? Read, ulong? Written, IReadOnlyList<MacNetworkChoice> Interfaces)
 {
+    public IReadOnlyList<MacDiskDevice> Disks { get; init; } = [];
     public static MacActivitySnapshot Empty { get; } = new("", "Unavailable", null, null, "", null, null, []);
 }
 
@@ -20,7 +21,7 @@ internal sealed class MacActivityReader
     public MacActivitySnapshot Read(string? selectedId)
     {
         var storage = DarwinStorageReader.Read();
-        var result = MacActivitySnapshot.Empty with { StorageSet = storage.Key, Read = storage.Read, Written = storage.Written };
+        var result = MacActivitySnapshot.Empty with { StorageSet = storage.Key, Read = storage.Read, Written = storage.Written, Disks = storage.Devices };
         try
         {
             var interfaces = NetworkInterface.GetAllNetworkInterfaces()

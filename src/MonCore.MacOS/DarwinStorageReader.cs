@@ -1,95 +1,45 @@
-using System.Runtime.InteropServices;
+using static MonCore.MacOS.DarwinObjects;
 
 namespace MonCore.MacOS;
 
-/// <summary>Aggregate counters from IOBlockStorageDriver Statistics; device-set changes require a fresh baseline.</summary>
-internal static partial class DarwinStorageReader
+/// <summary>One snapshot of block-driver counters; whole media only, never APFS volumes or partitions.</summary>
+internal static class DarwinStorageReader
 {
-    private const string IOKit = "/System/Library/Frameworks/IOKit.framework/IOKit";
-    private const string CoreFoundation = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation";
-
-    internal static (string Key, ulong? Read, ulong? Written) Read()
+    private static readonly string Boot = MacBootIdentity.Read() ?? "session:" + Guid.NewGuid().ToString("N");
+    internal static (string Key, ulong? Read, ulong? Written, MacDiskDevice[] Devices) Read()
     {
-        var matching = IOServiceMatching("IOBlockStorageDriver");
-        if (matching == IntPtr.Zero) return ("", null, null);
-        // MatchingServices consumes the matching dictionary, including on failure.
-        if (IOServiceGetMatchingServices(0, matching, out var iterator) != 0) return ("", null, null);
-        var statisticsKey = CFStringCreateWithCString(IntPtr.Zero, "Statistics", 0x08000100);
-        var readKey = CFStringCreateWithCString(IntPtr.Zero, "Bytes (Read)", 0x08000100);
-        var writeKey = CFStringCreateWithCString(IntPtr.Zero, "Bytes (Write)", 0x08000100);
+        var observed = Services("IOBlockStorageDriver", driver =>
+        {
+            if (IORegistryEntryGetRegistryEntryID(driver, out var registryId) != 0) return null;
+            var counters = Property(driver, "Statistics");
+            try
+            {
+                var read = Counter(Get(counters, "Bytes (Read)"));
+                var write = Counter(Get(counters, "Bytes (Write)"));
+                var media = Children(driver, child =>
+                {
+                    var bsd = Property(child, "BSD Name", Text);
+                    if (!System.Text.RegularExpressions.Regex.IsMatch(bsd, @"^disk[0-9]+$")) return null;
+                    var uuid = Children(child, part => Property(part, "UUID", Text)).FirstOrDefault(v => Guid.TryParse(v, out _));
+                    // A GPT UUID survives reconnection and BSD renumbering. Unidentified media
+                    // deliberately use a boot-scoped identity rather than silently following diskN.
+                    var id = uuid is not null ? "gpt:" + uuid.ToUpperInvariant() : $"boot:{Boot}:registry:{registryId}";
+                    return new MacDiskDevice(id, $"{bsd} · {Name(child)}", $"{id}:{registryId}", read, write, Property(child, "Size", Counter));
+                }).Where(d => d is not null).ToArray();
+                // An unreadable/unknown driver still participates in aggregate availability.
+                return media.Length == 1 ? media[0] : new MacDiskDevice($"boot:{Boot}:registry:{registryId}",
+                    $"Block driver {registryId}", registryId.ToString(), read, write, null);
+            }
+            finally { Release(counters); }
+        });
+        var devices = observed.Where(d => d is not null).Cast<MacDiskDevice>().OrderBy(d => d.CounterIdentity, StringComparer.Ordinal).ToArray();
         try
         {
-            if (statisticsKey == IntPtr.Zero || readKey == IntPtr.Zero || writeKey == IntPtr.Zero) return ("", null, null);
-            var ids = new List<ulong>();
-            ulong read = 0, written = 0;
-            uint service;
-            while ((service = IOIteratorNext(iterator)) != 0)
-            {
-                try
-                {
-                    if (IORegistryEntryGetRegistryEntryID(service, out var id) != 0) return ("", null, null);
-                    var dictionary = IORegistryEntryCreateCFProperty(service, statisticsKey, IntPtr.Zero, 0);
-                    if (dictionary == IntPtr.Zero) return ("", null, null);
-                    try
-                    {
-                        if (CFGetTypeID(dictionary) != CFDictionaryGetTypeID()) return ("", null, null);
-                        var bytesRead = Number(dictionary, readKey);
-                        var bytesWritten = Number(dictionary, writeKey);
-                        if (bytesRead is null || bytesWritten is null) return ("", null, null);
-                        read = checked(read + bytesRead.Value);
-                        written = checked(written + bytesWritten.Value);
-                        ids.Add(id);
-                    }
-                    finally { CFRelease(dictionary); }
-                }
-                finally { IOObjectRelease(service); }
-            }
-            ids.Sort();
-            return ids.Count > 0 ? (string.Join(',', ids), read, written) : ("", null, null);
+            var valid = devices.Length > 0 && observed.All(d => d is not null) && devices.All(d => d.Read is not null && d.Written is not null);
+            return (string.Join(',', devices.Select(d => d.CounterIdentity)),
+                valid ? devices.Aggregate(0UL, (sum, d) => checked(sum + d.Read!.Value)) : null,
+                valid ? devices.Aggregate(0UL, (sum, d) => checked(sum + d.Written!.Value)) : null, devices);
         }
-        catch (OverflowException) { return ("", null, null); }
-        finally
-        {
-            if (statisticsKey != IntPtr.Zero) CFRelease(statisticsKey);
-            if (readKey != IntPtr.Zero) CFRelease(readKey);
-            if (writeKey != IntPtr.Zero) CFRelease(writeKey);
-            IOObjectRelease(iterator);
-        }
+        catch (OverflowException) { return ("", null, null, devices); }
     }
-
-    private static ulong? Number(IntPtr dictionary, IntPtr key)
-    {
-        if (key == IntPtr.Zero) return null;
-        var value = CFDictionaryGetValue(dictionary, key);
-        return value != IntPtr.Zero && CFGetTypeID(value) == CFNumberGetTypeID() &&
-               CFNumberGetValue(value, 4, out var number) && number >= 0 ? (ulong)number : null;
-    }
-
-    [LibraryImport(IOKit, StringMarshalling = StringMarshalling.Utf8)]
-    private static partial IntPtr IOServiceMatching(string name);
-    [LibraryImport(IOKit)]
-    private static partial int IOServiceGetMatchingServices(uint mainPort, IntPtr matching, out uint iterator);
-    [LibraryImport(IOKit)]
-    private static partial uint IOIteratorNext(uint iterator);
-    [LibraryImport(IOKit)]
-    private static partial int IOObjectRelease(uint obj);
-    [LibraryImport(IOKit)]
-    private static partial int IORegistryEntryGetRegistryEntryID(uint entry, out ulong id);
-    [LibraryImport(IOKit)]
-    private static partial IntPtr IORegistryEntryCreateCFProperty(uint entry, IntPtr key, IntPtr allocator, uint options);
-    [LibraryImport(CoreFoundation, StringMarshalling = StringMarshalling.Utf8)]
-    private static partial IntPtr CFStringCreateWithCString(IntPtr allocator, string text, uint encoding);
-    [LibraryImport(CoreFoundation)]
-    private static partial void CFRelease(IntPtr value);
-    [LibraryImport(CoreFoundation)]
-    private static partial nuint CFGetTypeID(IntPtr value);
-    [LibraryImport(CoreFoundation)]
-    private static partial nuint CFDictionaryGetTypeID();
-    [LibraryImport(CoreFoundation)]
-    private static partial nuint CFNumberGetTypeID();
-    [LibraryImport(CoreFoundation)]
-    private static partial IntPtr CFDictionaryGetValue(IntPtr dictionary, IntPtr key);
-    [LibraryImport(CoreFoundation)]
-    [return: MarshalAs(UnmanagedType.I1)]
-    private static partial bool CFNumberGetValue(IntPtr number, int type, out long value);
 }

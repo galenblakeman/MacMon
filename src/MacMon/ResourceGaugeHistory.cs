@@ -15,6 +15,7 @@ public sealed class ResourceGaugeHistory
     private string? _networkId;
     private string? _storageId;
     private string? _gpuId;
+    private string? _secondDiskId;
     private long _last;
     public GaugeReading[] Readings { get; private set; } = Enumerable.Repeat(GaugeReading.Empty, ResourceCharts.Names.Length).ToArray();
     public void Observe(MonitorSample sample)
@@ -24,16 +25,18 @@ public sealed class ResourceGaugeHistory
         if (now <= _last || (now - _last) / (double)Stopwatch.Frequency > 2.5) _samples.Clear();
         _last = now;
         var values = new[] { Valid(sample.TotalCpuPercent, 100), Valid(r.MemoryPercent, 100),
-            Valid(r.ReceiveBytesPerSecond), Total(r.SecondaryDiskReadBytesPerSecond, r.SecondaryDiskWriteBytesPerSecond), Valid(r.GpuPercent, 100) };
+            Valid(r.ReceiveBytesPerSecond), Valid(ResourceCharts.DiskRate(r, false)), Valid(r.GpuPercent, 100), Valid(ResourceCharts.DiskRate(r, true)) };
         // A baseline or source change starts a new activity interval, without retaining another device's peak.
+        var primaryId = ResourceCharts.LegacyDisk(r) ? r.SecondaryDiskName : r.DiskName;
         foreach (var old in _samples)
         {
             if (_gpuId != r.GpuId || values[4] is null) old.Values[4] = null;
             if (_networkId != r.NetworkId || values[2] is null) old.Values[2] = null;
-            if (_storageId != r.SecondaryDiskName || values[3] is null) old.Values[3] = null;
+            if (_secondDiskId != r.SecondaryDiskName || values[5] is null) old.Values[5] = null;
+            if (_storageId != primaryId || values[3] is null) old.Values[3] = null;
         }
         _gpuId = r.GpuId;
-        _networkId = r.NetworkId; _storageId = r.SecondaryDiskName;
+        _networkId = r.NetworkId; _storageId = primaryId; _secondDiskId = r.SecondaryDiskName;
         _samples.Enqueue((now, values));
         while (_samples.Count > 256 || _samples.TryPeek(out var first) && (now - first.Time) / (double)Stopwatch.Frequency > 120)
             _samples.Dequeue();

@@ -26,7 +26,7 @@ public sealed partial class MainWindow
         var text = $"MacMon {typeof(MainWindow).Assembly.GetName().Version?.ToString(3)}\n\n" +
             $"Computer: {Environment.MachineName}\nmacOS: {Environment.OSVersion.Version}\nArchitecture: {System.Runtime.InteropServices.RuntimeInformation.OSArchitecture}\n" +
             $"Logical CPU cores: {Environment.ProcessorCount}\nInstalled memory: {GiB(r?.TotalMemoryBytes)}\n" +
-            $"Data volume: {r?.DiskName ?? "—"}\nAvailable: {GiB(r?.DiskFreeBytes)} / {GiB(r?.DiskTotalBytes)}\n\n" +
+            $"Data volume: {(_session.HasLiveSample ? _source.Volume.Path : "—")}\nAvailable: {GiB(_session.HasLiveSample ? _source.Volume.FreeBytes : null)} / {GiB(_session.HasLiveSample ? _source.Volume.TotalBytes : null)}\n\n" +
             "Network interfaces:\n" + string.Join("\n", _source.NetworkInterfaces.Select(n => $"{n.Name} · {n.Id}"));
         var dialog = new ProcessDialog("About MacMon and hardware", text);
         if (CompactMode) dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;

@@ -3,7 +3,7 @@ using WinMon.Monitoring;
 
 namespace MacMon;
 
-public enum ResourceMetric { Cpu, Memory, Network, Storage, Gpu }
+public enum ResourceMetric { Cpu, Memory, Network, Storage, Gpu, SecondDisk }
 public sealed record ResourceDetailRow(string Label, string Value);
 public sealed record ResourceDetailSnapshot(string Title, string Status, string Definition, IReadOnlyList<ResourceDetailRow> Rows);
 
@@ -51,19 +51,28 @@ public static class ResourceDetails
                     new("Shared memory in use", Bytes(r?.GpuSharedMemoryUsedBytes))]);
                 break;
             case ResourceMetric.Storage:
-                definition = "Activity is read + write across all readable block-storage drivers, in bytes per second. Data-volume capacity is a separate filesystem reading; it is not the activity gauge's utilization.";
+            case ResourceMetric.SecondDisk:
+                var second = metric == ResourceMetric.SecondDisk;
+                if (second && r is not null && ResourceCharts.LegacyDisk(r)) r = null;
+                var legacy = r is not null && ResourceCharts.LegacyDisk(r);
+                definition = "Combined read/write throughput for the selected whole disk device, or all block-storage drivers. APFS volumes are not independent disk devices. Disconnection, counter reset or device changes require a fresh baseline; throughput is not active-time utilization.";
                 rows.AddRange([
-                    new("Activity scope", "All readable block-storage drivers"),
-                    new("Read", Rate(r?.SecondaryDiskReadBytesPerSecond)), new("Write", Rate(r?.SecondaryDiskWriteBytesPerSecond)),
-                    new("Capacity volume", Text(r?.DiskName)), new("Available capacity", Bytes(r?.DiskFreeBytes)),
-                    new("Total capacity", Bytes(r?.DiskTotalBytes))]);
+                    new("Activity scope", r is null ? "—" : legacy ? "All readable block-storage drivers" : Text(second ? r.SecondaryDiskName : r.DiskName)),
+                    new("Read", Rate(second || legacy ? r?.SecondaryDiskReadBytesPerSecond : r?.DiskReadBytesPerSecond)),
+                    new("Write", Rate(second || legacy ? r?.SecondaryDiskWriteBytesPerSecond : r?.DiskWriteBytesPerSecond))]);
+                if (legacy)
+                {
+                    definition += " Data-volume capacity is a separate filesystem reading.";
+                    rows.AddRange([new("Capacity volume", Text(r?.DiskName)), new("Available capacity", Bytes(r?.DiskFreeBytes)), new("Total capacity", Bytes(r?.DiskTotalBytes))]);
+                }
+                else rows.Add(new("Device capacity", Bytes(second ? r?.SecondaryDiskTotalBytes : r?.DiskTotalBytes)));
                 break;
             default: throw new ArgumentOutOfRangeException(nameof(metric));
         }
         rows.Add(new("Peak · last 2 minutes", reading.Value is null ? "—" : metric is ResourceMetric.Cpu or ResourceMetric.Memory or ResourceMetric.Gpu
             ? Percent(reading.Peak) : metric == ResourceMetric.Network ? ResourceGaugeHistory.NetworkRate(reading.Peak) : Rate(reading.Peak)));
         rows.Add(new("Gauge scale", reading.Value is null ? "—" : reading.Scale));
-        return new(metric == ResourceMetric.Cpu ? "CPU details" : metric == ResourceMetric.Gpu ? "GPU details" : metric == ResourceMetric.Storage ? "Disk details" : $"{metric} details",
+        return new(metric == ResourceMetric.Cpu ? "CPU details" : metric == ResourceMetric.Gpu ? "GPU details" : metric == ResourceMetric.SecondDisk ? "Disk 2 details" : metric == ResourceMetric.Storage ? "Disk details" : $"{metric} details",
             sample is null ? "Waiting for live readings…" : $"Live · updated {sample.Timestamp:HH:mm:ss zzz}", definition, rows);
     }
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "—" : value;

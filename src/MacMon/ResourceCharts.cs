@@ -9,9 +9,9 @@ public sealed record ChartPanel(Rect Bounds, int[] Metrics, bool SideLabel = fal
 /// <summary>Shared chart semantics: rates never become utilization percentages.</summary>
 public static class ResourceCharts
 {
-    public static readonly string[] Names = ["CPU", "Memory", "Network", "Disk", "GPU"];
+    public static readonly string[] Names = ["CPU", "Memory", "Network", "Disk", "GPU", "Disk 2"];
     public static bool IsPercent(int metric) => metric is 0 or 1 or 4;
-    public static int[] Metrics(int mask) => new[] { 0, 4, 1, 3, 2 }.Where(i => (mask & (1 << i)) != 0).ToArray();
+    public static int[] Metrics(int mask) => new[] { 0, 4, 1, 3, 5, 2 }.Where(i => (mask & (1 << i)) != 0).ToArray();
     public static int Focus(int mask, int focus) => Metrics(mask).Contains(focus) ? focus : Metrics(mask).FirstOrDefault();
     public static double? Value(MonitorSample sample, int metric)
     {
@@ -21,11 +21,18 @@ public static class ResourceCharts
         {
             0 => sample.TotalCpuPercent, 1 => r.MemoryPercent,
             2 => r.ReceiveBytesPerSecond,
-            3 => r.SecondaryDiskReadBytesPerSecond + r.SecondaryDiskWriteBytesPerSecond,
+            3 => DiskRate(r, false), 5 => DiskRate(r, true),
             4 => r.GpuPercent, _ => null
         };
         return value is { } n && double.IsFinite(n) && n >= 0 ? Math.Min(n, IsPercent(metric) ? 100 : double.MaxValue) : null;
     }
+    // Before physical-disk selection, MacMon stored aggregate activity in secondary
+    // fields and the data-volume path in DiskName. Preserve those saved histories.
+    public static bool LegacyDisk(ResourceSample r) => (r.DiskName.Length == 0 || r.DiskName.StartsWith('/')) &&
+        r.DiskReadBytesPerSecond is null && r.DiskWriteBytesPerSecond is null;
+    public static double? DiskRate(ResourceSample r, bool second) => LegacyDisk(r)
+        ? second ? null : r.SecondaryDiskReadBytesPerSecond + r.SecondaryDiskWriteBytesPerSecond
+        : second ? r.SecondaryDiskReadBytesPerSecond + r.SecondaryDiskWriteBytesPerSecond : r.DiskReadBytesPerSecond + r.DiskWriteBytesPerSecond;
     public static double Maximum(IReadOnlyList<MonitorSample> samples, int rangeSeconds, int metric) => IsPercent(metric) ? 100 :
         ResourceGaugeHistory.RateMaximum(HistoryInspection.VisibleSamples(samples, rangeSeconds).Select(s => Value(s, metric) ?? 0).DefaultIfEmpty().Max());
     public static string Reading(MonitorSample sample, int metric) => Value(sample, metric) is not { } value ? "—" :

@@ -29,6 +29,8 @@ public sealed record MacPreferences
     public int FocusMetric { get; init; }
     public int HistoryRange { get; init; }
     public string? NetworkId { get; init; }
+    public string? PrimaryDiskId { get; init; }
+    public string? SecondaryDiskId { get; init; }
     public bool CompactMode { get; init; }
     public double CompactWidth { get; init; } = 1000;
     public bool AlwaysOnTop { get; init; }
@@ -47,7 +49,7 @@ public sealed record MacPreferences
         BootId = bootId, Theme = Appearance.NormalizeTheme(Theme), Palette = Appearance.NormalizePalette(Palette),
         GaugeStyle = ResourceGauge.NormalizeStyle(GaugeStyle),
         ChartMode = Enum.IsDefined(ChartMode) ? ChartMode : ResourceChartMode.Overlay,
-        VisibleMetrics = VisibleMetrics & 31, FocusMetric = ResourceCharts.Focus(VisibleMetrics & 31, FocusMetric),
+        VisibleMetrics = VisibleMetrics & 63, FocusMetric = ResourceCharts.Focus(VisibleMetrics & 63, FocusMetric),
         ProcessSort = Math.Clamp(ProcessSort, 0, 5), UsageSort = Math.Clamp(UsageSort, 0, 5),
         JobLimit = TablePresentation.NormalizeLimit(JobLimit), TabOrderVersion = 1,
         ProcessLimit = TablePresentation.NormalizeLimit(ProcessLimit), UsageLimit = TablePresentation.NormalizeLimit(UsageLimit),
@@ -57,10 +59,13 @@ public sealed record MacPreferences
         Height = double.IsFinite(Height) ? Math.Clamp(Height, 760, 1800) : 1000,
         DashboardRatio = double.IsFinite(DashboardRatio) ? Math.Clamp(DashboardRatio, 0.25, 5) : 1.15,
         NetworkId = string.IsNullOrWhiteSpace(NetworkId) || NetworkId.Length > 256 ? null : NetworkId,
+        PrimaryDiskId = NormalizeDiskId(PrimaryDiskId),
+        SecondaryDiskId = SecondaryDiskId == PrimaryDiskId ? null : NormalizeDiskId(SecondaryDiskId),
         Pins = ProcessPins.Normalize((Pins ?? []).Where(pin => pin is not null &&
             (pin.Grouped || bootId is not null && BootId == bootId)).Take(512), MacFrameSource.IdentityPolicy),
         Captures = (Captures ?? MacCaptureOptions.Default).Normalized()
     };
+    internal static string? NormalizeDiskId(string? value) => string.IsNullOrWhiteSpace(value) || value.Length > 512 || value.Any(char.IsControl) ? null : value;
 }
 
 public sealed record PreferenceLoadResult(MacPreferences Preferences, string? Error = null, bool CanSave = true);

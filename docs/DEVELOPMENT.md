@@ -601,7 +601,8 @@ GPU now has a gauge, visibility checkbox, Focus choice, 0–100% chart series,
 source-aware two-minute peak and live details in full and compact views. Existing
 series bits retain their meanings, and prior visibility selections remain intact.
 New preferences enable all five metrics. ResourceSample already supports these
-fields, so CSV and restart history use the existing portable schema. Palette
+fields, so CSV uses the existing portable schema. Mac-specific restart history
+was extended and verified in slice 3 below. Palette
 contrast checks cover the new fifth color. The preview includes the GPU style.
 
 Validation: 148 Mac tests and three release-workflow tests pass, zero build
@@ -610,3 +611,49 @@ warnings, native resource/launchd smoke and themed renders. The M2 Pro reported
 cover missing/invalid/known-zero utilization, adapter changes, unavailable recovery,
 percent scaling and five-card alignment at supported sizes. An obsolete four-column
 resize rule was removed after the alignment regression test caught row wrapping.
+
+## Hardware monitoring slice 3 — configurable disks and hardware history
+
+Monitoring settings now select a primary whole disk device (or the existing
+aggregate) and an optional second device. Disk 2 adds a gauge, visibility toggle,
+Focus choice and independent throughput series in full/compact views. Selecting
+the same explicit device twice is rejected. Aggregates include the second disk;
+this overlap is explained in Settings. Disk images are explicitly named in the
+choices; APFS volumes and partitions are not separate choices.
+
+Discovery reads each block driver once, then finds its whole-media BSD name,
+model/name, capacity and GPT identity. GPT UUID selections survive renumbering;
+unidentified media use a boot-scoped registry identity (a session token if boot
+identity is unavailable). Rate baselines additionally include the native registry
+entry, so reconnection or replacement cannot inherit counters. Duplicate GPT IDs
+are ambiguous and cannot resolve to a selected device. Unplugged choices stay
+selected and unavailable. Resets, missing reads, source switches and wake gaps
+require fresh baselines. The aggregate is unavailable when any driver's counters
+cannot be read. No disk writes, mounting, helper or elevation are performed.
+
+Primary and secondary rates now occupy their corresponding ResourceSample fields.
+Primary device capacity is distinct from filesystem free space; the latter remains
+live metadata for Info, and is not attributed to an unrelated physical disk in
+CSV. Legacy history's aggregate-in-secondary layout remains readable as primary
+Disk and is never presented as a new Disk 2.
+
+Native restart checks exposed that MacMon uses its own history serializer rather
+than MonCore's Windows serializer. History format 2 adds CPU clock, GPU identity,
+utilization/shared memory, primary disk rates and second-device capacity. Format 1
+continues to load, without inventing readings that it did not store. Invalid or
+future formats retain existing preservation/size limits. Tests include a manually
+encoded format-1 fixture and a complete hardware round trip. The native check also
+verified Disk 2 selection and Focus restoration after a clean restart.
+
+Validation: 154 Mac tests, three release-workflow tests, zero build warnings,
+native resource/launchd smoke and both-theme renders pass. Independent disk tests
+cover counter resets, reattachment, reused BSD names, duplicate IDs, missing
+selections, switching aggregate/device scope, disconnected settings and duplicate
+selection validation. Full and compact layouts cover five/six readouts at minimum
+and normal widths, all seven gauge styles, themes and palettes. Six-card minimum
+width tests caught numeric overflow in Left Bar; readout and unit sizes now fit
+the available width. The collector benchmark observed 411 processes at 6.51ms
+median / 6.92ms CPU and 1,050,105 allocated bytes per capture (collector only).
+Native smoke exercised disk0 as Disk 2 alongside the aggregate and changing CPU/
+GPU readings. Distinct-device and disconnect cases use fixtures; no physical
+unplug was performed. Final package refresh/native history confirmation follow.

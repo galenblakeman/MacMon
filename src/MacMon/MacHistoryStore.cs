@@ -40,6 +40,7 @@ public static class MacHistoryStore
             Add(entry.BootId);
             var resource = entry.Sample.Resources;
             Add(resource.DiskName); Add(resource.NetworkName); Add(resource.NetworkId); Add(resource.SecondaryDiskName);
+            Add(resource.GpuId); Add(resource.GpuName); Add(resource.GpuEngine);
             foreach (var process in entry.Sample.Processes) { Add(process.Name); Add(process.ImagePath); }
         }
         if (strings.Count > 65_536) throw new InvalidDataException("Too many history strings.");
@@ -53,7 +54,7 @@ public static class MacHistoryStore
                 using (var bounded = new BudgetStream(zip, MaxExpandedBytes))
                 using (var writer = new BinaryWriter(bounded, Encoding.UTF8, leaveOpen: true))
                 {
-                    writer.Write(Magic); writer.Write(1); writer.Write(frequency);
+                    writer.Write(Magic); writer.Write(2); writer.Write(frequency);
                     writer.Write(strings.Count);
                     var stringBytes = 0;
                     foreach (var text in strings.Keys)
@@ -116,7 +117,8 @@ public static class MacHistoryStore
             using var bounded = new BudgetStream(zip, MaxExpandedBytes);
             using var reader = new BinaryReader(bounded, Encoding.UTF8);
             if (reader.ReadInt32() != Magic) throw new InvalidDataException("Not a MacMon history file.");
-            if (reader.ReadInt32() != 1) return new([], Error: "History uses an unsupported version; the original file will be preserved.", CanSave: false);
+            var version = reader.ReadInt32();
+            if (version is not (1 or 2)) return new([], Error: "History uses an unsupported version; the original file will be preserved.", CanSave: false);
             var savedFrequency = reader.ReadInt64();
             if (savedFrequency <= 0) throw new InvalidDataException("Invalid saved clock frequency.");
             var strings = new string[Count(reader, 65_536)];
@@ -146,7 +148,7 @@ public static class MacHistoryStore
                 var gap = reader.ReadBoolean(); var independent = reader.ReadBoolean();
                 var seconds = reader.ReadDouble(); var capacity = reader.ReadInt64();
                 if (!double.IsFinite(seconds) || seconds is < 0 or > 5 || capacity < 0) throw new InvalidDataException("Invalid sample interval.");
-                var resources = ReadResources(reader, Text);
+                var resources = ReadResources(reader, Text, version);
                 var processes = new ProcessUsage[Count(reader, remainingProcesses)];
                 remainingProcesses -= processes.Length;
                 var identities = new HashSet<ProcessLifetimeIdentity>();
@@ -210,14 +212,20 @@ public static class MacHistoryStore
 
     private static void WriteResources(BinaryWriter w, ResourceSample r, Dictionary<string, int> text)
     {
+        if (r.GpuPercent > 100 || r.CpuClockMhz is <= 0 or > 10000) throw new InvalidDataException("Invalid hardware reading.");
         WriteNumber(w, r.CpuKernelPercent);
         WriteUnsigned(w, r.TotalMemoryBytes); WriteUnsigned(w, r.UsedMemoryBytes); WriteUnsigned(w, r.AvailableMemoryBytes); WriteUnsigned(w, r.CachedBytes);
         w.Write(r.ProcessCount is not null); if (r.ProcessCount is { } count) w.Write(count);
         w.Write(text[r.DiskName]); WriteUnsigned(w, r.DiskFreeBytes); WriteUnsigned(w, r.DiskTotalBytes);
         w.Write(text[r.NetworkId]); w.Write(text[r.NetworkName]); WriteNumber(w, r.ReceiveBytesPerSecond); WriteNumber(w, r.SendBytesPerSecond);
         w.Write(text[r.SecondaryDiskName]); WriteNumber(w, r.SecondaryDiskReadBytesPerSecond); WriteNumber(w, r.SecondaryDiskWriteBytesPerSecond);
+        WriteNumber(w, r.CpuClockMhz); WriteNumber(w, r.GpuPercent);
+        w.Write(text[r.GpuId]); w.Write(text[r.GpuName]); w.Write(text[r.GpuEngine]);
+        WriteUnsigned(w, r.GpuSharedMemoryUsedBytes);
+        WriteNumber(w, r.DiskReadBytesPerSecond); WriteNumber(w, r.DiskWriteBytesPerSecond);
+        WriteUnsigned(w, r.SecondaryDiskTotalBytes);
     }
-    private static ResourceSample ReadResources(BinaryReader r, Func<string> text)
+    private static ResourceSample ReadResources(BinaryReader r, Func<string> text, int version)
     {
         var result = new ResourceSample
         {
@@ -227,6 +235,13 @@ public static class MacHistoryStore
             NetworkId = text(), NetworkName = text(), ReceiveBytesPerSecond = ReadNumber(r), SendBytesPerSecond = ReadNumber(r),
             SecondaryDiskName = text(), SecondaryDiskReadBytesPerSecond = ReadNumber(r), SecondaryDiskWriteBytesPerSecond = ReadNumber(r)
         };
+        if (version >= 2) result = result with
+        {
+            CpuClockMhz = ReadNumber(r), GpuPercent = ReadNumber(r), GpuId = text(), GpuName = text(), GpuEngine = text(),
+            GpuSharedMemoryUsedBytes = ReadUnsigned(r), DiskReadBytesPerSecond = ReadNumber(r), DiskWriteBytesPerSecond = ReadNumber(r),
+            SecondaryDiskTotalBytes = ReadUnsigned(r)
+        };
+        if (result.GpuPercent > 100 || result.CpuClockMhz is <= 0 or > 10000) throw new InvalidDataException("Invalid hardware reading.");
         if (result.CpuKernelPercent > 100 || result.UsedMemoryBytes > result.TotalMemoryBytes || result.AvailableMemoryBytes > result.TotalMemoryBytes)
             throw new InvalidDataException("Invalid resource observation.");
         return result;

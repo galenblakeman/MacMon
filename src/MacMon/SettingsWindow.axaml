@@ -58,6 +58,11 @@
             </ComboBox>
             <TextBlock Text="Network interface" Classes="label" />
             <ComboBox x:Name="NetworkChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Settings network interface" />
+            <TextBlock Text="Primary disk" Classes="label" />
+            <ComboBox x:Name="PrimaryDiskChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Primary disk" />
+            <TextBlock Text="Second disk" Classes="label" />
+            <ComboBox x:Name="SecondaryDiskChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Second disk" />
+            <TextBlock Classes="label" TextWrapping="Wrap" Text="Choose whole disk devices, not APFS volumes. Disk images may also appear. A disconnected selection stays unavailable until that device returns. All disks includes the selected second disk. Disk rates measure combined read/write throughput; active-time percentage is unavailable." />
             <TextBlock Classes="label" TextWrapping="Wrap" Text="Automatic prefers an active Ethernet or Wi-Fi interface. Disk activity covers all readable block-storage drivers. Unavailable readings remain unavailable." />
           </StackPanel>
           <StackPanel x:Name="CapturesPage" Spacing="14" IsVisible="False">

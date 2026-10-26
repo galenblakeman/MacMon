@@ -23,7 +23,7 @@ public sealed class MacFrameSourceTests
             Assert.That(sample.Resources.UsedMemoryBytes, Is.Null);
             Assert.That(sample.Resources.AvailableMemoryBytes, Is.Null);
             Assert.That(sample.Resources.CommittedBytes, Is.Null);
-            Assert.That(sample.Resources.DiskFreeBytes, Is.EqualTo(100UL << 30));
+            Assert.That(source.Volume.FreeBytes, Is.EqualTo(100UL << 30));
             Assert.That(sample.Processes, Is.Empty);
         });
     }
@@ -122,7 +122,7 @@ public sealed class MacFrameSourceTests
         {
             Assert.That(frame.Error, Is.Null);
             Assert.That(frame.Full.Resources.TotalMemoryBytes, Is.GreaterThan(0));
-            Assert.That(frame.Full.Resources.DiskFreeBytes, Is.GreaterThan(0));
+            Assert.That(source.Volume.FreeBytes, Is.GreaterThan(0));
         });
     }
 

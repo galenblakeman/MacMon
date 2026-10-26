@@ -60,6 +60,25 @@ internal static partial class DarwinObjects
         finally { IOObjectRelease(iterator); }
         return result;
     }
+    internal static List<T> Children<T>(uint entry, Func<uint, T> read)
+    {
+        var result = new List<T>();
+        if (IORegistryEntryGetChildIterator(entry, "IOService", out var iterator) != 0) return result;
+        try
+        {
+            uint child;
+            while ((child = IOIteratorNext(iterator)) != 0)
+            { try { if (result.Count < 128) result.Add(read(child)); } finally { IOObjectRelease(child); } }
+        }
+        finally { IOObjectRelease(iterator); }
+        return result;
+    }
+    internal static string Name(uint entry)
+    {
+        var buffer = Marshal.AllocHGlobal(128);
+        try { return IORegistryEntryGetName(entry, buffer) == 0 ? Marshal.PtrToStringUTF8(buffer) ?? "" : ""; }
+        finally { Marshal.FreeHGlobal(buffer); }
+    }
     internal static void Release(IntPtr value) { if (value != IntPtr.Zero) CFRelease(value); }
     [LibraryImport(CF)] internal static partial void CFRelease(IntPtr value);
     [LibraryImport(CF)] internal static partial nuint CFGetTypeID(IntPtr value);
@@ -84,4 +103,6 @@ internal static partial class DarwinObjects
     [LibraryImport(IOKit)] internal static partial int IOObjectRelease(uint value);
     [LibraryImport(IOKit)] private static partial IntPtr IORegistryEntryCreateCFProperty(uint entry, IntPtr key, IntPtr allocator, uint options);
     [LibraryImport(IOKit)] internal static partial int IORegistryEntryGetRegistryEntryID(uint entry, out ulong id);
+    [LibraryImport(IOKit, StringMarshalling = StringMarshalling.Utf8)] private static partial int IORegistryEntryGetChildIterator(uint entry, string plane, out uint iterator);
+    [LibraryImport(IOKit)] private static partial int IORegistryEntryGetName(uint entry, IntPtr name);
 }

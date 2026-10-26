@@ -44,9 +44,10 @@ internal static class Program
         {
             var frame = source.Capture(new SamplingOptions());
             history.Add(frame.Full);
+            if (i == 0) source.SecondaryDiskId = (source.DiskChoices.FirstOrDefault(d => d.Name.StartsWith("disk0 ·", StringComparison.Ordinal)) ?? source.DiskChoices.FirstOrDefault())?.Id;
             Console.WriteLine($"{frame.Full.Timestamp:O} CPU={frame.Full.TotalCpuPercent?.ToString("F1") ?? "unavailable"} " +
                               $"GPU={frame.Full.Resources.GpuPercent} GPUName={frame.Full.Resources.GpuName} ClockMHz={frame.Full.Resources.CpuClockMhz} RAM={frame.Full.Resources.TotalMemoryBytes} Used={frame.Full.Resources.UsedMemoryBytes} Pressure={source.Memory.Pressure} " +
-                              $"VolumeFree={frame.Full.Resources.DiskFreeBytes} Network={frame.Full.Resources.NetworkName} Rx={frame.Full.Resources.ReceiveBytesPerSecond} Tx={frame.Full.Resources.SendBytesPerSecond} DiskRead={frame.Full.Resources.SecondaryDiskReadBytesPerSecond} DiskWrite={frame.Full.Resources.SecondaryDiskWriteBytesPerSecond} " +
+                              $"VolumeFree={source.Volume.FreeBytes} Network={frame.Full.Resources.NetworkName} Rx={frame.Full.Resources.ReceiveBytesPerSecond} Tx={frame.Full.Resources.SendBytesPerSecond} Disk={frame.Full.Resources.DiskName} DiskRead={frame.Full.Resources.DiskReadBytesPerSecond} DiskWrite={frame.Full.Resources.DiskWriteBytesPerSecond} Disk2={frame.Full.Resources.SecondaryDiskName} Disk2Read={frame.Full.Resources.SecondaryDiskReadBytesPerSecond} " +
                               $"Processes={frame.Full.Processes.Count} Unavailable={frame.Full.UnavailableProcesses} " +
                               $"SelfCpu={frame.Full.Processes.FirstOrDefault(p => p.ProcessId == Environment.ProcessId)?.ObservedCpuPercent} " +
                               $"Error={frame.Error}");
@@ -55,7 +56,7 @@ internal static class Program
 
         var last = history.Latest!;
         return last.TotalCpuPercent is >= 0 and <= 100 && last.Resources.TotalMemoryBytes is > 0
-            && last.Resources.MemoryPercent is >= 0 and <= 100 && last.Resources.DiskFreeBytes is > 0 && last.Processes.Any(process =>
+            && last.Resources.MemoryPercent is >= 0 and <= 100 && source.Volume.FreeBytes is > 0 && last.Processes.Any(process =>
                 process.ProcessId == Environment.ProcessId && process.ObservedCpuPercent is >= 0 and <= 100 &&
                 process.WorkingSetBytes is > 0 && process.ThreadCount is > 0) ? 0 : 1;
     }

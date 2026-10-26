@@ -20,6 +20,14 @@ public sealed class MacFrameSource : IFrameSource
         _processReader = processReader;
     }
 
+    private string? _primaryDiskId, _secondaryDiskId;
+    private MacDiskCounters? _priorPrimaryDisk, _priorSecondaryDisk;
+    public string? PrimaryDiskId { get => Volatile.Read(ref _primaryDiskId); set => Volatile.Write(ref _primaryDiskId, value); }
+    public string? SecondaryDiskId { get => Volatile.Read(ref _secondaryDiskId); set => Volatile.Write(ref _secondaryDiskId, value); }
+    public IReadOnlyList<MacDiskChoice> DiskChoices => Volatile.Read(ref _activity).Disks
+        .GroupBy(d => d.Id).Where(g => g.Count() == 1).Select(g => new MacDiskChoice(g.Key, g.First().Name)).ToArray();
+    private MacVolumeSnapshot _volume = new("/System/Volumes/Data", null, null);
+    public MacVolumeSnapshot Volume => Volatile.Read(ref _volume);
     private string? _networkId;
     public string? NetworkInterfaceId { get => Volatile.Read(ref _networkId); set => Volatile.Write(ref _networkId, value); }
     private MacActivitySnapshot _activity = MacActivitySnapshot.Empty;
@@ -41,6 +49,9 @@ public sealed class MacFrameSource : IFrameSource
         var current = _reader.Read(options.PrimaryDrive ?? "/System/Volumes/Data", NetworkInterfaceId);
         Volatile.Write(ref _memory, current.Memory);
         Volatile.Write(ref _activity, current.Activity);
+        Volatile.Write(ref _volume, new(current.VolumePath, current.VolumeFreeBytes, current.VolumeTotalBytes));
+        var primaryDisk = MacDiskSelection.Resolve(current.Activity, PrimaryDiskId, true);
+        var secondaryDisk = MacDiskSelection.Resolve(current.Activity, SecondaryDiskId, false);
         var batch = _processReader?.Read() ?? new MacProcessBatch([], 0);
         var before = _previous;
         _previous = current;
@@ -125,18 +136,21 @@ public sealed class MacFrameSource : IFrameSource
                     ? totalMemory - used : null,
                 CachedBytes = current.Memory.CachedBytes,
                 ProcessCount = batch.EnumerationAvailable ? checked((uint)(processes.Count + batch.UnavailableProcesses)) : null,
-                DiskName = current.VolumePath,
-                DiskFreeBytes = current.VolumeFreeBytes,
-                DiskTotalBytes = current.VolumeTotalBytes,
+                DiskName = primaryDisk.Name,
+                DiskTotalBytes = primaryDisk.Size,
+                DiskReadBytesPerSecond = MacDiskSelection.Rate(_priorPrimaryDisk, primaryDisk, seconds, intervalValid, true),
+                DiskWriteBytesPerSecond = MacDiskSelection.Rate(_priorPrimaryDisk, primaryDisk, seconds, intervalValid, false),
                 NetworkId = current.Activity.NetworkId,
                 NetworkName = current.Activity.NetworkName,
                 ReceiveBytesPerSecond = NetworkRate(before, current, seconds, intervalValid, true),
                 SendBytesPerSecond = NetworkRate(before, current, seconds, intervalValid, false),
-                SecondaryDiskName = "All block-storage drivers",
-                SecondaryDiskReadBytesPerSecond = StorageRate(before, current, seconds, intervalValid, true),
-                SecondaryDiskWriteBytesPerSecond = StorageRate(before, current, seconds, intervalValid, false)
+                SecondaryDiskName = secondaryDisk.Name,
+                SecondaryDiskTotalBytes = secondaryDisk.Size,
+                SecondaryDiskReadBytesPerSecond = MacDiskSelection.Rate(_priorSecondaryDisk, secondaryDisk, seconds, intervalValid, true),
+                SecondaryDiskWriteBytesPerSecond = MacDiskSelection.Rate(_priorSecondaryDisk, secondaryDisk, seconds, intervalValid, false)
             }
         };
+        _priorPrimaryDisk = primaryDisk; _priorSecondaryDisk = secondaryDisk;
         // Baseline and wake gaps are expected. A failed native CPU read is reported separately.
         return new CapturedFrame(sample, Error: current.Cpu is null ? SamplingError.CpuUnavailable :
             !batch.EnumerationAvailable ? SamplingError.ProcessesUnavailable : null);
@@ -147,14 +161,10 @@ public sealed class MacFrameSource : IFrameSource
             ? ResourceRates.PerSecond(receive ? before.Activity.Received : before.Activity.Sent,
                 receive ? current.Activity.Received : current.Activity.Sent, seconds) : null;
 
-    private static double? StorageRate(SystemObservation? before, SystemObservation current, double seconds, bool valid, bool read) =>
-        valid && before is not null && current.Activity.StorageSet.Length > 0 && before.Activity.StorageSet == current.Activity.StorageSet
-            ? ResourceRates.PerSecond(read ? before.Activity.Read : before.Activity.Written,
-                read ? current.Activity.Read : current.Activity.Written, seconds) : null;
-
     public void Reset()
     {
         _previous = null;
+        _priorPrimaryDisk = _priorSecondaryDisk = null;
         _previousProcesses.Clear();
     }
 
@@ -183,3 +193,5 @@ internal interface IMacSystemReader : IDisposable
 {
     SystemObservation Read(string volumePath, string? networkId = null);
 }
+
+public sealed record MacVolumeSnapshot(string Path, ulong? FreeBytes, ulong? TotalBytes);

@@ -4,9 +4,9 @@ using Avalonia.Styling;
 
 namespace MacMon;
 
-public sealed record PaletteColors(Color Cpu, Color Memory, Color Network, Color Storage, Color Gpu)
+public sealed record PaletteColors(Color Cpu, Color Memory, Color Network, Color Storage, Color Gpu, Color SecondDisk)
 {
-    public Color[] All => [Cpu, Memory, Network, Storage, Gpu];
+    public Color[] All => [Cpu, Memory, Network, Storage, Gpu, SecondDisk];
 }
 
 public static class Appearance
@@ -23,15 +23,15 @@ public static class Appearance
     {
         var hues = NormalizePalette(palette) switch
         {
-            "Ocean" => new[] { "#64D8EB", "#AAB4FF", "#79C7FF", "#7DE2B2", "#FFAC84" },
-            "Colorblind" => new[] { "#56B4E9", "#E69F00", "#CC79A7", "#009E73", "#F0E442" },
-            "High contrast" => new[] { "#00FFFF", "#FFFF00", "#FF80FF", "#FFFFFF", "#80FF80" },
-            _ => new[] { "#6DE3CB", "#BD9AFF", "#73BFFF", "#F6C85F", "#FF9F87" }
+            "Ocean" => new[] { "#64D8EB", "#AAB4FF", "#79C7FF", "#7DE2B2", "#FFAC84", "#E0CC66" },
+            "Colorblind" => new[] { "#56B4E9", "#E69F00", "#CC79A7", "#009E73", "#F0E442", "#AA4499" },
+            "High contrast" => new[] { "#00FFFF", "#FFFF00", "#FF80FF", "#FFFFFF", "#80FF80", "#FFA040" },
+            _ => new[] { "#6DE3CB", "#BD9AFF", "#73BFFF", "#F6C85F", "#FF9F87", "#D4ABFF" }
         };
         // Light high-contrast needs distinct hues rather than four darkened near-black colors.
-        if (!dark && palette == "High contrast") hues = ["#005A9C", "#7A2500", "#6A0080", "#006039", "#805000"];
+        if (!dark && palette == "High contrast") hues = ["#005A9C", "#7A2500", "#6A0080", "#006039", "#805000", "#602060"];
         var colors = hues.Select(hue => EnsureContrast(Color.Parse(hue), Card(dark), text ? 4.5 : 3, dark)).ToArray();
-        return new(colors[0], colors[1], colors[2], colors[3], colors[4]);
+        return new(colors[0], colors[1], colors[2], colors[3], colors[4], colors[5]);
     }
 
     public static double Contrast(Color left, Color right)
@@ -62,7 +62,7 @@ public static class Appearance
     {
         var strokes = Colors(palette, dark).All;
         var labels = Colors(palette, dark, true).All;
-        var names = new[] { "Cpu", "Memory", "Network", "Storage", "Gpu" };
+        var names = new[] { "Cpu", "Memory", "Network", "Storage", "Gpu", "SecondDisk" };
         for (var i = 0; i < names.Length; i++)
         {
             resources[names[i] + "Stroke"] = new SolidColorBrush(strokes[i]);
@@ -73,13 +73,13 @@ public static class Appearance
 
 /// <summary>Only fields edited in Settings are merged; live view, window and pin state stay current.</summary>
 public sealed record SettingsValues(string Theme, string Palette, bool AlwaysOnTop, bool KeepHistory,
-    int HistoryRange, string? NetworkId, MacCaptureOptions Captures, string GaugeStyle = "Bowl")
+    int HistoryRange, string? NetworkId, MacCaptureOptions Captures, string GaugeStyle = "Bowl", string? PrimaryDiskId = null, string? SecondaryDiskId = null)
 {
     public static SettingsValues From(MacPreferences preferences) => new(preferences.Theme, preferences.Palette,
-        preferences.AlwaysOnTop, preferences.KeepHistory, preferences.HistoryRange, preferences.NetworkId, preferences.Captures, preferences.GaugeStyle);
+        preferences.AlwaysOnTop, preferences.KeepHistory, preferences.HistoryRange, preferences.NetworkId, preferences.Captures, preferences.GaugeStyle, preferences.PrimaryDiskId, preferences.SecondaryDiskId);
     public MacPreferences ApplyTo(MacPreferences current, string? bootId) => (current with
     {
         Theme = Theme, Palette = Palette, GaugeStyle = GaugeStyle, AlwaysOnTop = AlwaysOnTop, KeepHistory = KeepHistory,
-        HistoryRange = HistoryRange, NetworkId = NetworkId, Captures = Captures
+        HistoryRange = HistoryRange, NetworkId = NetworkId, Captures = Captures, PrimaryDiskId = PrimaryDiskId, SecondaryDiskId = SecondaryDiskId
     }).Normalized(bootId);
 }

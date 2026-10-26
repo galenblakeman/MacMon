@@ -53,6 +53,7 @@ public sealed class ResourceGauge : UserControl
     {
         Focusable = true;
         Height = 98;
+        _value.Classes.Add("gaugeValue");
         SeriesToggle.Width = 20; SeriesToggle.Height = 20;
         _checkBox.Child = _checkMark;
         SeriesToggle.Template = new FuncControlTemplate<CheckBox>((_, _) => _checkBox);
@@ -106,9 +107,21 @@ public sealed class ResourceGauge : UserControl
         if (space >= 0) { unit = number[(space + 1)..]; number = number[..space]; }
         else if (number.EndsWith('%')) { unit = "%"; number = number[..^1]; }
         var arc = NormalizeStyle(GaugeStyle) is "Bowl" or "Needle" or "SegmentedArc";
-        _value.FontSize = IsCompact ? 20 : Math.Min(ReadoutSize, arc || Bounds.Width < 145 ? 22 : 27);
+        var fontSize = IsCompact ? 20 : Math.Min(ReadoutSize, arc || Bounds.Width < 145 ? 22 : 27);
+        var unitSize = 13d;
+        var available = Bounds.Width - (NormalizeStyle(GaugeStyle) == "LeftBar" ? 30 : 0) - 2;
+        if (available > 0)
+        {
+            var face = new Typeface(_value.FontFamily, _value.FontStyle, _value.FontWeight);
+            double Width(string text, double size) => new FormattedText(text, System.Globalization.CultureInfo.CurrentCulture,
+                FlowDirection.LeftToRight, face, size, _value.Foreground!).Width;
+            var desired = Width(number, fontSize) + Width(unit.Length > 0 ? " " + unit : "", unitSize);
+            var fit = desired > 0 ? Math.Min(1, available / desired) : 1;
+            fontSize *= fit; unitSize *= fit;
+        }
+        _value.FontSize = fontSize;
         _detail.FontSize = IsCompact ? 11 : arc ? 13 : 14;
-        _value.Inlines!.Clear(); _value.Inlines.Add(new Run(number)); _value.Inlines.Add(new Run(unit.Length > 0 ? " " + unit : "") { FontSize = 13 });
+        _value.Inlines!.Clear(); _value.Inlines.Add(new Run(number)); _value.Inlines.Add(new Run(unit.Length > 0 ? " " + unit : "") { FontSize = unitSize });
         _scale.Text = _reading.Value is not null && _reading.Maximum != 100 ? _reading.Scale.Replace("0–", "") : "";
         _detail.Text = (Title is "Memory" or "CPU" ? _description.Split('\n').FirstOrDefault() : _description.Split('\n').LastOrDefault()) ?? "";
         if (Title == "CPU") _detail.Text = _detail.Text.Split(" · ").Last();

@@ -2,7 +2,7 @@ namespace MacMon;
 
 public sealed partial class MainWindow
 {
-    private ResourceGauge[] AllResourceGauges => [CpuGauge, MemoryGauge, NetworkGauge, StorageGauge, GpuGauge, .. CompactPanel.Gauges];
+    private ResourceGauge[] AllResourceGauges => [CpuGauge, MemoryGauge, NetworkGauge, StorageGauge, GpuGauge, SecondDiskGauge, .. CompactPanel.Gauges];
     private void InitializeResourceDetails()
     {
         foreach (var (gauge, index) in AllResourceGauges.Select((gauge, index) => (gauge, index)))

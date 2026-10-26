@@ -23,6 +23,9 @@ public sealed class CpuChart : Control
     public static readonly StyledProperty<IBrush> StorageBrushProperty =
         AvaloniaProperty.Register<CpuChart, IBrush>(nameof(StorageBrush), new SolidColorBrush(Color.Parse("#F6C85F")));
     public IBrush StorageBrush { get => GetValue(StorageBrushProperty); set => SetValue(StorageBrushProperty, value); }
+    public static readonly StyledProperty<IBrush> SecondDiskBrushProperty =
+        AvaloniaProperty.Register<CpuChart, IBrush>(nameof(SecondDiskBrush), Brushes.Violet);
+    public IBrush SecondDiskBrush { get => GetValue(SecondDiskBrushProperty); set => SetValue(SecondDiskBrushProperty, value); }
     public static readonly StyledProperty<IBrush> GpuBrushProperty =
         AvaloniaProperty.Register<CpuChart, IBrush>(nameof(GpuBrush), Brushes.Orange);
     public IBrush GpuBrush { get => GetValue(GpuBrushProperty); set => SetValue(GpuBrushProperty, value); }
@@ -32,10 +35,10 @@ public sealed class CpuChart : Control
     public static readonly StyledProperty<IBrush> MarkerBrushProperty =
         AvaloniaProperty.Register<CpuChart, IBrush>(nameof(MarkerBrush), new SolidColorBrush(Color.Parse("#FFFFFF")));
     public IBrush MarkerBrush { get => GetValue(MarkerBrushProperty); set => SetValue(MarkerBrushProperty, value); }
-    static CpuChart() => AffectsRender<CpuChart>(CpuBrushProperty, MemoryBrushProperty, NetworkBrushProperty, StorageBrushProperty, GridBrushProperty, MarkerBrushProperty, GpuBrushProperty);
+    static CpuChart() => AffectsRender<CpuChart>(CpuBrushProperty, MemoryBrushProperty, NetworkBrushProperty, StorageBrushProperty, GridBrushProperty, MarkerBrushProperty, GpuBrushProperty, SecondDiskBrushProperty);
     private IReadOnlyList<MonitorSample> _samples = [];
     private IReadOnlyList<MonitorSample> _visible = [];
-    private double[] _maxima = [100, 100, 1024, 1024, 100];
+    private double[] _maxima = [100, 100, 1024, 1024, 100, 1024];
     public IReadOnlyList<MacCaptureRecord> Captures { get; set; } = [];
     public event Action<MacCaptureRecord>? CaptureSelected;
     public int VisibleMetrics { get; set; } = 31;
@@ -105,7 +108,7 @@ public sealed class CpuChart : Control
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     { ToolTip.SetIsOpen(this, false); base.OnDetachedFromVisualTree(e); }
     public double Maximum(int metric) => _maxima[metric];
-    private IBrush Brush(int metric) => metric switch { 0 => CpuBrush, 1 => MemoryBrush, 2 => NetworkBrush, 4 => GpuBrush, _ => StorageBrush };
+    private IBrush Brush(int metric) => metric switch { 0 => CpuBrush, 1 => MemoryBrush, 2 => NetworkBrush, 4 => GpuBrush, 5 => SecondDiskBrush, _ => StorageBrush };
     private ChartPanel[] Panels => ResourceCharts.Panels(new Size(Bounds.Width, Math.Max(0, Bounds.Height - 22)), VisibleMetrics, Mode, FocusMetric);
     private double X(long time, Rect plot) => plot.X + plot.Width * (1 -
         (_samples[^1].MonotonicTimestamp - time) / (double)Stopwatch.Frequency / RangeSeconds);
@@ -226,7 +229,9 @@ public sealed class CpuChart : Control
             if (previous is { } start && prior is not null &&
                 (sample.MonotonicTimestamp - prior.MonotonicTimestamp) / (double)Stopwatch.Frequency <= 2.5 &&
                 (metric != 2 || sample.Resources.NetworkId == prior.Resources.NetworkId) &&
-                (metric != 4 || sample.Resources.GpuId == prior.Resources.GpuId)) context.DrawLine(line, start, point);
+                (metric != 4 || sample.Resources.GpuId == prior.Resources.GpuId) &&
+                (metric != 3 || sample.Resources.DiskName == prior.Resources.DiskName) &&
+                (metric != 5 || sample.Resources.SecondaryDiskName == prior.Resources.SecondaryDiskName)) context.DrawLine(line, start, point);
             // A single observation remains visible without drawing across missing time.
             context.DrawEllipse(Brush(metric), null, point, 1, 1);
             previous = point; prior = sample;

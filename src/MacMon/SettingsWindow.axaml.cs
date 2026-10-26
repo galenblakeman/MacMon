@@ -17,7 +17,7 @@ public sealed partial class SettingsWindow : Window
     public int Section => Sections.SelectedIndex;
     public SettingsWindow() : this(new MacPreferences(), [], 0, false, _ => Task.FromResult<string?>(null)) { }
     public SettingsWindow(MacPreferences preferences, IReadOnlyList<MacNetworkChoice> networks, int section,
-        bool canSave, Func<SettingsValues, Task<string?>> save)
+        bool canSave, Func<SettingsValues, Task<string?>> save, IReadOnlyList<MacDiskChoice>? disks = null)
     {
         _save = save;
         InitializeComponent();
@@ -30,6 +30,13 @@ public sealed partial class SettingsWindow : Window
         GaugeChoice.ItemsSource = ResourceGauge.GaugeStyles; GaugeChoice.SelectedItem = preferences.GaugeStyle;
         NetworkChoice.ItemsSource = networks;
         NetworkChoice.SelectedItem = networks.FirstOrDefault(network => network.Id == (preferences.NetworkId ?? ""));
+        var availableDisks = disks ?? [];
+        MacDiskChoice[] Choices(string? selected, string fallback) => [new("", fallback), .. availableDisks,
+            .. selected is { Length: > 0 } && availableDisks.All(d => d.Id != selected) ? new[] { new MacDiskChoice(selected, selected + " · disconnected") } : []];
+        PrimaryDiskChoice.ItemsSource = Choices(preferences.PrimaryDiskId, "All block-storage drivers");
+        SecondaryDiskChoice.ItemsSource = Choices(preferences.SecondaryDiskId, "Off");
+        PrimaryDiskChoice.SelectedItem = PrimaryDiskChoice.Items.OfType<MacDiskChoice>().First(d => d.Id == (preferences.PrimaryDiskId ?? ""));
+        SecondaryDiskChoice.SelectedItem = SecondaryDiskChoice.Items.OfType<MacDiskChoice>().First(d => d.Id == (preferences.SecondaryDiskId ?? ""));
         CaptureEditor.Load(preferences.Captures);
         Sections.SelectionChanged += (_, _) => ShowSection();
         ThemeChoice.SelectionChanged += (_, _) => UpdatePreview();
@@ -96,6 +103,10 @@ public sealed partial class SettingsWindow : Window
     private async Task Save()
     {
         if (_saving || !SaveSettings.IsEnabled) return;
+        var primaryId = (PrimaryDiskChoice.SelectedItem as MacDiskChoice)?.Id;
+        var secondaryId = (SecondaryDiskChoice.SelectedItem as MacDiskChoice)?.Id;
+        if (!string.IsNullOrEmpty(primaryId) && primaryId == secondaryId)
+        { SettingsStatus.Text = "Choose a different second disk, or turn it off."; return; }
         _saving = true; SaveSettings.IsEnabled = CancelSettings.IsEnabled = false;
         SettingsStatus.Text = "Saving settings…";
         try
@@ -103,7 +114,8 @@ public sealed partial class SettingsWindow : Window
             var values = new SettingsValues(ThemeChoice.SelectedItem as string ?? "Dark",
                 PaletteChoice.SelectedItem as string ?? "Classic", TopmostSetting.IsChecked == true,
                 KeepHistorySetting.IsChecked == true, RangeChoice.SelectedIndex,
-                (NetworkChoice.SelectedItem as MacNetworkChoice)?.Id, CaptureEditor.Value, GaugeChoice.SelectedItem as string ?? "Bowl");
+                (NetworkChoice.SelectedItem as MacNetworkChoice)?.Id, CaptureEditor.Value, GaugeChoice.SelectedItem as string ?? "Bowl",
+                string.IsNullOrEmpty(primaryId) ? null : primaryId, string.IsNullOrEmpty(secondaryId) ? null : secondaryId);
             var error = await _save(values);
             if (error is not null) { SettingsStatus.Text = error; return; }
             _saving = false;
