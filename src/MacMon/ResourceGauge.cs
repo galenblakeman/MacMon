@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Threading;
 using MicroGauge;
 using MicroGauge.Avalonia;
 using MicroGauge.Constant;
@@ -32,15 +33,59 @@ public sealed class ResourceGauge : UserControl
     private readonly TextBlock _scale = new() { Classes = { "label" }, FontSize = 11, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
     private readonly TextBlock _details = new() { Classes = { "label" }, FontSize = 11, TextWrapping = TextWrapping.Wrap, MaxHeight = 32 };
     private readonly Grid _marks = new() { Height = 62 };
+    private readonly Button _detailsButton = new() { Name = "ResourceDetailsButton", Content = "Details", FontSize = 11,
+        Padding = new Thickness(4, 0), MinHeight = 0, Height = 20, IsVisible = false };
+    private Func<ResourceDetailSnapshot>? _detailsProvider;
+    private ResourceDetailsWindow? _detailsWindow;
+    public event Action? DetailsOpening;
     private AvaloniaGaugeBase? _gauge;
     private GaugeReading _reading = GaugeReading.Empty;
     private string _description = "";
     public ResourceGauge()
     {
         Height = 174;
-        var panel = new StackPanel { Spacing = 4, Children = { _title, _marks, _value, _scale, _details } };
+        var heading = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 4 };
+        Grid.SetColumn(_detailsButton, 1);
+        heading.Children.Add(_title); heading.Children.Add(_detailsButton);
+        _detailsButton.Click += (_, _) => ShowDetails();
+        var panel = new StackPanel { Spacing = 4, Children = { heading, _marks, _value, _scale, _details } };
         Content = panel;
         Refresh();
+    }
+    public void EnableDetails(Func<ResourceDetailSnapshot> provider)
+    {
+        _detailsProvider = provider;
+        _detailsButton.IsVisible = true;
+        AutomationProperties.SetName(_detailsButton, $"{Title} details");
+        ToolTip.SetTip(_detailsButton, "Live resource details (Enter or Space)");
+    }
+    private void ShowDetails()
+    {
+        if (_detailsProvider is null || TopLevel.GetTopLevel(this) is not Window owner) return;
+        if (_detailsWindow is not null) { _detailsWindow.Activate(); return; }
+        DetailsOpening?.Invoke();
+        ToolTip.SetIsOpen(this, false);
+        var window = new ResourceDetailsWindow(_detailsProvider()) { Topmost = owner.Topmost };
+        _detailsWindow = window;
+        window.Closed += (_, _) =>
+        {
+            _detailsWindow = null;
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (!_detailsButton.IsEffectivelyVisible || !owner.IsVisible || !owner.IsEnabled || owner.WindowState == WindowState.Minimized ||
+                    owner.OwnedWindows.OfType<ResourceDetailsWindow>().Any(other => other.IsVisible)) return;
+                owner.Activate();
+                _detailsButton.Focus();
+            }, DispatcherPriority.Background);
+        };
+        window.Show(owner);
+    }
+    public void HideDetails() => _detailsWindow?.Close();
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        // A transient visual reparent is not a dismissal. Close only if the target stays detached.
+        Dispatcher.UIThread.Post(() => { if (TopLevel.GetTopLevel(this) is null) HideDetails(); });
+        base.OnDetachedFromVisualTree(e);
     }
     public void Update(GaugeReading reading, string description)
     {
@@ -56,6 +101,11 @@ public sealed class ResourceGauge : UserControl
     }
     private void Refresh()
     {
+        if (_detailsWindow is { IsVisible: true } details && _detailsProvider is not null)
+        {
+            details.DetailsView.Update(_detailsProvider());
+            details.Topmost = (TopLevel.GetTopLevel(this) as Window)?.Topmost == true;
+        }
         Height = IsCompact ? 110 : 174;
         _marks.Height = IsCompact ? 38 : 62;
         _details.IsVisible = !IsCompact;

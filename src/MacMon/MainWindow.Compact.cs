@@ -8,7 +8,8 @@ public sealed partial class MainWindow
     private void SetCompactView(bool compact)
     {
         if (_closing || CompactMode == compact) return;
-        _viewState.ObserveSize(new(Width, Height), WindowState == WindowState.Normal);
+        HideResourceDetails();
+        _viewState.ObserveSize(ClientSize, WindowState == WindowState.Normal);
         _viewState.SetMode(compact);
         ApplyViewLayout();
         Update();

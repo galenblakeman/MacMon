@@ -286,3 +286,54 @@ full mode, dimensions, Ocean/Bar appearance and Always on top preference afterwa
 Release validation passes all 110 MacMon tests and three Python release-workflow
 tests with zero build warnings, plus native collector/launchd smoke checks and
 strict development-bundle signature verification.
+
+
+## UI parity slice 4: live resource inspectors
+
+Version 0.7.0/build 8 adds a keyboard-accessible Details button to each resource card
+in full and compact views. An owned, modeless inspector shows its resource's current
+readings, definition, live update timestamp, gauge scale and two-minute peak. The
+owner remains interactive, and opening a different resource replaces the inspector.
+Close or Escape dismisses it and returns focus to the source button. Windows center
+on screen, have bounded size and scroll long content with a reachable Close button.
+
+CPU details include user/system shares of machine capacity, logical cores, enumerated
+process count (including unreadable processes) and the measured interval. Memory
+shows used/installed physical memory, estimated available bytes, cached bytes,
+compressor storage and pressure. Its definition distinguishes estimates from guaranteed
+allocatable memory and identifies pressure/compressed values as live adapter metadata.
+Network separates receive and send for the selected interface and explains that the
+adaptive throughput scale is not link speed or utilization. Storage separates read/write
+activity across readable block-storage drivers from the Data volume's filesystem path
+and available/total capacity. Unsupported Windows-only fields are omitted.
+
+ResourceDetails formats immutable snapshots from the existing live sample and metadata.
+No additional collector, timer or process ranking is introduced. Providers run on open
+and while their inspector is visible; chart Capture and restored history cannot become
+their live source. Missing live samples suppress old values, peaks and adapter metadata.
+Zero remains a measured value. Mode changes, Settings, minimize and shutdown close
+inspectors; a visual reparent does not prematurely dismiss them. Topmost follows the
+owner, and deferred focus restoration avoids interrupting another inspector or dialog.
+
+The initial native popup remained open but was not exposed by the Mac accessibility
+and screenshot surface. The final implementation uses explicit owned windows, whose
+content, controls and update timestamps are visible to native accessibility inspection.
+Tests use actual pointer/keyboard input and cover lazy refresh, Escape, focus restoration,
+detach/owner-close cleanup and one-inspector behavior. Formatting tests cover partial
+readings, invalid CPU values, restored-data suppression and storage/capacity scope.
+Rendering checks cover both themes, long values, reachable Close controls, and compact
+layouts with the Details controls enabled across all styles/palettes at 720/1000 pixels.
+
+Native arm64 checks cover all four inspectors, live CPU updates during a fixed chart
+Capture, compact Network details, the 720-pixel layout, Escape/Close and restored
+full/live state. The user's current Ocean/Bar appearance, window dimensions and current
+tab selection are preserved. Temporary lifecycle diagnostics were removed.
+
+Release verification passes all 118 MacMon tests and three Python release-workflow
+tests with zero warnings, plus native collector and launchd smoke checks. Real-input
+inspector tests verify keyboard focus restoration after close and Escape. Distribution
+checks validate the development ZIP checksum and extracted native signature/runtime.
+
+Native resize persistence uses measured client bounds (including at mode switches
+and save), rather than potentially stale requested Width/Height values. This keeps
+compact-width cleanup and full-window restoration consistent after native resizing.

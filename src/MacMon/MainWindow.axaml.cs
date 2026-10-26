@@ -60,11 +60,13 @@ public sealed partial class MainWindow : Window
         _session = new MonitorSession(() => _source,
             () => new SamplingOptions(Retain: _retain),
             action => Dispatcher.UIThread.Post(action), identityPolicy: MacFrameSource.IdentityPolicy);
+        InitializeResourceDetails();
         _session.Recorded += Update;
         PropertyChanged += (_, change) =>
         {
             if ((change.Property == WindowStateProperty || change.Property == IsVisibleProperty) &&
                 IsVisible && WindowState != WindowState.Minimized) Update();
+            if (change.Property == WindowStateProperty && WindowState == WindowState.Minimized) HideResourceDetails();
         };
         _reportWriter = new CaptureReportWriter((record, error) => Dispatcher.UIThread.Post(() =>
         {
@@ -82,9 +84,9 @@ public sealed partial class MainWindow : Window
         CompactPanel.FullViewRequested += () => SetCompactView(false);
         CompactPanel.SettingsRequested += async () => await ShowSettings();
         CompactPanel.TopmostChanged += value => AlwaysOnTop.IsChecked = value;
-        SizeChanged += (_, _) =>
+        SizeChanged += (_, args) =>
         {
-            if (!_switchingView && IsVisible) _viewState.ObserveSize(new(Width, Height), WindowState == WindowState.Normal);
+            if (!_switchingView && IsVisible) _viewState.ObserveSize(args.NewSize, WindowState == WindowState.Normal);
         };
         OpenSettings.Click += async (_, _) => await ShowSettings();
         ConfigureCaptures.Click += async (_, _) => await ShowSettings(3);
@@ -497,6 +499,7 @@ public sealed partial class MainWindow : Window
     private async Task ShowSettings(int? section = null)
     {
         if (_settingsOpen || _closing) return;
+        HideResourceDetails();
         _settingsOpen = true;
         var networks = new[] { new MacNetworkChoice("", "Automatic · active Ethernet/Wi-Fi") }
             .Concat(_source.NetworkInterfaces).ToList();
@@ -567,14 +570,19 @@ public sealed partial class MainWindow : Window
         ApplyViewLayout();
     }
 
-    private MacPreferences PreferencesSnapshot() => _viewState.ApplyTo(_preferences with
+    private MacPreferences PreferencesSnapshot()
     {
-        BootId = _bootId, Grouped = Grouped, PinnedOnly = PinnedOnly.IsChecked == true,
-        Pins = _pins.Snapshot(), ProcessSort = ProcessSortBox.SelectedIndex, UsageSort = UsageSortBox.SelectedIndex,
-        DataTab = DataTabs.SelectedIndex, JobSort = JobsView.SortIndex, JobFilter = JobsView.FilterIndex, HistoryRange = HistoryRange.SelectedIndex, NetworkId = _source.NetworkInterfaceId,
-        AlwaysOnTop = Topmost, Captures = _captureOptions, KeepHistory = _keepHistory,
-        DashboardRatio = MainLayout.RowDefinitions[1].Height.Value / Math.Max(0.01, MainLayout.RowDefinitions[3].Height.Value)
-    });
+        // Native resizes can leave requested Width/Height stale; save measured client bounds.
+        _viewState.ObserveSize(ClientSize, IsVisible && WindowState == WindowState.Normal);
+        return _viewState.ApplyTo(_preferences with
+        {
+            BootId = _bootId, Grouped = Grouped, PinnedOnly = PinnedOnly.IsChecked == true,
+            Pins = _pins.Snapshot(), ProcessSort = ProcessSortBox.SelectedIndex, UsageSort = UsageSortBox.SelectedIndex,
+            DataTab = DataTabs.SelectedIndex, JobSort = JobsView.SortIndex, JobFilter = JobsView.FilterIndex, HistoryRange = HistoryRange.SelectedIndex, NetworkId = _source.NetworkInterfaceId,
+            AlwaysOnTop = Topmost, Captures = _captureOptions, KeepHistory = _keepHistory,
+            DashboardRatio = MainLayout.RowDefinitions[1].Height.Value / Math.Max(0.01, MainLayout.RowDefinitions[3].Height.Value)
+        });
+    }
 
     private async Task StartAsync()
     {
@@ -621,6 +629,7 @@ public sealed partial class MainWindow : Window
         args.Cancel = true;
         if (_closing) return;
         _closing = true;
+        HideResourceDetails();
         IsEnabled = false;
         _session.Close();
         _session.Recorded -= Update;

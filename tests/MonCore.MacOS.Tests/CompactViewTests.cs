@@ -109,6 +109,8 @@ public sealed class CompactViewTests
             view.Gauges[1].Update(new(62, 72, 100, "62.0%", "0–100%"), "Physical usage");
             view.Gauges[2].Update(new(999.9 * 1024, 1048576, 2097152, "999.9 KiB/s", "0–2.0 MiB/s"), "en1 · receive + send");
             view.Gauges[3].Update(new(0, 1048576, 2097152, "0.0 KiB/s", "0–2.0 MiB/s"), "All block drivers · read + write");
+            foreach (var (gauge, index) in view.Gauges.Select((gauge, index) => (gauge, index)))
+                gauge.EnableDetails(() => ResourceDetails.Create((ResourceMetric)index, null, null, GaugeReading.Empty, 10));
             var window = new Window { Width = width, Height = WindowViewState.CompactHeight, Content = view };
             window.Show();
             Dispatcher.UIThread.RunJobs();
