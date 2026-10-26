@@ -495,10 +495,24 @@ final 600-job/850-process presentation fixture measured 2.615ms / 1,778,044 byte
 per refresh. Individual process rows measured 1.123ms, grouped 2.444ms and top-20
 0.687ms; native discovery and total app usage are separate.
 
-An arm64 development package passed ad-hoc strict signing and packaged native
-collector/launchd smoke. Native UI verified integrated traffic lights/title buttons,
-restoration of the existing Focus Network/Jobs view, live job readings/history
-and the Info dialog. The Mac locked while checking the Export popup; remaining
-native menu, tooltip and row-pin checks are pending unlock. The running package
-is the initial native preview; packaging the final committed build is also
-pending a clean exit after unlock. No running bundle was replaced.
+The final arm64 development package was rebuilt from commit 99c2fc4 after a
+clean quit, and passed ad-hoc strict signing, packaged native collector/launchd
+smoke, archive integrity and SHA-256 verification. Native UI checks passed for
+integrated traffic lights/title buttons, all three Export CSV save dialogs
+(cancelled), Auto navigation to Automatic captures settings (cancelled), exact-row
+MacMon pin/unpin, Individual/Grouped chips, Copy Usage (348 displayed rows), range
+chips, Live/Capture, vertically stacked Small multiples, compact/full transitions
+and compact Info. Application jobs show their verified friendly process names.
+
+Native popup surfaces are omitted from the automation AX tree/screenshots: Export
+and Auto were verified through keyboard activation and their resulting native
+dialogs. Gauge keyboard focus was verified, but native tooltip appearance could
+not be visually inspected through that surface; tooltip content, live refresh,
+Escape and lifecycle behavior are covered by the passing headless UI tests.
+
+After checks, the original Dark/High contrast/Bowl preferences, 800×990 full view,
+1000px compact width, custom 1.92 pane ratio, Jobs selection, Focus Network, 2m,
+all series, Individual mode and always-on-top off were restored and verified on
+restart. The temporary test pin was removed. The final app is left open.
+Archive: `MacMon-0.9.0-osx-arm64-dev.zip`; SHA-256:
+`7873ac98fb7c7ed0fc184408eaea40baab12178a1c81f22170fb17f7276b7cfa`.
