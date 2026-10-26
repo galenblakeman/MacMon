@@ -12,6 +12,13 @@ public sealed record MacPreferences
     public bool PinnedOnly { get; init; }
     public int ProcessSort { get; init; }
     public int UsageSort { get; init; }
+    public bool ProcessAscending { get; init; }
+    public bool UsageAscending { get; init; }
+    public int ProcessLimit { get; init; }
+    public int UsageLimit { get; init; }
+    public bool ProcessAppsOnly { get; init; }
+    public bool UsageAppsOnly { get; init; }
+    public bool ProcessActionsHidden { get; init; }
     public int DataTab { get; init; }
     public int JobSort { get; init; }
     public int JobFilter { get; init; }
@@ -39,7 +46,8 @@ public sealed record MacPreferences
         GaugeStyle = ResourceGauge.NormalizeStyle(GaugeStyle),
         ChartMode = Enum.IsDefined(ChartMode) ? ChartMode : ResourceChartMode.Overlay,
         VisibleMetrics = VisibleMetrics & 15, FocusMetric = ResourceCharts.Focus(VisibleMetrics & 15, FocusMetric),
-        ProcessSort = Math.Clamp(ProcessSort, 0, 3), UsageSort = Math.Clamp(UsageSort, 0, 2),
+        ProcessSort = Math.Clamp(ProcessSort, 0, 5), UsageSort = Math.Clamp(UsageSort, 0, 5),
+        ProcessLimit = TablePresentation.NormalizeLimit(ProcessLimit), UsageLimit = TablePresentation.NormalizeLimit(UsageLimit),
         DataTab = Math.Clamp(DataTab, 0, 2), JobSort = Math.Clamp(JobSort, 0, 2), JobFilter = Math.Clamp(JobFilter, 0, 2), HistoryRange = Math.Clamp(HistoryRange, 0, 3),
         CompactWidth = double.IsFinite(CompactWidth) ? Math.Clamp(CompactWidth, WindowViewState.CompactMinimumWidth, 2400) : 1000,
         Width = double.IsFinite(Width) ? Math.Clamp(Width, 800, 2400) : 1000,

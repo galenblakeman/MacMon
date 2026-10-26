@@ -24,6 +24,8 @@ internal static class PresentationBenchmark
             ProcessSort.Cpu, "", pins, false));
         Measure("Grouped rows with 30s trails", () => ProcessPresentation.Rows(history, history[^1], true,
             ProcessSort.Cpu, "", pins, false));
+        Measure("Individual top 20 with 30s trails", () => ProcessPresentation.Rows(history, history[^1], false,
+            ProcessSort.Cpu, "", pins, false, limit: 20));
         return 0;
     }
 

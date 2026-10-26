@@ -108,7 +108,7 @@ public sealed partial class MainWindow : Window
         OpenCaptureReport.Click += (_, _) => { if (CapturesList.SelectedItem is MacCaptureRecord record) OpenReport(record); };
         CopyCapture.Click += async (_, _) => await CopySelectedCapture();
         UsageSearch.TextChanged += (_, _) => UpdateUsage();
-        UsageSortBox.SelectionChanged += (_, _) => UpdateUsage();
+
         ResetUsage.Click += (_, _) => { _session.Usage.Reset(DateTimeOffset.Now); UpdateUsage(); };
         ExportUsage.Click += async (_, _) => await Export(CsvExportKind.UsageTotals);
         DataTabs.SelectionChanged += (_, args) => { if (args.Source == DataTabs) { UpdateProcesses(); UpdateUsage(); JobsView.SetActive(!CompactMode && DataTabs.SelectedIndex == 2); } };
@@ -120,7 +120,7 @@ public sealed partial class MainWindow : Window
                 _source.NetworkInterfaceId = choice.Id.Length == 0 ? null : choice.Id;
         };
         ProcessSearchBox.TextChanged += (_, _) => UpdateProcesses();
-        ProcessSortBox.SelectionChanged += (_, _) => UpdateProcesses();
+
         ProcessList.SelectionChanged += (_, _) =>
         {
             if (_refreshingRows) return;
@@ -145,6 +145,7 @@ public sealed partial class MainWindow : Window
             UpdateProcesses();
         };
         InitializeCharts();
+        InitializeTables();
         Chart.CaptureSelected += SelectCapture;
 
         Chart.SampleSelected += InspectSample;
@@ -288,9 +289,8 @@ public sealed partial class MainWindow : Window
             ProcessActionsPanel.IsVisible = false;
             return;
         }
-        ResidentHeader.Text = Grouped ? "Resident sum*" : "Resident";
-        var rows = ProcessPresentation.Rows(TrailHistory(), sample, Grouped, Sort,
-            ProcessSearchBox.Text ?? "", _pins, PinnedOnly.IsChecked == true, _inspection.IsHistorical);
+        UpdateProcessHeaders();
+        var rows = PresentedProcesses(sample);
         _refreshingRows = true;
         ProcessList.ItemsSource = rows;
         ProcessList.SelectedItem = rows.FirstOrDefault(row => _selection.Contains(row.Process, Grouped));
@@ -306,8 +306,8 @@ public sealed partial class MainWindow : Window
 
     private void UpdateSelection()
     {
-        var selected = _selection.Resolve(LiveHistory(), Grouped, _inspection.IsHistorical, Sort);
-        ProcessActionsPanel.IsVisible = selected is not null;
+        var selected = ProcessList.SelectedItem is null ? null : _selection.Resolve(LiveHistory(), Grouped, _inspection.IsHistorical, Sort);
+        ProcessActionsPanel.IsVisible = selected is not null && ShowProcessActions.IsChecked == true;
         RevealExecutable.IsEnabled = selected is not null && selected.Usage.ImagePath.Length > 0;
         EndProcess.Content = Grouped ? "End group…" : "End process…";
         EndProcess.IsEnabled = !_processActionPending && !_inspection.IsHistorical && selected?.State == PinnedProcessState.Present &&
@@ -373,9 +373,12 @@ public sealed partial class MainWindow : Window
     private void UpdateUsage()
     {
         if (_session is null || CompactMode || DataTabs.SelectedIndex != 1) return;
-        UsageList.ItemsSource = UsagePresentation.Rows(_session.Usage, UsageSearch.Text ?? "", (UsageSort)Math.Max(0, UsageSortBox.SelectedIndex));
-        UsageStatus.Text = $"Live totals since {_session.Usage.Since:yyyy-MM-dd HH:mm:ss zzz} · un-attributed CPU {TimeSpan.FromTicks(_session.Usage.NotAttributedCpuTicks).TotalSeconds:F1} s\n" +
-            "Includes exited apps. Busy share uses observed machine CPU time. Missing intervals are excluded; disk I/O excludes network. Capture/chart range does not change these totals.";
+        UpdateUsageHeaders();
+        var rows = UsagePresentation.Rows(_session.Usage, UsageSearch.Text ?? "", (UsageSort)Math.Max(0, UsageSortBox.SelectedIndex),
+            SelectedLimit(UsageLimitBox), UsageAppsOnly.IsChecked == true, _usageAscending);
+        UsageList.ItemsSource = rows;
+        UsageStatus.Text = $"{rows.Length} shown · live totals since {_session.Usage.Since:HH:mm:ss zzz} · un-attributed CPU {TimeSpan.FromTicks(_session.Usage.NotAttributedCpuTicks).TotalSeconds:F1} s";
+        ToolTip.SetTip(UsageStatus, "Includes exited apps. Busy share uses observed machine CPU time. Missing intervals are excluded; disk I/O excludes network. Capture/chart range does not change these totals.");
     }
 
     private void ObserveCaptures(MonitorSample sample)
@@ -428,15 +431,14 @@ public sealed partial class MainWindow : Window
     {
         var sample = TrailHistory().LastOrDefault();
         if (sample is null) { _operationStatus = "Selected capture has expired."; return; }
-        var rows = ProcessPresentation.Rows(TrailHistory(), sample, Grouped, Sort, ProcessSearchBox.Text ?? "",
-            _pins, PinnedOnly.IsChecked == true, _inspection.IsHistorical).Select(row => row.Process).ToArray();
+        var rows = PresentedProcesses(sample).Select(row => row.Process).ToArray();
         var note = $"Displayed {(Grouped ? "grouped" : "individual")} rows: CPU and disk I/O averaged over five observed seconds; resident and threads are latest observations. Filter: {ProcessSearchBox.Text}";
         var text = MacCaptureReports.Text(sample, rows, note);
         if (Clipboard is { } clipboard) { await clipboard.SetTextAsync(text); _operationStatus = "Capture copied."; }
     }
 
     private (PinnedProcess? Selected, MonitorSample? Sample) SelectedProcess() =>
-        (_selection.Resolve(LiveHistory(), Grouped, _inspection.IsHistorical, Sort), TrailHistory().LastOrDefault());
+        (ProcessList.SelectedItem is null ? null : _selection.Resolve(LiveHistory(), Grouped, _inspection.IsHistorical, Sort), TrailHistory().LastOrDefault());
 
     private async Task ShowProcessDetails()
     {
@@ -554,6 +556,7 @@ public sealed partial class MainWindow : Window
         _pins.Restore(_preferences.Pins);
         GroupProcesses.IsChecked = _preferences.Grouped; PinnedOnly.IsChecked = _preferences.PinnedOnly;
         ProcessSortBox.SelectedIndex = _preferences.ProcessSort; UsageSortBox.SelectedIndex = _preferences.UsageSort;
+        RestoreTables();
         JobsView.SortIndex = _preferences.JobSort; JobsView.FilterIndex = _preferences.JobFilter;
         RestoreCharts();
         DataTabs.SelectedIndex = _preferences.DataTab; HistoryRange.SelectedIndex = _preferences.HistoryRange;
@@ -574,6 +577,10 @@ public sealed partial class MainWindow : Window
         _viewState.ObserveSize(ClientSize, IsVisible && WindowState == WindowState.Normal);
         return _viewState.ApplyTo(_preferences with
         {
+            ProcessAscending = _processAscending, UsageAscending = _usageAscending,
+            ProcessLimit = SelectedLimit(ProcessLimitBox), UsageLimit = SelectedLimit(UsageLimitBox),
+            ProcessAppsOnly = ProcessAppsOnly.IsChecked == true, UsageAppsOnly = UsageAppsOnly.IsChecked == true,
+            ProcessActionsHidden = ShowProcessActions.IsChecked != true,
             ChartMode = Chart.Mode, VisibleMetrics = Chart.VisibleMetrics, FocusMetric = Chart.FocusMetric,
             BootId = _bootId, Grouped = Grouped, PinnedOnly = PinnedOnly.IsChecked == true,
             Pins = _pins.Snapshot(), ProcessSort = ProcessSortBox.SelectedIndex, UsageSort = UsageSortBox.SelectedIndex,

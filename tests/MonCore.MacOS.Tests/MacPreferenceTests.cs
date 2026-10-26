@@ -65,7 +65,7 @@ public sealed class MacPreferenceTests
             Assert.That(normalized.Width, Is.EqualTo(1000));
             Assert.That(normalized.Height, Is.EqualTo(760));
             Assert.That(normalized.DashboardRatio, Is.EqualTo(2));
-            Assert.That(normalized.ProcessSort, Is.EqualTo(3));
+            Assert.That(normalized.ProcessSort, Is.EqualTo(5));
             Assert.That(normalized.UsageSort, Is.Zero);
             Assert.That(normalized.HistoryRange, Is.EqualTo(3));
             Assert.That(normalized.DataTab, Is.EqualTo(2));

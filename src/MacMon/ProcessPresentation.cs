@@ -15,7 +15,8 @@ public static class ProcessPresentation
         ? new(Policy.ExecutableKey(process), default) : new(null, process.Identity);
 
     public static ProcessRow[] Rows(IReadOnlyList<MonitorSample> history, MonitorSample latest,
-        bool grouped, ProcessSort sort, string search, ProcessPins pins, bool pinnedOnly, bool historical = false)
+        bool grouped, ProcessSort sort, string search, ProcessPins pins, bool pinnedOnly, bool historical = false, int limit = 0, bool appsOnly = false,
+        bool ascending = false, ProcessTableOrder order = ProcessTableOrder.Metric)
     {
         var identities = new Dictionary<ProcessLifetimeIdentity, (string Path, Key Key)>();
         Key KeyOf(ProcessUsage process)
@@ -35,10 +36,15 @@ public static class ProcessPresentation
         if (grouped && sort == ProcessSort.Memory)
             live = live.OrderByDescending(process => process.WorkingSetBytes).ThenBy(process => process.ProcessId);
         var pinned = pins.Resolve(latest, ranking.Processes, grouped, historical);
-        var rows = pinned.Select(pin => new ProcessRow(pin.Usage, true, pin.State, grouped))
+        var matching = pinned.Select(pin => new ProcessRow(pin.Usage, true, pin.State, grouped))
             .Concat(pinnedOnly ? [] : live.Where(process => !pins.Contains(process, grouped))
                 .Select(process => new ProcessRow(process, false, PinnedProcessState.Present, grouped)))
-            .Where(row => string.IsNullOrWhiteSpace(search) || ProcessSearch.Filter([row.Process], search).Any()).ToArray();
+            .Where(row => (!appsOnly || TablePresentation.ApplicationBundle(row.Process.ImagePath) is not null) &&
+                (string.IsNullOrWhiteSpace(search) || ProcessSearch.Filter([row.Process], search).Any()));
+        var ordered = TablePresentation.Sort(matching, sort, order, ascending).ToArray();
+        var maximum = TablePresentation.NormalizeLimit(limit);
+        var rows = maximum == 0 ? ordered : ordered.Where(row => row.Pinned)
+            .Concat(ordered.Where(row => !row.Pinned).Take(maximum)).ToArray();
         var end = latest.MonotonicTimestamp;
         var timeline = new List<MonitorSample?>();
         long previousTime = 0;
@@ -85,6 +91,7 @@ public sealed record ProcessRow(ProcessUsage Process, bool Pinned = false,
     PinnedProcessState State = PinnedProcessState.Present, bool Grouped = false)
 {
     public ProcessTrail Trail { get; init; } = new([]);
+    public Avalonia.Media.IImage Icon => ApplicationIcons.For(Process.ImagePath);
     public string Pin => Pinned ? "★" : "";
     public string Name => State == PinnedProcessState.Present ? Process.Name : $"{Process.Name} · {State}";
     public string Pid => Grouped ? $"{Process.MemberCount} procs" : Process.ProcessId.ToString();

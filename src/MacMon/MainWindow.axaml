@@ -13,7 +13,7 @@
       <RowDefinition Height="*" MinHeight="300" />
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
-    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" MinHeight="32">
+    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" MinHeight="32">
       <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
         <TextBlock Text="MacMon" FontSize="15" FontWeight="SemiBold" />
         <TextBlock x:Name="VersionLabel" Classes="label" FontSize="11" VerticalAlignment="Center" />
@@ -90,7 +90,7 @@
       <TabControl x:Name="DataTabs">
         <TabItem Header="Processes">
       <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="6">
-        <Grid ColumnDefinitions="*,240,160" ColumnSpacing="12">
+        <Grid ColumnDefinitions="*,210,150" ColumnSpacing="8">
           <StackPanel Spacing="4">
             <TextBlock x:Name="ProcessCountLabel" Text="Establishing baselines…" Classes="label" FontSize="12" />
           </StackPanel>
@@ -101,26 +101,28 @@
             <ComboBoxItem Content="CPU usage" />
             <ComboBoxItem Content="Resident memory" />
             <ComboBoxItem Content="Threads" />
-            <ComboBoxItem Content="Disk I/O" />
+            <ComboBoxItem Content="Disk I/O" /><ComboBoxItem Content="Name" /><ComboBoxItem Content="PID" />
           </ComboBox>
         </Grid>
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10">
-          <CheckBox x:Name="GroupProcesses" Content="Grouped" />
-          <CheckBox x:Name="PinnedOnly" Content="Pinned only" />
-          <Button x:Name="PinSelection" Content="Pin selected" IsEnabled="False" />
-          <TextBlock Text="30s trend · selected metric · local scale" Classes="label" VerticalAlignment="Center" FontSize="12" />
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+          <CheckBox x:Name="GroupProcesses" Content="Grouped" FontSize="12" />
+          <CheckBox x:Name="PinnedOnly" Content="Pinned only" FontSize="12" />
+          <CheckBox x:Name="ProcessAppsOnly" Content="App bundles only" FontSize="12" ToolTip.Tip="Executables inside .app bundles, including helpers and background apps; not a visible-window filter" />
+          <CheckBox x:Name="ShowProcessActions" Content="Actions" IsChecked="True" FontSize="12" />
+          <ComboBox x:Name="ProcessLimitBox" AutomationProperties.Name="Process row limit" Width="86" FontSize="12" ToolTip.Tip="Maximum unpinned rows; all matching pinned rows remain visible" />
+          <Button x:Name="PinSelection" Content="Pin selected" IsEnabled="False" FontSize="12" />
         </StackPanel>
-        <Grid Grid.Row="2" ColumnDefinitions="*,80,100,120,80,100,90" Margin="10,0,10,0">
-          <TextBlock Text="Name" Classes="label" />
-          <TextBlock Grid.Column="1" Text="PID" Classes="label" />
-          <TextBlock Grid.Column="2" Text="CPU · avg 5s" Classes="label" />
-          <TextBlock Grid.Column="3" x:Name="ResidentHeader" Text="Resident" Classes="label" />
-          <TextBlock Grid.Column="4" Text="Threads" Classes="label" />
-          <TextBlock Grid.Column="5" Text="Disk I/O · 5s" Classes="label" />
-          <TextBlock Grid.Column="6" Text="Trend" Classes="label" />
+        <Grid Grid.Row="2" ColumnDefinitions="*,65,90,100,60,100,75" Margin="6,0">
+          <Button x:Name="ProcessNameHeader" Content="Name" Classes="tableHeader" Tag="4" Click="OnProcessHeaderClick" />
+          <Button Grid.Column="1" x:Name="ProcessPidHeader" Content="PID" Classes="tableHeader" Tag="5" Click="OnProcessHeaderClick" />
+          <Button Grid.Column="2" x:Name="ProcessCpuHeader" Content="CPU · 5s" Classes="tableHeader" Tag="0" Click="OnProcessHeaderClick" />
+          <Button Grid.Column="3" x:Name="ResidentHeader" Content="Resident" Classes="tableHeader" Tag="1" Click="OnProcessHeaderClick" />
+          <Button Grid.Column="4" x:Name="ProcessThreadsHeader" Content="Threads" Classes="tableHeader" Tag="2" Click="OnProcessHeaderClick" />
+          <Button Grid.Column="5" x:Name="ProcessIoHeader" Content="Disk I/O · 5s" Classes="tableHeader" Tag="3" Click="OnProcessHeaderClick" />
+          <TextBlock Grid.Column="6" Text="30s trend" Classes="label" FontSize="11" VerticalAlignment="Center" ToolTip.Tip="Selected metric at a local scale; CPU for name/PID sorting" />
         </Grid>
         <Grid Grid.Row="3">
-          <ListBox x:Name="ProcessList" Background="Transparent" BorderThickness="0"
+          <ListBox x:Name="ProcessList" Classes="dataRows" AutoScrollToSelectedItem="False" Background="Transparent" BorderThickness="0"
                    AutomationProperties.Name="Observed processes">
             <ListBox.Styles>
               <Style Selector="ListBoxItem">
@@ -129,10 +131,11 @@
             </ListBox.Styles>
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="local:ProcessRow">
-                <Grid ColumnDefinitions="*,80,100,120,80,100,90" Margin="0,3" ToolTip.Tip="{Binding Path}">
-                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="5">
+                <Grid ColumnDefinitions="*,65,90,100,60,100,75" Margin="0,1" ToolTip.Tip="{Binding Path}">
+                  <Grid ColumnDefinitions="Auto,16,*" ColumnSpacing="5">
                     <TextBlock Text="{Binding Pin}" Classes="pinMetric" />
-                    <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                    <Image Grid.Column="1" Source="{Binding Icon}" Width="16" Height="16" />
+                    <TextBlock Grid.Column="2" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                   </Grid>
                   <TextBlock Grid.Column="1" Text="{Binding Pid}" />
                   <TextBlock Grid.Column="2" Text="{Binding Cpu}" Classes="cpuMetric" />
@@ -160,30 +163,34 @@
       </Grid>
         </TabItem>
         <TabItem Header="Usage">
-          <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="6" Margin="0,10,0,0">
-            <Grid ColumnDefinitions="*,220,150,Auto,Auto" ColumnSpacing="10">
+          <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="6" Margin="0,6,0,0">
+            <Grid ColumnDefinitions="*,180,140,Auto,Auto" ColumnSpacing="10">
               <TextBlock Text="Session usage" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
               <TextBox Grid.Column="1" x:Name="UsageSearch" PlaceholderText="Search name or path" AutomationProperties.Name="Search usage" />
               <ComboBox Grid.Column="2" x:Name="UsageSortBox" SelectedIndex="0" AutomationProperties.Name="Sort usage" HorizontalAlignment="Stretch">
-                <ComboBoxItem Content="CPU time" /><ComboBoxItem Content="Disk I/O" /><ComboBoxItem Content="Last active" />
+                <ComboBoxItem Content="CPU time" /><ComboBoxItem Content="Disk I/O" /><ComboBoxItem Content="Last active" /><ComboBoxItem Content="Name" /><ComboBoxItem Content="Busy share" /><ComboBoxItem Content="Running / seen" />
               </ComboBox>
               <Button Grid.Column="3" x:Name="ResetUsage" Content="Reset" />
               <Button Grid.Column="4" x:Name="ExportUsage" Content="Export CSV" />
             </Grid>
-            <Grid Grid.Row="1" ColumnDefinitions="*,100,90,120,110,100" Margin="10,0">
-              <TextBlock Text="Executable" Classes="label" />
-              <TextBlock Grid.Column="1" Text="CPU time" Classes="label" />
-              <TextBlock Grid.Column="2" Text="Busy share" Classes="label" />
-              <TextBlock Grid.Column="3" Text="Disk I/O" Classes="label" />
-              <TextBlock Grid.Column="4" Text="Running / seen" Classes="label" />
-              <TextBlock Grid.Column="5" Text="Last active" Classes="label" />
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="12">
+              <CheckBox x:Name="UsageAppsOnly" Content="App bundles only" FontSize="12" ToolTip.Tip="Executables inside .app bundles; includes helpers and exited apps" />
+              <ComboBox x:Name="UsageLimitBox" AutomationProperties.Name="Usage row limit" Width="86" FontSize="12" />
+            </StackPanel>
+            <Grid Grid.Row="2" ColumnDefinitions="*,90,80,100,100,90" Margin="6,0">
+              <Button x:Name="UsageNameHeader" Content="Executable" Classes="tableHeader" Tag="3" Click="OnUsageHeaderClick" />
+              <Button Grid.Column="1" x:Name="UsageCpuHeader" Content="CPU time" Classes="tableHeader" Tag="0" Click="OnUsageHeaderClick" />
+              <Button Grid.Column="2" x:Name="UsageShareHeader" Content="Busy share" Classes="tableHeader" Tag="4" Click="OnUsageHeaderClick" />
+              <Button Grid.Column="3" x:Name="UsageIoHeader" Content="Disk I/O" Classes="tableHeader" Tag="1" Click="OnUsageHeaderClick" />
+              <Button Grid.Column="4" x:Name="UsageProcessesHeader" Content="Running / seen" Classes="tableHeader" Tag="5" Click="OnUsageHeaderClick" />
+              <Button Grid.Column="5" x:Name="UsageLastHeader" Content="Last active" Classes="tableHeader" Tag="2" Click="OnUsageHeaderClick" />
             </Grid>
-            <ListBox Grid.Row="2" x:Name="UsageList" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Session usage totals">
+            <ListBox Grid.Row="3" x:Name="UsageList" Classes="dataRows" AutoScrollToSelectedItem="False" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Session usage totals">
               <ListBox.Styles><Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style></ListBox.Styles>
               <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="local:UsageRow">
-                  <Grid ColumnDefinitions="*,100,90,120,110,100" Margin="0,3" ToolTip.Tip="{Binding Path}">
-                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                  <Grid ColumnDefinitions="*,90,80,100,100,90" Margin="0,1" ToolTip.Tip="{Binding Path}">
+                    <Grid ColumnDefinitions="16,*" ColumnSpacing="5"><Image Source="{Binding Icon}" Width="16" Height="16" /><TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" /></Grid>
                     <TextBlock Grid.Column="1" Text="{Binding Cpu}" Classes="cpuMetric" />
                     <TextBlock Grid.Column="2" Text="{Binding Share}" />
                     <TextBlock Grid.Column="3" Text="{Binding DiskIo}" />
@@ -193,7 +200,7 @@
                 </DataTemplate>
               </ListBox.ItemTemplate>
             </ListBox>
-            <TextBlock Grid.Row="3" x:Name="UsageStatus" Classes="label" FontSize="12" TextWrapping="Wrap" />
+            <TextBlock Grid.Row="4" x:Name="UsageStatus" Classes="label" FontSize="12" TextWrapping="Wrap" />
           </Grid>
         </TabItem>
         <TabItem Header="Jobs"><local:LaunchdView x:Name="JobsView" /></TabItem>

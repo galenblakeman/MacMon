@@ -388,3 +388,44 @@ Verification: 126 Mac tests, three release-workflow tests, zero warnings and
 native resource/launchd smoke passed. Real headless pointer/key input exercises
 all layouts, preview versus capture, focus, navigation limits, Escape, capture
 marker selection and hidden-metric marker suppression.
+
+### UI parity slice 8 — process and usage tables
+
+Process and Usage headers now sort in either direction and expose their current
+direction to accessibility clients. Name and PID/member-count sorting supplement
+resource sorting; unavailable measurements remain last within pinned/unpinned
+sections. Usage also supports busy share and running/seen counts. Rows are denser
+and show read-only AppKit bundle icons, with a generic fallback. Icon lookups are
+lazy visible-row bindings, independent of collection, and cached for the app
+lifetime with a 128-entry cap and 32px bitmaps. Native APIs were checked against
+the installed AppKit SDK headers.
+
+All rows and Top 5/10/20/50/100 controls apply after search and bundle filtering.
+Matching process pins remain visible in addition to the unpinned limit. Limits
+are applied before trail construction; source history and Usage totals are not
+trimmed. App bundles only means an absolute executable path directly inside
+.app/Contents/MacOS; nested helper bundles qualify, and unavailable paths do not.
+This deliberately does not claim foreground/visible-window classification.
+Actions can be hidden while selection remains tracked. Rows hidden by a filter
+cannot expose process actions. CSV exports retain all applicable source data;
+Copy capture uses the displayed process filters and limits. Table settings persist
+without changing collection, history, exact executable keys or process lifetimes.
+
+Verification: 135 Mac tests and three release-workflow tests passed with zero
+warnings, plus native resource/launchd smoke. Tests cover direction, missing data,
+group member counts, filter-before-limit, retained pins, exited Usage entries,
+unchanged totals, conservative bundle membership, native cached icons, settings
+compatibility and light/dark renders at minimum/default sizes. The 850-process
+presentation benchmark measured median refreshes of 1.559ms / 1,051,072 bytes for
+individual rows, 2.248ms / 511,648 bytes for groups and 0.668ms / 519,776 bytes for
+top-20 individual rows; these are synthetic presentation costs, not total app use.
+
+Version 0.8.0/build 9 was packaged and ad-hoc signed on Apple Silicon. Native UI
+checks covered all four chart layouts, Storage focus, click/Left/Escape capture
+inspection, process and Usage bundle filters/Top 5/name sorting, native icons,
+action-bar hiding/restoration, compact/full transitions, and clean-restart
+restoration of Focus/Storage and filtered Top-5 ascending process views. Original
+view defaults were restored after testing. Package signing, both packaged
+collector smoke checks, ZIP integrity and archive SHA-256 passed. Intel execution
+and notarization remain the existing external gates; Windows verification was
+not repeated.

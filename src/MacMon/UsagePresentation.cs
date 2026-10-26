@@ -3,10 +3,11 @@ using WinMon.Monitoring;
 
 namespace MacMon;
 
-public enum UsageSort { Cpu, DiskIo, LastActive }
+public enum UsageSort { Cpu, DiskIo, LastActive, Name, BusyShare, Processes }
 
 public sealed record UsageRow(AppUsage App, long MachineBusyTicks)
 {
+    public Avalonia.Media.IImage Icon => ApplicationIcons.For(App.ImagePath);
     public string Name => App.Name;
     public string Cpu => $"{TimeSpan.FromTicks(App.CpuTicks).TotalSeconds:F1} s";
     public string Share => MachineBusyTicks > 0 ? $"{100d * App.CpuTicks / MachineBusyTicks:F1}%" : "—";
@@ -19,16 +20,25 @@ public sealed record UsageRow(AppUsage App, long MachineBusyTicks)
 
 public static class UsagePresentation
 {
-    public static UsageRow[] Rows(UsageLedger ledger, string search, UsageSort sort)
+    public static UsageRow[] Rows(UsageLedger ledger, string search, UsageSort sort, int limit = 0, bool appsOnly = false, bool ascending = false)
     {
-        var apps = ledger.Apps.Where(app => app.Name.Contains(search.Trim(), StringComparison.OrdinalIgnoreCase) ||
-            app.ImagePath.Contains(search.Trim(), StringComparison.OrdinalIgnoreCase));
-        apps = sort switch
+        var matching = ledger.Apps.Where(app => (!appsOnly || TablePresentation.ApplicationBundle(app.ImagePath) is not null) &&
+            (app.Name.Contains(search.Trim(), StringComparison.OrdinalIgnoreCase) || app.ImagePath.Contains(search.Trim(), StringComparison.OrdinalIgnoreCase)));
+        var comparer = Comparer<AppUsage>.Create((a, b) =>
         {
-            UsageSort.DiskIo => apps.OrderByDescending(app => app.IoBytes).ThenBy(app => app.Key, StringComparer.Ordinal),
-            UsageSort.LastActive => apps.OrderByDescending(app => app.LastActive?.Timestamp).ThenBy(app => app.Key, StringComparer.Ordinal),
-            _ => apps.OrderByDescending(app => app.CpuTicks).ThenBy(app => app.Key, StringComparer.Ordinal)
-        };
-        return apps.Select(app => new UsageRow(app, ledger.MachineBusyTicks)).ToArray();
+            var compare = sort switch
+            {
+                UsageSort.Name => StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name),
+                UsageSort.DiskIo => a.IoBytes.CompareTo(b.IoBytes),
+                UsageSort.LastActive => Nullable.Compare(a.LastActive?.Timestamp, b.LastActive?.Timestamp),
+                UsageSort.Processes => a.Running != b.Running ? a.Running.CompareTo(b.Running) : a.Lifetimes.CompareTo(b.Lifetimes),
+                _ => a.CpuTicks.CompareTo(b.CpuTicks)
+            };
+            return ascending ? compare : -compare;
+        });
+        var apps = matching.OrderBy(app => sort == UsageSort.LastActive && app.LastActive is null)
+            .ThenBy(app => app, comparer).ThenBy(app => app.Key, StringComparer.Ordinal);
+        var maximum = TablePresentation.NormalizeLimit(limit);
+        return (maximum == 0 ? apps.AsEnumerable() : apps.Take(maximum)).Select(app => new UsageRow(app, ledger.MachineBusyTicks)).ToArray();
     }
 }
