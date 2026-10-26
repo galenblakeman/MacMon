@@ -62,23 +62,25 @@
           <TabItem Header="{local:Loc &quot;Processes&quot;}">
             <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="4">
               <Border Classes="sectionHeader">
-                <WrapPanel>
+                <local:TableToolbarLayout>
                   <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,8,4">
                     <TextBlock Text="{local:Loc &quot;Top&quot;}" Classes="toolbarLabel" /><ComboBox x:Name="ProcessLimitBox" Width="54" Classes="rankingChoice" AutomationProperties.Name="{local:Loc &quot;Process row limit&quot;}" ToolTip.Tip="{local:Loc &quot;Maximum unpinned rows; matching pins remain visible&quot;}" />
                     <TextBlock Text="{local:Loc &quot;processes by&quot;}" Classes="toolbarLabel" /><ComboBox x:Name="ProcessSortBox" Width="96" Classes="rankingChoice" SelectedIndex="0" AutomationProperties.Name="{local:Loc &quot;Sort processes&quot;}"><ComboBoxItem Content="{local:Loc &quot;CPU&quot;}" /><ComboBoxItem Content="{local:Loc &quot;Memory&quot;}" /><ComboBoxItem Content="{local:Loc &quot;Threads&quot;}" /><ComboBoxItem Content="{local:Loc &quot;Disk I/O&quot;}" /><ComboBoxItem Content="{local:Loc &quot;Name&quot;}" /><ComboBoxItem Content="{local:Loc &quot;PID&quot;}" /></ComboBox>
                   </StackPanel>
-                  <TextBox x:Name="ProcessSearchBox" Width="150" PlaceholderText="{local:Loc &quot;Search name or PID&quot;}" AutomationProperties.Name="{local:Loc &quot;Search processes&quot;}" Margin="0,0,8,4" />
-                  <CheckBox x:Name="ProcessAppsOnly" Content="{local:Loc &quot;App Only&quot;}" FontSize="12" Margin="0,0,8,4" ToolTip.Tip="{local:Loc &quot;Executables inside .app bundles, including helpers and background apps&quot;}" />
-                  <CheckBox x:Name="PinnedOnly" Content="{local:Loc &quot;Pinned Only&quot;}" FontSize="12" Margin="0,0,8,4" />
-                  <StackPanel Orientation="Horizontal" Spacing="2" Margin="0,0,0,4"><RadioButton x:Name="IndividualProcesses" Content="{local:Loc &quot;Individual&quot;}" GroupName="ProcessGrouping" Classes="chip" IsChecked="True" /><RadioButton x:Name="GroupProcesses" Content="{local:Loc &quot;Grouped&quot;}" GroupName="ProcessGrouping" Classes="chip" /></StackPanel>
-                </WrapPanel>
+                  <TextBox x:Name="ProcessSearchBox" MinWidth="140" PlaceholderText="{local:Loc &quot;Search name or PID&quot;}" AutomationProperties.Name="{local:Loc &quot;Search processes&quot;}" Margin="0,0,8,4" />
+                  <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <CheckBox x:Name="ProcessAppsOnly" Content="{local:Loc &quot;App Only&quot;}" FontSize="12" Margin="0,0,8,4" ToolTip.Tip="{local:Loc &quot;Executables inside .app bundles, including helpers and background apps&quot;}" />
+                    <CheckBox x:Name="PinnedOnly" Content="{local:Loc &quot;Pinned Only&quot;}" FontSize="12" Margin="0,0,8,4" />
+                    <StackPanel Orientation="Horizontal" Spacing="2" Margin="0,0,0,4"><RadioButton x:Name="IndividualProcesses" Content="{local:Loc &quot;Individual&quot;}" GroupName="ProcessGrouping" Classes="chip" IsChecked="True" /><RadioButton x:Name="GroupProcesses" Content="{local:Loc &quot;Grouped&quot;}" GroupName="ProcessGrouping" Classes="chip" /></StackPanel>
+                  </StackPanel>
+                </local:TableToolbarLayout>
               </Border>
               <Grid Grid.Row="1" ColumnDefinitions="28,*,140,65,100,90,60" Margin="6,0,18,0">
                 <StackPanel Grid.Column="1" Orientation="Horizontal"><Button x:Name="ProcessNameHeader" Content="{local:Loc &quot;Process&quot;}" Classes="tableHeader" Tag="4" Click="OnProcessHeaderClick" /><Button x:Name="ProcessPidHeader" Content="{local:Loc &quot;PID&quot;}" IsVisible="False" Classes="tableHeader" Tag="5" Click="OnProcessHeaderClick" /></StackPanel>
                 <TextBlock Grid.Column="2" Text="{local:Loc &quot;History&quot;}" Classes="columnLabel" HorizontalAlignment="Center" />
                 <Button Grid.Column="3" x:Name="ProcessCpuHeader" Content="{local:Loc &quot;CPU&quot;}" Classes="tableHeader numericHeader" Tag="0" Click="OnProcessHeaderClick" />
                 <Button Grid.Column="4" x:Name="ResidentHeader" Content="{local:Loc &quot;Memory&quot;}" Classes="tableHeader numericHeader" Tag="1" Click="OnProcessHeaderClick" />
-                <Button Grid.Column="5" x:Name="ProcessIoHeader" Content="{local:Loc &quot;Disk MiB/s&quot;}" Classes="tableHeader numericHeader" Tag="3" Click="OnProcessHeaderClick" />
+                <Button Grid.Column="5" x:Name="ProcessIoHeader" Content="{local:Loc &quot;Disk&quot;}" Classes="tableHeader numericHeader" Tag="3" Click="OnProcessHeaderClick" />
                 <Button Grid.Column="6" x:Name="ProcessThreadsHeader" Content="{local:Loc &quot;Threads&quot;}" Classes="tableHeader numericHeader" Tag="2" Click="OnProcessHeaderClick" />
                 <TextBlock Grid.Column="0" Text="{local:Loc &quot;Pin&quot;}" Classes="columnLabel" />
               </Grid>
@@ -118,14 +120,16 @@
           <TabItem Header="{local:Loc &quot;Jobs&quot;}"><local:LaunchdView x:Name="JobsView" /></TabItem>
           <TabItem Header="{local:Loc &quot;Usage&quot;}">
             <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="4">
-              <Border Classes="sectionHeader"><WrapPanel>
+              <Border Classes="sectionHeader"><local:TableToolbarLayout>
                 <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,8,4"><TextBlock Text="{local:Loc &quot;Top&quot;}" Classes="toolbarLabel" /><ComboBox x:Name="UsageLimitBox" Width="54" Classes="rankingChoice" AutomationProperties.Name="{local:Loc &quot;Usage row limit&quot;}" /><TextBlock Text="{local:Loc &quot;apps by&quot;}" Classes="toolbarLabel" /><ComboBox x:Name="UsageSortBox" Width="96" Classes="rankingChoice" SelectedIndex="0" AutomationProperties.Name="{local:Loc &quot;Sort usage&quot;}"><ComboBoxItem Content="{local:Loc &quot;CPU time&quot;}" /><ComboBoxItem Content="{local:Loc &quot;Disk I/O&quot;}" /><ComboBoxItem Content="{local:Loc &quot;Last active&quot;}" /><ComboBoxItem Content="{local:Loc &quot;Name&quot;}" /><ComboBoxItem Content="{local:Loc &quot;Busy share&quot;}" /><ComboBoxItem Content="{local:Loc &quot;Running / seen&quot;}" /></ComboBox></StackPanel>
-                <TextBox x:Name="UsageSearch" Width="150" PlaceholderText="{local:Loc &quot;Search name or path&quot;}" AutomationProperties.Name="{local:Loc &quot;Search usage&quot;}" Margin="0,0,8,4" />
-                <CheckBox x:Name="UsageAppsOnly" Content="{local:Loc &quot;App Only&quot;}" FontSize="12" Margin="0,0,8,4" ToolTip.Tip="{local:Loc &quot;Executables inside .app bundles, including helpers and exited apps&quot;}" />
-                <Button x:Name="CopyUsage" local:ButtonIcon.Kind="Copy" Content="{local:Loc &quot;Copy Usage&quot;}" Margin="0,0,6,4" /><Button x:Name="ResetUsage" local:ButtonIcon.Kind="Live" Content="{local:Loc &quot;Reset&quot;}" Margin="0,0,0,4" />
-              </WrapPanel></Border>
+                <TextBox x:Name="UsageSearch" MinWidth="140" PlaceholderText="{local:Loc &quot;Search name or path&quot;}" AutomationProperties.Name="{local:Loc &quot;Search usage&quot;}" Margin="0,0,8,4" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                  <CheckBox x:Name="UsageAppsOnly" Content="{local:Loc &quot;App Only&quot;}" FontSize="12" Margin="0,0,8,4" ToolTip.Tip="{local:Loc &quot;Executables inside .app bundles, including helpers and exited apps&quot;}" />
+                  <Button x:Name="CopyUsage" local:ButtonIcon.Kind="Copy" Content="{local:Loc &quot;Copy Usage&quot;}" Margin="0,0,6,4" /><Button x:Name="ResetUsage" local:ButtonIcon.Kind="Live" Content="{local:Loc &quot;Reset&quot;}" Margin="0,0,0,4" />
+                </StackPanel>
+              </local:TableToolbarLayout></Border>
               <Grid Grid.Row="1" ColumnDefinitions="*,80,64,84,78,84" Margin="6,0,18,0">
-                <Button x:Name="UsageNameHeader" Content="{local:Loc &quot;App&quot;}" Classes="tableHeader" Tag="3" Click="OnUsageHeaderClick" /><Button Grid.Column="1" x:Name="UsageCpuHeader" Content="{local:Loc &quot;CPU time&quot;}" Classes="tableHeader numericHeader" Tag="0" Click="OnUsageHeaderClick" /><Button Grid.Column="2" x:Name="UsageShareHeader" Content="{local:Loc &quot;Share&quot;}" Classes="tableHeader numericHeader" Tag="4" Click="OnUsageHeaderClick" /><Button Grid.Column="3" x:Name="UsageIoHeader" Content="{local:Loc &quot;I/O MiB&quot;}" Classes="tableHeader numericHeader" Tag="1" Click="OnUsageHeaderClick" /><Button Grid.Column="4" x:Name="UsageProcessesHeader" Content="{local:Loc &quot;Processes&quot;}" Classes="tableHeader numericHeader" Tag="5" Click="OnUsageHeaderClick" /><Button Grid.Column="5" x:Name="UsageLastHeader" Content="{local:Loc &quot;Last active&quot;}" Classes="tableHeader numericHeader" Tag="2" Click="OnUsageHeaderClick" />
+                <Button x:Name="UsageNameHeader" Content="{local:Loc &quot;App&quot;}" Classes="tableHeader" Tag="3" Click="OnUsageHeaderClick" /><Button Grid.Column="1" x:Name="UsageCpuHeader" Content="{local:Loc &quot;CPU time&quot;}" Classes="tableHeader numericHeader" Tag="0" Click="OnUsageHeaderClick" /><Button Grid.Column="2" x:Name="UsageShareHeader" Content="{local:Loc &quot;Share&quot;}" Classes="tableHeader numericHeader" Tag="4" Click="OnUsageHeaderClick" /><Button Grid.Column="3" x:Name="UsageIoHeader" Content="{local:Loc &quot;I/O&quot;}" Classes="tableHeader numericHeader" Tag="1" Click="OnUsageHeaderClick" /><Button Grid.Column="4" x:Name="UsageProcessesHeader" Content="{local:Loc &quot;Processes&quot;}" Classes="tableHeader numericHeader" Tag="5" Click="OnUsageHeaderClick" /><Button Grid.Column="5" x:Name="UsageLastHeader" Content="{local:Loc &quot;Last active&quot;}" Classes="tableHeader numericHeader" Tag="2" Click="OnUsageHeaderClick" />
               </Grid>
               <ListBox Grid.Row="2" x:Name="UsageList" Classes="dataRows" AutoScrollToSelectedItem="False" Background="Transparent" BorderThickness="0" AutomationProperties.Name="{local:Loc &quot;Session usage totals&quot;}">
                 <ListBox.ItemTemplate><DataTemplate x:DataType="local:UsageRow"><Border Classes="dataRow"><Grid ColumnDefinitions="*,80,64,84,78,84" ToolTip.Tip="{Binding Path}">

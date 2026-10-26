@@ -12,7 +12,7 @@ public sealed record LaunchdRow(LaunchdJob Job, string Label, string State, stri
     public string Name => Label.StartsWith("application.", StringComparison.Ordinal) && ProcessName != "—" ? ProcessName : Label;
     public string Cpu => Process?.ObservedCpuPercent is { } value ? $"{value:F1}%" : "—";
     public string Resident => Process?.WorkingSetBytes is { } value ? $"{value / 1048576d:F1} MiB" : "—";
-    public string Io => Process?.IoBytesPerSecond is { } value ? $"{value / 1048576:F2}" : "—";
+    public string Io => Process?.IoBytesPerSecond is { } value ? $"{value / 1048576:F2} MiB/s" : "—";
     public string ProcessDescription => $"{(Name == Label ? ProcessName : Label)} · PID {Pid}";
     public string Description => $"{Label}\n{State} · PID {Pid} · last {ExitStatus}\nResource readings describe only a fresh, verified direct process; child workers are excluded.";
     public override string ToString() => $"{Label}, {State}, PID {Pid}, last {ExitStatus}, observed process {ProcessName}";
@@ -47,7 +47,7 @@ public static class LaunchdPresentation
         var current = fresh && live is not null ? live.Processes.ToDictionary(p => p.Identity) : [];
         var rows = (snapshot?.Jobs ?? []).Where(job => filter switch
         { 1 => job.ReportedPid is not null, 2 => job.ReportedPid is null, _ => true })
-            .Select(job => new LaunchdRow(job, job.Id.Label, job.ReportedPid is null ? "Not running" : "Running (reported)",
+            .Select(job => new LaunchdRow(job, job.Id.Label, job.ReportedPid is null ? "Not running" : "Running",
                 job.ReportedPid?.ToString(CultureInfo.InvariantCulture) ?? "—", ExitText(job.LastExitStatus),
                 job.ObservedIdentity is { } identity && current.TryGetValue(identity, out var process) ? process.Name : "—")
             { Process = job.ObservedIdentity is { } key && current.TryGetValue(key, out var matched) ? matched : null })

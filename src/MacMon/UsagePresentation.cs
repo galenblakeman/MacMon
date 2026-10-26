@@ -12,7 +12,7 @@ public sealed record UsageRow(AppUsage App, long MachineBusyTicks)
     public string Name => App.Name;
     public string Cpu => $"{(long)TimeSpan.FromTicks(App.CpuTicks).TotalHours}:{TimeSpan.FromTicks(App.CpuTicks).Minutes:00}:{TimeSpan.FromTicks(App.CpuTicks).Seconds:00}";
     public string Share => MachineBusyTicks > 0 ? $"{100d * App.CpuTicks / MachineBusyTicks:F1}%" : "—";
-    public string DiskIo => $"{App.IoBytes / 1048576:F2}";
+    public string DiskIo => $"{App.IoBytes / 1048576:F2} MiB";
     public string Processes => $"{App.Lifetimes} ({App.Running})";
     public string LastActive
     {
@@ -34,7 +34,7 @@ public static class UsagePresentation
     {
         static string Cell(string value) => value.Replace('\t', ' ').Replace('\r', ' ').Replace('\n', ' ');
         return $"MacMon session usage since {since:O}\n" +
-            "App\tCPU time\tBusy share\tDisk MiB\tSeen (running)\tLast active\tExecutable\n" +
+            "App\tCPU time\tBusy share\tDisk I/O\tSeen (running)\tLast active\tExecutable\n" +
             string.Join("\n", rows.Select(r => string.Join('\t', new[] { r.Name, r.Cpu, r.Share, r.DiskIo, r.Processes, r.LastActive, r.Path }.Select(Cell))));
     }
     public static UsageRow[] Rows(UsageLedger ledger, string search, UsageSort sort, int limit = 0, bool appsOnly = false, bool ascending = false, DateTimeOffset? latest = null)

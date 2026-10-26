@@ -87,14 +87,14 @@ public sealed partial class MainWindow
     {
         (Button Button, string Label)[] headers = [(ProcessNameHeader, "Process"), (ProcessPidHeader, Grouped ? "Members" : "PID"),
             (ProcessCpuHeader, "CPU"), (ResidentHeader, Grouped ? "Memory Σ" : "Memory"),
-            (ProcessThreadsHeader, "Threads"), (ProcessIoHeader, "Disk MiB/s")];
+            (ProcessThreadsHeader, "Threads"), (ProcessIoHeader, "Disk")];
         if (ProcessSortBox.Items[5] is ComboBoxItem pidChoice) pidChoice.Content = Grouped ? "Member count" : "PID";
         foreach (var (button, label) in headers) Header(button, label, ProcessSortBox.SelectedIndex, _processAscending, "processes");
     }
     private void UpdateUsageHeaders()
     {
         (Button Button, string Label)[] headers = [(UsageNameHeader, "App"), (UsageCpuHeader, "CPU time"),
-            (UsageShareHeader, "Share"), (UsageIoHeader, "I/O MiB"), (UsageProcessesHeader, "Processes"), (UsageLastHeader, "Last active")];
+            (UsageShareHeader, "Share"), (UsageIoHeader, "I/O"), (UsageProcessesHeader, "Processes"), (UsageLastHeader, "Last active")];
         foreach (var (button, label) in headers) Header(button, label, UsageSortBox.SelectedIndex, _usageAscending, "usage");
     }
 }

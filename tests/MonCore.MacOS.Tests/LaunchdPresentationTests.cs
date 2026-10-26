@@ -21,6 +21,7 @@ public sealed class LaunchdPresentationTests
         var rows = LaunchdPresentation.Rows(Snapshot, Frame(Process), true, null, 0, 0);
         Assert.That(rows.First().Label, Is.EqualTo(Idle.Id.Label));
         Assert.That(rows.First().State, Is.EqualTo("Not running"));
+        Assert.That(rows.Last().State, Is.EqualTo("Running"));
         Assert.That(LaunchdPresentation.Rows(Snapshot, Frame(Process), true, "WORKER", 1, 1).Single().Job, Is.EqualTo(Running));
         Assert.That(LaunchdPresentation.Rows(Snapshot, Frame(Process), true, "42", 0, 2).Single().ExitStatus, Is.EqualTo("Signal 9"));
         Assert.That(LaunchdPresentation.Rows(Snapshot, null, false, "", 2, 0).Single().Job, Is.EqualTo(Idle));
@@ -56,7 +57,7 @@ public sealed class LaunchdPresentationTests
         Assert.That(friendly.ProcessDescription, Does.Contain(app.Id.Label));
         Assert.That(rows[0].Cpu, Is.EqualTo("4.0%"));
         Assert.That(rows[0].Resident, Is.EqualTo("1.0 MiB"));
-        Assert.That(rows[0].Io, Is.EqualTo("2.00"));
+        Assert.That(rows[0].Io, Is.EqualTo("2.00 MiB/s"));
         Assert.That(rows[0].Trail.Values, Is.EqualTo(new double?[] { 1, 4, null, 4 }));
         foreach (var fresh in new[] { true, false })
         {

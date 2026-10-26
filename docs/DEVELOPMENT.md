@@ -1084,3 +1084,26 @@ Strict signing, ZIP integrity and checksum checks pass; native stderr is empty.
 The updated app is open with saved appearance and tab preferences preserved.
 Artifact: `MacMon-0.13.3-osx-arm64-dev.zip`, SHA-256:
 `c88899946d323b8be4f62b0c0d279a682521cac66df431452b9560402205c667`.
+
+
+## Expanding table searches and row units — 0.13.4/build 27
+
+Processes, Jobs and Usage use a shared responsive toolbar: ranking choices on the
+left, search filling the remaining width, and filters/grouping/actions anchored
+to the right. When all three cannot fit with a 140px search field, ranking choices
+move to the first row while search and right-hand controls share the second.
+English/Spanish resize regressions check all tabs at 800/1100/1400px and back.
+
+Disk rate headers now read Disk, with MiB/s included in every available process
+and job value. Usage's I/O column and copied report include MiB in the values.
+Unavailable observations remain a dash. Running jobs display Running without the
+parenthetical; freshness, exact-lifetime matching and read-only behavior remain.
+
+Validation: all 180 Mac tests and three release-workflow tests pass, with zero
+build warnings/errors and native collector/launchd smoke checks. Native visual
+checks cover all three toolbars, right-anchored trailing controls, unit-bearing
+cells and plain Running status. Strict signing, ZIP integrity and SHA-256 checks
+pass; native stderr is empty. MacMon is left open on its original Jobs tab with
+saved appearance preserved.
+Artifact: `MacMon-0.13.4-osx-arm64-dev.zip`, SHA-256:
+`8735701fc876776281a4c3cb8a9dc643ec557d29781ced0ec72d47ed9488caa3`.

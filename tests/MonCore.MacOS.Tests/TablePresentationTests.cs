@@ -116,6 +116,8 @@ public sealed class TablePresentationTests
         var row = UsagePresentation.Rows(ledger, "", UsageSort.Cpu, latest: sample.Timestamp).First();
         Assert.That(row.Cpu, Does.Match(@"^\d+:\d{2}:\d{2}$"));
         Assert.That(row.Processes, Is.EqualTo("1 (1)"));
+        Assert.That(row.DiskIo, Does.EndWith(" MiB"));
+        Assert.That(new ProcessRow(sample.Processes[0]).Io, Does.EndWith(" MiB/s"));
         Assert.That(row.LastActive, Is.EqualTo("now"));
         var report = UsagePresentation.Report([row], ledger.Since);
         Assert.That(report, Does.Contain("Seen (running)").And.Contain(row.Name).And.Contain("1 (1)"));
@@ -126,6 +128,8 @@ public sealed class TablePresentationTests
     public void HeaderActionsReverseDirectionAndKeepSortCombosSynchronized()
     {
         var main = new MainWindow();
+        foreach (var header in new[] { "ProcessIoHeader", "UsageIoHeader" })
+            Assert.That(main.FindControl<Button>(header)!.Content?.ToString(), Does.Not.Contain("MiB"));
         foreach (var prefix in new[] { "Process", "Usage" })
         {
             var name = main.FindControl<Button>(prefix + "NameHeader")!;
