@@ -26,7 +26,6 @@ Requires macOS, Python 3 for local-package normalization, and the .NET 10 SDK (v
 
 ```sh
 bash tools/bootstrap-moncore.sh
-bash tools/bootstrap-microgauge.sh
 bash tools/verify.sh --smoke
 dotnet run --project src/MacMon -c Release --no-build
 ```

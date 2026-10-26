@@ -208,20 +208,20 @@
       },
       "MicroGauge": {
         "type": "Transitive",
-        "resolved": "1.1.0.1-macmon.1",
-        "contentHash": "zVJ8b/xJfd6I+rQWp2d38dq1tAc+O44J6M/l4ab4zM7aWVwXL4tF38Dt5Qcpzki82iSVJrYAu+xqlbspVb/sZw==",
+        "resolved": "1.1.0.2",
+        "contentHash": "nyf9OxT7n0mibUrJImbtztWriUZnewKyuUUYsxQ6XZJDEG1vqD5SbOHvHoEIqzjfpfV1RRpn/byGBpTCp0+xAA==",
         "dependencies": {
           "SkiaSharp": "4.150.1"
         }
       },
       "MicroGauge.Avalonia": {
         "type": "Transitive",
-        "resolved": "1.1.0.1-macmon.1",
-        "contentHash": "JEJNY9EK8+UswwTv7tO5DBH1rgne/BxODFysnzUq3KEDTliUb8SIDvurQ8htNVasuegl8uCIYIj2mulQlXkJDw==",
+        "resolved": "1.1.0.2",
+        "contentHash": "f8uOwSMucChH9SQP7UcqBxy/wkG5F1k0EZQmlbsh+bvFDURK8QpgPavi00/x50yENn6v17MU23e++/v+46CuKg==",
         "dependencies": {
           "Avalonia": "12.1.4",
           "Avalonia.Skia": "12.1.4",
-          "MicroGauge": "1.1.0.1-macmon.1",
+          "MicroGauge": "1.1.0.2",
           "SkiaSharp": "4.150.1"
         }
       },
@@ -339,7 +339,7 @@
         "dependencies": {
           "Avalonia.Desktop": "[12.1.4, )",
           "Avalonia.Themes.Fluent": "[12.1.4, )",
-          "MicroGauge.Avalonia": "[1.1.0.1-macmon.1, 1.1.0.1-macmon.1]",
+          "MicroGauge.Avalonia": "[1.1.0.2, 1.1.0.2]",
           "MonCore": "[3.4.1-macos.1, 3.4.1-macos.1]",
           "MonCore.MacOS": "[1.0.0, )",
           "SkiaSharp": "[4.150.1, 4.150.1]",

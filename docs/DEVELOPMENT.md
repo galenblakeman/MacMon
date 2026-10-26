@@ -8,7 +8,6 @@ MacMon consumes **MonCore 3.4.1-macos.1**, built from WinMon commit `395a1a29ec8
 
 ```sh
 bash tools/bootstrap-moncore.sh
-bash tools/bootstrap-microgauge.sh
 bash tools/verify.sh --smoke
 bash tools/package-app.sh
 open artifacts/osx-arm64/MacMon.app
@@ -216,7 +215,7 @@ that activity's previous peaks. No additional polling loop or per-process attrib
 is introduced. Rendering uses fixed 0–100 native gauge coordinates and maps measured
 values into them. Native ranges are replaced rather than mutating render-thread data.
 
-The [pinned MicroGauge dependency](../dependencies/microgauge/README.md) introduces
+The [MicroGauge dependency](../dependencies/microgauge/README.md) introduces
 SkiaSharp 4.150.1; real Skia pixel tests verify fills/needles and peak marks, including
 unavailable/None states. Packaged smoke checks exercise the native host and collectors.
 Compact view remains a separate subsequent slice.
@@ -231,3 +230,19 @@ restart, then Bowl/Dark/Classic and the original width were restored. A 30-secon
 visible Jobs/dashboard measurement averaged 0.523% of total machine CPU (1.635% peak),
 with 240.8 MiB peak resident memory; this is one host observation, not a comparative
 performance guarantee.
+
+### Published MicroGauge packages
+
+Version 0.5.1/build 6 replaces temporary MicroGauge builds with official
+MicroGauge.Avalonia and MicroGauge 1.1.0.2 from NuGet.org. The adapter is exactly
+pinned and the dependency graph remains locked. The bootstrap command and local
+MicroGauge source mappings are removed; MonCore's local workflow is unchanged.
+Published package metadata identifies source commit 70bb712cbdcd05bfdffeb3f9f48c785b30100a66,
+which includes a radial inner-range interpolation fix. The Avalonia adapter has no
+source changes relative to the initial integration.
+
+Validation after migration: locked restore confirms both MicroGauge packages came
+from NuGet.org; the release build has no warnings, all 106 MacMon tests and three
+Python release-workflow tests pass, and native collector/launchd smoke checks pass.
+The real Skia tests exercise published assemblies across every style, theme and
+palette, including zero/unavailable values, peak marks and control reattachment.
