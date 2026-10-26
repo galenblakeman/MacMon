@@ -851,3 +851,19 @@ checks pass with zero build warnings/errors; native inspection confirms the
 label and selector fit the existing header. Packaged signing, resource/launchd
 smoke and ZIP/checksum verification pass. The app remains open in CPU Focus/Live.
 Artifact: `MacMon-0.11.5-osx-arm64-dev.zip`, SHA-256: `85758776b5347b9c2611cc3615ad007912f4f98f4855758d62b9367c70619bb2`.
+
+
+## Gauge bar wording and order — 0.11.6/build 19
+
+Full and compact gauge bars follow WinMon: CPU, Memory, Disk, optional Disk 2,
+Network, GPU. Separators follow the new order. Internal resource bindings retain
+their metric identities. CPU speed omits the est. suffix, memory shows a shared
+GiB unit (for example 10.4 / 16.0 GiB), and disk detail text omits combined.
+CPU tooltip details still explain requested-state clock estimation. Appearance
+preview order and disk wording follow the same conventions.
+
+Seven shell/compact state and layout checks pass with zero build warnings.
+Native inspection confirms order and wording in full and compact views; returned
+to full Live mode. Packaged signing, resource/launchd smoke and ZIP/checksum
+verification pass. Artifact: `MacMon-0.11.6-osx-arm64-dev.zip`, SHA-256:
+`44ac97fabfe674d92be3764605173c3fcda0cd2feef6d88a2094f158d34a4051`.

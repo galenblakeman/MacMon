@@ -218,13 +218,14 @@ public sealed partial class MainWindow : Window
     private void UpdateResourceGauges(MonitorSample sample)
     {
         var r = sample.Resources;
+        var usedMemory = (r.UsedMemoryBytes / 1073741824d)?.ToString("F1") ?? "—";
         string[] descriptions = [
-            r.CpuClockMhz is > 0 ? $"{r.CpuClockMhz.Value / 1000:F2} GHz est." : "Speed unavailable",
-            $"{GiB(r.UsedMemoryBytes)} / {GiB(r.TotalMemoryBytes)}\nPressure: {_source.Memory.Pressure} · compressed {GiB(_source.Memory.CompressedBytes)}",
+            r.CpuClockMhz is > 0 ? $"{r.CpuClockMhz.Value / 1000:F2} GHz" : "Speed unavailable",
+            $"{usedMemory} / {GiB(r.TotalMemoryBytes)}\nPressure: {_source.Memory.Pressure} · compressed {GiB(_source.Memory.CompressedBytes)}",
             $"{r.NetworkName} · download\n↑ {ResourceGaugeHistory.NetworkRate(r.SendBytesPerSecond)}",
-            $"{r.DiskName} · read + write\n{Rate(ResourceCharts.DiskRate(r, false))} combined",
+            $"{r.DiskName} · read + write\n{Rate(ResourceCharts.DiskRate(r, false))}",
             r.GpuName.Length > 0 ? r.GpuName : "Device utilization unavailable",
-            $"{r.SecondaryDiskName} · read + write\n{Rate(ResourceCharts.DiskRate(r, true))} combined"];
+            $"{r.SecondaryDiskName} · read + write\n{Rate(ResourceCharts.DiskRate(r, true))}"];
         var gauges = VisibleGauges;
         for (var index = 0; index < gauges.Length; index++) gauges[index].Update(_gaugeHistory.Readings[index], descriptions[index]);
     }

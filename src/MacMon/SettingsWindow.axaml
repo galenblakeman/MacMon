@@ -44,8 +44,8 @@
                     <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="8">
                       <local:ResourceGauge x:Name="PreviewCpu" Title="CPU" ReadoutSize="16" Fill="{DynamicResource CpuText}" />
                       <local:ResourceGauge Grid.Column="1" x:Name="PreviewMemory" Title="Memory" ReadoutSize="16" Fill="{DynamicResource MemoryText}" />
-                      <local:ResourceGauge Grid.Column="2" x:Name="PreviewNetwork" Title="Network" ReadoutSize="16" Fill="{DynamicResource NetworkText}" />
-                      <local:ResourceGauge Grid.Column="3" x:Name="PreviewStorage" Title="Disk" ReadoutSize="16" Fill="{DynamicResource StorageText}" />
+                      <local:ResourceGauge Grid.Column="3" x:Name="PreviewNetwork" Title="Network" ReadoutSize="16" Fill="{DynamicResource NetworkText}" />
+                      <local:ResourceGauge Grid.Column="2" x:Name="PreviewStorage" Title="Disk" ReadoutSize="16" Fill="{DynamicResource StorageText}" />
                     </Grid>
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
                       <local:CpuChart x:Name="PreviewChart" Height="60" VisibleMetrics="3" />
