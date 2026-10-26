@@ -37,8 +37,6 @@ public sealed partial class MainWindow
         ShowProcessActions.IsCheckedChanged += (_, _) => { if (!_restoringTables) UpdateSelection(); };
         InitializeUsageActions();
         CopyUsage.Click += async (_, _) => await CopyUsageRows();
-        ToolTip.SetTip(ExportUsage, "Export all session usage, including rows hidden by filters or limits");
-        ToolTip.SetTip(ExportProcesses, "Export retained process samples, independent of table filters");
     }
     private void RestoreTables()
     {

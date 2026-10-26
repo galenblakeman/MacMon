@@ -193,6 +193,29 @@ public sealed class CpuChart : Control
             var plot = ResourceCharts.Plot(panel);
             if (plot.Height <= 0 || plot.Width <= 0) continue;
             var metric = panel.Metrics[0];
+            for (var i = 0; i <= 4; i++) context.DrawLine(new Pen(GridBrush, 1),
+                new(plot.X, plot.Y + plot.Height * i / 4), new(plot.Right, plot.Y + plot.Height * i / 4));
+            for (var i = 0; i <= 4; i++) context.DrawLine(new Pen(GridBrush, 1),
+                new(plot.X + plot.Width * i / 4, plot.Y), new(plot.X + plot.Width * i / 4, plot.Bottom));
+            using (context.PushClip(plot))
+            {
+                foreach (var series in panel.Metrics)
+                    if (Mode == ResourceChartMode.Heatmap) DrawHeatmap(context, plot, series);
+                    else DrawSeries(context, plot, series);
+                foreach (var capture in Captures.Where(c => MarkerVisible(c, panel)))
+                {
+                    var x = X(capture.Peak.MonotonicTimestamp, plot);
+                    var geometry = new StreamGeometry();
+                    using (var path = geometry.Open())
+                    { path.BeginFigure(new(x, plot.Y + 9), true); path.LineTo(new(x - 5, plot.Y)); path.LineTo(new(x + 5, plot.Y)); path.EndFigure(true); }
+                    context.DrawGeometry(MarkerBrush, null, geometry);
+                }
+                if ((SelectedTimestamp ?? HoveredSample?.MonotonicTimestamp) is { } selected)
+                {
+                    var x = X(selected, plot);
+                    if (x >= plot.X && x <= plot.Right) context.DrawLine(new Pen(MarkerBrush, 1), new(x, plot.Y), new(x, plot.Bottom));
+                }
+            }
             if (panel.SideLabel)
             {
                 var compact = Mode == ResourceChartMode.Focus || panel.Bounds.Height < 32;
@@ -216,36 +239,13 @@ public sealed class CpuChart : Control
                     if (legend.Length > 0) Label(context, legend, new(plot.Right - 4, plot.Top + 2), MarkerBrush, true);
                 }
             }
-            for (var i = 0; i <= 4; i++) context.DrawLine(new Pen(GridBrush, 1),
-                new(plot.X, plot.Y + plot.Height * i / 4), new(plot.Right, plot.Y + plot.Height * i / 4));
-            for (var i = 0; i <= 4; i++) context.DrawLine(new Pen(GridBrush, 1),
-                new(plot.X + plot.Width * i / 4, plot.Y), new(plot.X + plot.Width * i / 4, plot.Bottom));
-            if (_samples.Count == 0) continue;
-            using (context.PushClip(plot))
-            {
-                foreach (var series in panel.Metrics)
-                    if (Mode == ResourceChartMode.Heatmap) DrawHeatmap(context, plot, series);
-                    else DrawSeries(context, plot, series);
-                foreach (var capture in Captures.Where(c => MarkerVisible(c, panel)))
-                {
-                    var x = X(capture.Peak.MonotonicTimestamp, plot);
-                    var geometry = new StreamGeometry();
-                    using (var path = geometry.Open())
-                    { path.BeginFigure(new(x, plot.Y + 9), true); path.LineTo(new(x - 5, plot.Y)); path.LineTo(new(x + 5, plot.Y)); path.EndFigure(true); }
-                    context.DrawGeometry(MarkerBrush, null, geometry);
-                }
-                if ((SelectedTimestamp ?? HoveredSample?.MonotonicTimestamp) is { } selected)
-                {
-                    var x = X(selected, plot);
-                    if (x >= plot.X && x <= plot.Right) context.DrawLine(new Pen(MarkerBrush, 1), new(x, plot.Y), new(x, plot.Bottom));
-                }
-            }
         }
         if (_samples.Count > 0)
         {
             var plot = ResourceCharts.Plot(Panels.Last());
             var labels = TimeLabels(_samples[^1].Timestamp, RangeSeconds);
-            for (var i = 0; i < labels.Length; i++)
+            var step = plot.Width < 240 ? 4 : plot.Width < 400 ? 2 : 1;
+            for (var i = 0; i < labels.Length; i += step)
             {
                 var text = new FormattedText(labels[i], System.Globalization.CultureInfo.CurrentCulture,
                     FlowDirection.LeftToRight, new Typeface("Inter, Arial"), 11, MarkerBrush);
@@ -257,24 +257,38 @@ public sealed class CpuChart : Control
 
     private void DrawSeries(DrawingContext context, Rect plot, int metric)
     {
-        var line = new Pen(Brush(metric), 2);
-        Point? previous = null;
-        MonitorSample? prior = null;
+        var brush = Brush(metric);
+        var area = new StreamGeometry();
+        var trace = new StreamGeometry();
         var maximum = Maximum(metric);
-        foreach (var sample in _visible)
+        using (var fillPath = area.Open())
+        using (var linePath = trace.Open())
         {
-            if (ResourceCharts.Value(sample, metric) is not { } value) { previous = null; continue; }
-            var point = new Point(X(sample.MonotonicTimestamp, plot), plot.Bottom - plot.Height * Math.Clamp(value / maximum, 0, 1));
-            if (previous is { } start && prior is not null &&
-                (sample.MonotonicTimestamp - prior.MonotonicTimestamp) / (double)Stopwatch.Frequency <= 2.5 &&
-                (metric != 2 || sample.Resources.NetworkId == prior.Resources.NetworkId) &&
-                (metric != 4 || sample.Resources.GpuId == prior.Resources.GpuId) &&
-                (metric != 3 || sample.Resources.DiskName == prior.Resources.DiskName) &&
-                (metric != 5 || sample.Resources.SecondaryDiskName == prior.Resources.SecondaryDiskName)) context.DrawLine(line, start, point);
-            // A single observation remains visible without drawing across missing time.
-            context.DrawEllipse(Brush(metric), null, point, 1, 1);
-            previous = point; prior = sample;
+            Point? previous = null;
+            MonitorSample? prior = null;
+            foreach (var sample in _visible)
+            {
+                if (ResourceCharts.Value(sample, metric) is not { } value) { previous = null; continue; }
+                var point = new Point(X(sample.MonotonicTimestamp, plot), plot.Bottom - plot.Height * Math.Clamp(value / maximum, 0, 1));
+                if (previous is { } start && prior is not null &&
+                    (sample.MonotonicTimestamp - prior.MonotonicTimestamp) / (double)Stopwatch.Frequency <= 2.5 &&
+                    (metric != 2 || sample.Resources.NetworkId == prior.Resources.NetworkId) &&
+                    (metric != 4 || sample.Resources.GpuId == prior.Resources.GpuId) &&
+                    (metric != 3 || sample.Resources.DiskName == prior.Resources.DiskName) &&
+                    (metric != 5 || sample.Resources.SecondaryDiskName == prior.Resources.SecondaryDiskName))
+                {
+                    fillPath.BeginFigure(new(start.X, plot.Bottom), true);
+                    fillPath.LineTo(start); fillPath.LineTo(point); fillPath.LineTo(new(point.X, plot.Bottom));
+                    fillPath.EndFigure(true);
+                    linePath.BeginFigure(start, false); linePath.LineTo(point); linePath.EndFigure(false);
+                }
+                // A single observation remains visible without bridging unavailable intervals.
+                context.DrawEllipse(brush, null, point, 1, 1);
+                previous = point; prior = sample;
+            }
         }
+        context.DrawGeometry(brush, null, area);
+        context.DrawGeometry(null, new Pen(brush, 2), trace);
     }
     private void DrawHeatmap(DrawingContext context, Rect plot, int metric)
     {

@@ -13,15 +13,7 @@
         </StackPanel>
         <Button Grid.Column="1" x:Name="OpenInfo" Content="{local:TitleButtonContent Info, Info}" AutomationProperties.Name="{local:Loc &quot;Info&quot;}" Classes="titleAction" ToolTip.Tip="{local:Loc &quot;About MacMon and hardware information&quot;}" />
         <Button Grid.Column="2" x:Name="OpenSettings" Content="{local:TitleButtonContent Settings, Settings}" AutomationProperties.Name="{local:Loc &quot;Settings&quot;}" Classes="titleAction" ToolTip.Tip="{local:Loc &quot;Settings (⌘,)&quot;}" />
-        <Button Grid.Column="3" x:Name="OpenExport" Content="{local:TitleButtonContent Export, Export}" AutomationProperties.Name="{local:Loc &quot;Export&quot;}" Classes="titleAction">
-          <Button.Flyout><Flyout Placement="Bottom">
-            <StackPanel Spacing="6" MinWidth="210">
-              <Button x:Name="ExportResources" Content="{local:Loc &quot;Resource history CSV…&quot;}" HorizontalAlignment="Stretch" />
-              <Button x:Name="ExportProcesses" Content="{local:Loc &quot;Retained processes CSV…&quot;}" HorizontalAlignment="Stretch" />
-              <Button x:Name="ExportUsage" Content="{local:Loc &quot;Session usage CSV…&quot;}" HorizontalAlignment="Stretch" />
-            </StackPanel>
-          </Flyout></Button.Flyout>
-        </Button>
+        <Button Grid.Column="3" x:Name="OpenExport" Content="{local:TitleButtonContent Export, Export}" AutomationProperties.Name="{local:Loc &quot;Export&quot;}" Classes="titleAction" />
         <Button Grid.Column="5" x:Name="EnterCompactView" Content="{local:TitleButtonContent Compact, Compact view}" AutomationProperties.Name="{local:Loc &quot;Compact view&quot;}" Classes="titleAction" ToolTip.Tip="{local:Loc &quot;Compact view (⌘⇧M)&quot;}" />
         <ToggleButton Grid.Column="6" x:Name="AlwaysOnTop" Content="{local:TitleButtonContent Pin, Always on top}" AutomationProperties.Name="{local:Loc &quot;Always on top&quot;}" Classes="titleAction" ToolTip.Tip="{local:Loc &quot;Keep MacMon above other windows&quot;}" />
       </Grid>
@@ -80,26 +72,26 @@
                   <StackPanel Orientation="Horizontal" Spacing="2" Margin="0,0,0,4"><RadioButton x:Name="IndividualProcesses" Content="{local:Loc &quot;Individual&quot;}" GroupName="ProcessGrouping" Classes="chip" IsChecked="True" /><RadioButton x:Name="GroupProcesses" Content="{local:Loc &quot;Grouped&quot;}" GroupName="ProcessGrouping" Classes="chip" /></StackPanel>
                 </WrapPanel>
               </Border>
-              <Grid Grid.Row="1" ColumnDefinitions="*,140,65,100,90,60,28" Margin="6,0,18,0">
-                <StackPanel Orientation="Horizontal"><Button x:Name="ProcessNameHeader" Content="{local:Loc &quot;Process&quot;}" Classes="tableHeader" Tag="4" Click="OnProcessHeaderClick" /><Button x:Name="ProcessPidHeader" Content="{local:Loc &quot;PID&quot;}" IsVisible="False" Classes="tableHeader" Tag="5" Click="OnProcessHeaderClick" /></StackPanel>
-                <TextBlock Grid.Column="1" Text="{local:Loc &quot;History&quot;}" Classes="columnLabel" HorizontalAlignment="Center" />
-                <Button Grid.Column="2" x:Name="ProcessCpuHeader" Content="{local:Loc &quot;CPU&quot;}" Classes="tableHeader" Tag="0" Click="OnProcessHeaderClick" />
-                <Button Grid.Column="3" x:Name="ResidentHeader" Content="{local:Loc &quot;Memory&quot;}" Classes="tableHeader" Tag="1" Click="OnProcessHeaderClick" />
-                <Button Grid.Column="4" x:Name="ProcessIoHeader" Content="{local:Loc &quot;Disk MiB/s&quot;}" Classes="tableHeader" Tag="3" Click="OnProcessHeaderClick" />
-                <Button Grid.Column="5" x:Name="ProcessThreadsHeader" Content="{local:Loc &quot;Threads&quot;}" Classes="tableHeader" Tag="2" Click="OnProcessHeaderClick" />
-                <TextBlock Grid.Column="6" Text="{local:Loc &quot;Pin&quot;}" Classes="columnLabel" />
+              <Grid Grid.Row="1" ColumnDefinitions="28,*,140,65,100,90,60" Margin="6,0,18,0">
+                <StackPanel Grid.Column="1" Orientation="Horizontal"><Button x:Name="ProcessNameHeader" Content="{local:Loc &quot;Process&quot;}" Classes="tableHeader" Tag="4" Click="OnProcessHeaderClick" /><Button x:Name="ProcessPidHeader" Content="{local:Loc &quot;PID&quot;}" IsVisible="False" Classes="tableHeader" Tag="5" Click="OnProcessHeaderClick" /></StackPanel>
+                <TextBlock Grid.Column="2" Text="{local:Loc &quot;History&quot;}" Classes="columnLabel" HorizontalAlignment="Center" />
+                <Button Grid.Column="3" x:Name="ProcessCpuHeader" Content="{local:Loc &quot;CPU&quot;}" Classes="tableHeader numericHeader" Tag="0" Click="OnProcessHeaderClick" />
+                <Button Grid.Column="4" x:Name="ResidentHeader" Content="{local:Loc &quot;Memory&quot;}" Classes="tableHeader numericHeader" Tag="1" Click="OnProcessHeaderClick" />
+                <Button Grid.Column="5" x:Name="ProcessIoHeader" Content="{local:Loc &quot;Disk MiB/s&quot;}" Classes="tableHeader numericHeader" Tag="3" Click="OnProcessHeaderClick" />
+                <Button Grid.Column="6" x:Name="ProcessThreadsHeader" Content="{local:Loc &quot;Threads&quot;}" Classes="tableHeader numericHeader" Tag="2" Click="OnProcessHeaderClick" />
+                <TextBlock Grid.Column="0" Text="{local:Loc &quot;Pin&quot;}" Classes="columnLabel" />
               </Grid>
               <Grid Grid.Row="2">
                 <ListBox x:Name="ProcessList" Classes="dataRows" AutoScrollToSelectedItem="False" Background="Transparent" BorderThickness="0" AutomationProperties.Name="{local:Loc &quot;Observed processes&quot;}">
                   <ListBox.ItemTemplate><DataTemplate x:DataType="local:ProcessRow">
-                    <Border Classes="dataRow"><Grid ColumnDefinitions="*,140,65,100,90,60,28" ColumnSpacing="0" ToolTip.Tip="{Binding Path}">
-                      <Grid ColumnDefinitions="20,*" ColumnSpacing="5"><Image Source="{Binding Icon}" Width="16" Height="16" /><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Pid}" Classes="label" FontSize="10" /></StackPanel></Grid>
-                      <local:ProcessSparkline Grid.Column="1" Trail="{Binding Trail}" Height="24" Margin="6,0" />
-                      <TextBlock Grid.Column="2" Text="{Binding Cpu}" Classes="cpuMetric" VerticalAlignment="Center" HorizontalAlignment="Right" />
-                      <TextBlock Grid.Column="3" Text="{Binding Resident}" VerticalAlignment="Center" HorizontalAlignment="Right" />
-                      <TextBlock Grid.Column="4" Text="{Binding Io}" VerticalAlignment="Center" HorizontalAlignment="Right" />
-                      <TextBlock Grid.Column="5" Text="{Binding Threads}" VerticalAlignment="Center" HorizontalAlignment="Right" />
-                      <Button Grid.Column="6" Content="{Binding PinAction}" IsEnabled="{Binding CanPin}" Click="OnRowPinClick" Classes="rowPin" AutomationProperties.Name="{Binding PinActionName}" ToolTip.Tip="{Binding PinActionName}" />
+                    <Border Classes="dataRow"><Grid ColumnDefinitions="28,*,140,65,100,90,60" ColumnSpacing="0" ToolTip.Tip="{Binding Path}">
+                      <Grid Grid.Column="1" ColumnDefinitions="20,*" ColumnSpacing="5"><Image Source="{Binding Icon}" Width="16" Height="16" /><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Pid}" Classes="label" FontSize="10" /></StackPanel></Grid>
+                      <local:ProcessSparkline Grid.Column="2" Trail="{Binding Trail}" Height="24" Margin="6,0" />
+                      <TextBlock Grid.Column="3" Text="{Binding Cpu}" Classes="cpuMetric" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                      <TextBlock Grid.Column="4" Text="{Binding Resident}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                      <TextBlock Grid.Column="5" Text="{Binding Io}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                      <TextBlock Grid.Column="6" Text="{Binding Threads}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                      <Button Grid.Column="0" Content="{Binding PinAction}" IsEnabled="{Binding CanPin}" Click="OnRowPinClick" Classes="rowPin" AutomationProperties.Name="{Binding PinActionName}" ToolTip.Tip="{Binding PinActionName}" />
                     </Grid></Border>
                   </DataTemplate></ListBox.ItemTemplate>
                 </ListBox>
@@ -121,7 +113,7 @@
                 <Button x:Name="CopyUsage" Content="{local:Loc &quot;Copy Usage&quot;}" Margin="0,0,6,4" /><Button x:Name="ResetUsage" Content="{local:Loc &quot;Reset&quot;}" Margin="0,0,0,4" />
               </WrapPanel></Border>
               <Grid Grid.Row="1" ColumnDefinitions="*,80,64,84,78,84" Margin="6,0,18,0">
-                <Button x:Name="UsageNameHeader" Content="{local:Loc &quot;App&quot;}" Classes="tableHeader" Tag="3" Click="OnUsageHeaderClick" /><Button Grid.Column="1" x:Name="UsageCpuHeader" Content="{local:Loc &quot;CPU time&quot;}" Classes="tableHeader" Tag="0" Click="OnUsageHeaderClick" /><Button Grid.Column="2" x:Name="UsageShareHeader" Content="{local:Loc &quot;Share&quot;}" Classes="tableHeader" Tag="4" Click="OnUsageHeaderClick" /><Button Grid.Column="3" x:Name="UsageIoHeader" Content="{local:Loc &quot;I/O MiB&quot;}" Classes="tableHeader" Tag="1" Click="OnUsageHeaderClick" /><Button Grid.Column="4" x:Name="UsageProcessesHeader" Content="{local:Loc &quot;Processes&quot;}" Classes="tableHeader" Tag="5" Click="OnUsageHeaderClick" /><Button Grid.Column="5" x:Name="UsageLastHeader" Content="{local:Loc &quot;Last active&quot;}" Classes="tableHeader" Tag="2" Click="OnUsageHeaderClick" />
+                <Button x:Name="UsageNameHeader" Content="{local:Loc &quot;App&quot;}" Classes="tableHeader" Tag="3" Click="OnUsageHeaderClick" /><Button Grid.Column="1" x:Name="UsageCpuHeader" Content="{local:Loc &quot;CPU time&quot;}" Classes="tableHeader numericHeader" Tag="0" Click="OnUsageHeaderClick" /><Button Grid.Column="2" x:Name="UsageShareHeader" Content="{local:Loc &quot;Share&quot;}" Classes="tableHeader numericHeader" Tag="4" Click="OnUsageHeaderClick" /><Button Grid.Column="3" x:Name="UsageIoHeader" Content="{local:Loc &quot;I/O MiB&quot;}" Classes="tableHeader numericHeader" Tag="1" Click="OnUsageHeaderClick" /><Button Grid.Column="4" x:Name="UsageProcessesHeader" Content="{local:Loc &quot;Processes&quot;}" Classes="tableHeader numericHeader" Tag="5" Click="OnUsageHeaderClick" /><Button Grid.Column="5" x:Name="UsageLastHeader" Content="{local:Loc &quot;Last active&quot;}" Classes="tableHeader numericHeader" Tag="2" Click="OnUsageHeaderClick" />
               </Grid>
               <ListBox Grid.Row="2" x:Name="UsageList" Classes="dataRows" AutoScrollToSelectedItem="False" Background="Transparent" BorderThickness="0" AutomationProperties.Name="{local:Loc &quot;Session usage totals&quot;}">
                 <ListBox.ItemTemplate><DataTemplate x:DataType="local:UsageRow"><Border Classes="dataRow"><Grid ColumnDefinitions="*,80,64,84,78,84" ToolTip.Tip="{Binding Path}">
@@ -134,9 +126,9 @@
           </TabItem>
         </TabControl>
         <Grid HorizontalAlignment="Right" VerticalAlignment="Top" Height="34" MaxWidth="440" Margin="240,0,4,0">
-          <TextBlock x:Name="ProcessCountLabel" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-          <TextBlock x:Name="JobSummary" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" IsVisible="False" />
-          <TextBlock x:Name="UsageStatus" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" IsVisible="False" />
+          <TextBlock x:Name="ProcessCountLabel" TextAlignment="Right" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+          <TextBlock x:Name="JobSummary" TextAlignment="Right" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" IsVisible="False" />
+          <TextBlock x:Name="UsageStatus" TextAlignment="Right" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" IsVisible="False" />
         </Grid>
       </Grid>
       <TextBlock Grid.Row="4" x:Name="StatusLabel" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" />

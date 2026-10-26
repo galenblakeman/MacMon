@@ -82,14 +82,15 @@ public sealed class SettingsWindowTests
     }
 
     [AvaloniaTest]
-    public void ThemePaletteFollowsItsDefaultUntilACustomPaletteIsChosen()
+    public void ThemeChangesAlwaysSelectTheirDefaultPalette()
     {
         var window = Window();
         Get<ComboBox>(window, "ThemeChoice").SelectedItem = "Copper";
         Assert.That(Get<ComboBox>(window, "PaletteChoice").SelectedItem, Is.EqualTo("Copper"));
         Get<ComboBox>(window, "PaletteChoice").SelectedItem = "Ocean";
         Get<ComboBox>(window, "ThemeChoice").SelectedItem = "Candy";
-        Assert.That(Get<ComboBox>(window, "PaletteChoice").SelectedItem, Is.EqualTo("Ocean"));
+        Assert.That(Get<ComboBox>(window, "PaletteChoice").SelectedItem, Is.EqualTo("Candy"));
+        Get<ComboBox>(window, "PaletteChoice").SelectedItem = "Ocean";
         Click(window, "DefaultPalette");
         Assert.That(Get<ComboBox>(window, "PaletteChoice").SelectedItem, Is.EqualTo("Candy"));
         Get<ComboBox>(window, "ThemeChoice").SelectedItem = "Crystal";

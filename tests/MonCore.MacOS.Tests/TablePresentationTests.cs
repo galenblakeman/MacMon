@@ -185,6 +185,10 @@ public sealed class TablePresentationTests
             var items = list.GetVisualDescendants().OfType<ListBoxItem>().ToArray();
             Assert.That(items.Length, Is.GreaterThan(2));
             Assert.That(items.All(item => item.Bounds.Height <= 44), Is.True);
+            var cpuCell = items[0].GetVisualDescendants().OfType<TextBlock>().Single(t => t.Classes.Contains("cpuMetric"));
+            var cpuHeader = view.FindControl<TextBlock>("JobCpuHeader")!;
+            Assert.That(cpuHeader.TranslatePoint(new(cpuHeader.Bounds.Width, 0), window)!.Value.X,
+                Is.EqualTo(cpuCell.TranslatePoint(new(cpuCell.Bounds.Width, 0), window)!.Value.X).Within(1), "Job CPU column alignment");
             Assert.That(view.FindControl<ComboBox>("JobLimit")!.SelectedItem?.ToString(), Is.EqualTo("All"));
             using var frame = window.CaptureRenderedFrame(); Assert.That(frame, Is.Not.Null);
             if (output is not null) frame!.Save(Path.Combine(output, $"table-jobs-800-{theme}.png"), PngBitmapEncoderOptions.Default);
@@ -224,12 +228,18 @@ public sealed class TablePresentationTests
             var items = list.GetVisualDescendants().OfType<ListBoxItem>().ToArray();
             Assert.That(items.Length, Is.GreaterThanOrEqualTo(3));
             Assert.That(items.All(item => item.Bounds.Height <= 44), Is.True);
+            var cpuCell = items[0].GetVisualDescendants().OfType<TextBlock>().Single(t => t.Classes.Contains("cpuMetric"));
+            var cpuHeader = main.FindControl<Button>(tab == 0 ? "ProcessCpuHeader" : "UsageCpuHeader")!;
+            Assert.That(cpuHeader.TranslatePoint(new(cpuHeader.Bounds.Width, 0), window)!.Value.X,
+                Is.EqualTo(cpuCell.TranslatePoint(new(cpuCell.Bounds.Width, 0), window)!.Value.X).Within(1), "Numeric header and row alignment");
             foreach (var item in items)
                 Assert.That(item.GetVisualDescendants().OfType<Border>().Any(b => b.Classes.Contains("dataRow") && b.BorderThickness.Bottom == 1), Is.True);
             if (tab == 0)
             {
                 var pin = items[0].GetVisualDescendants().OfType<Button>().Single(b => b.Classes.Contains("rowPin"));
                 Assert.That(pin.Bounds.Width, Is.LessThanOrEqualTo(28), "Pin action must stay inside its dedicated column");
+                Assert.That(pin.TranslatePoint(default, window)!.Value.X,
+                    Is.LessThan(main.FindControl<Button>("ProcessNameHeader")!.TranslatePoint(default, window)!.Value.X));
             }
             var limit = main.FindControl<ComboBox>(tab == 0 ? "ProcessLimitBox" : "UsageLimitBox")!;
             Assert.That(limit.TranslatePoint(default, window)!.Value.X + limit.Bounds.Width, Is.LessThanOrEqualTo(size.Width));

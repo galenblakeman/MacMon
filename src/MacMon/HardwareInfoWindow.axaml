@@ -1,0 +1,22 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:MacMon"
+        x:Class="MacMon.HardwareInfoWindow" Title="{local:Loc &quot;About MacMon and hardware&quot;}" Width="640" Height="620" MinWidth="480" MinHeight="350" WindowStartupLocation="CenterOwner">
+  <Grid Margin="24" RowDefinitions="Auto,*,Auto" RowSpacing="18">
+    <StackPanel Spacing="6"><TextBlock x:Name="ProductVersion" FontSize="22" FontWeight="SemiBold" /><TextBlock Text="{local:Loc &quot;System and process monitoring for macOS&quot;}" Classes="label" /></StackPanel>
+    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+      <ItemsControl x:Name="InfoSections">
+        <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:HardwareSection">
+          <StackPanel Spacing="8" Margin="0,0,0,18">
+            <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" />
+            <ItemsControl ItemsSource="{Binding Entries}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="local:HardwareEntry">
+              <Grid ColumnDefinitions="155,*" ColumnSpacing="12" Margin="0,3"><TextBlock Text="{Binding Label}" Classes="label" /><SelectableTextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" /></Grid>
+            </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+          </StackPanel>
+        </DataTemplate></ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+    <Grid Grid.Row="2" RowDefinitions="Auto,Auto" RowSpacing="10">
+      <TextBlock Text="{local:Loc &quot;Snapshot taken when opened or refreshed.&quot;}" Classes="label" />
+      <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8"><Button x:Name="RefreshInfo" Content="{local:Loc &quot;Refresh&quot;}" /><Button x:Name="CopyDetails" Content="{local:Loc &quot;Copy details&quot;}" /><Button x:Name="CancelAction" Content="{local:Loc &quot;Close&quot;}" IsCancel="True" /></StackPanel>
+    </Grid>
+  </Grid>
+</Window>

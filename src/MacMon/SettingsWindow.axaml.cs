@@ -61,12 +61,11 @@ public sealed partial class SettingsWindow : Window
         SecondaryDiskChoice.SelectedItem = SecondaryDiskChoice.Items.OfType<MacDiskChoice>().First(d => d.Id == (preferences.SecondaryDiskId ?? ""));
         CaptureEditor.Load(preferences.Captures);
         Sections.SelectionChanged += (_, _) => ShowSection();
-        var previousTheme = preferences.Theme;
         ThemeChoice.SelectionChanged += (_, _) =>
         {
             var theme = ThemeChoice.SelectedItem as string ?? "Dark";
-            if (PaletteChoice.SelectedItem as string == Appearance.DefaultPalette(previousTheme)) PaletteChoice.SelectedItem = Appearance.DefaultPalette(theme);
-            previousTheme = theme; UpdatePreview();
+            PaletteChoice.SelectedItem = Appearance.DefaultPalette(theme);
+            UpdatePreview();
         };
         DefaultPalette.Click += (_, _) => PaletteChoice.SelectedItem = Appearance.DefaultPalette(ThemeChoice.SelectedItem as string);
         PaletteChoice.SelectionChanged += (_, _) => UpdatePreview();

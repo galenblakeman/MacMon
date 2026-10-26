@@ -1,0 +1,21 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:MacMon"
+        x:Class="MacMon.ExportDialog" Title="{local:Loc &quot;Export CSV&quot;}" Width="510" MinWidth="450" SizeToContent="Height" CanResize="False" WindowStartupLocation="CenterOwner">
+  <StackPanel Margin="24" Spacing="14">
+    <TextBlock Text="{local:Loc &quot;Export CSV&quot;}" FontSize="22" FontWeight="SemiBold" />
+    <TextBlock Text="{local:Loc &quot;Data&quot;}" FontWeight="SemiBold" />
+    <RadioButton x:Name="ResourceChoice" GroupName="ExportData" IsChecked="True" Content="{local:Loc &quot;Resource history&quot;}" />
+    <RadioButton x:Name="ProcessChoice" GroupName="ExportData" Content="{local:Loc &quot;Retained process samples&quot;}" />
+    <RadioButton x:Name="UsageChoice" GroupName="ExportData" Content="{local:Loc &quot;Session usage totals&quot;}" />
+    <Separator />
+    <StackPanel x:Name="TimeChoices" Spacing="10">
+      <TextBlock Text="{local:Loc &quot;Time range&quot;}" FontWeight="SemiBold" />
+      <RadioButton x:Name="RetainedChoice" GroupName="ExportTime" IsChecked="True" Content="{local:Loc &quot;All retained history&quot;}" />
+      <RadioButton x:Name="RangeChoice" GroupName="ExportTime" Content="{local:Loc &quot;Current chart range&quot;}" />
+    </StackPanel>
+    <TextBlock x:Name="DataNote" Classes="label" TextWrapping="Wrap" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button x:Name="CancelAction" Content="{local:Loc &quot;Cancel&quot;}" IsCancel="True" />
+      <Button x:Name="ExportCsv" Content="{local:Loc &quot;Export…&quot;}" />
+    </StackPanel>
+  </StackPanel>
+</Window>

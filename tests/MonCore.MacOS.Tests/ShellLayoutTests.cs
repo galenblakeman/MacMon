@@ -53,7 +53,7 @@ public sealed class ShellLayoutTests
     }
 
     [AvaloniaTest]
-    public void TitleExportAndAutomaticCapturePopupsOpenFromActualInput()
+    public void AutomaticCapturePopupOpensFromActualInput()
     {
         var main = new MainWindow();
         main.FindControl<Grid>("MainLayout")!.IsVisible = true;
@@ -61,7 +61,7 @@ public sealed class ShellLayoutTests
         var shell = main.Content; main.Content = null;
         var window = new Window { Width = 800, Height = 900, Content = shell };
         window.Show(); Dispatcher.UIThread.RunJobs();
-        foreach (var name in new[] { "OpenExport", "AutomaticCaptures" })
+        foreach (var name in new[] { "AutomaticCaptures" })
         {
             var button = main.FindControl<Button>(name)!;
             var point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;

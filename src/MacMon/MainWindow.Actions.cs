@@ -22,15 +22,30 @@ public sealed partial class MainWindow
     }
     private async Task ShowHardwareInfo()
     {
-        var r = _session.HasLiveSample ? _session.Latest?.Resources : null;
-        var text = $"MacMon {typeof(MainWindow).Assembly.GetName().Version?.ToString(3)}\n\n" +
-            $"Computer: {Environment.MachineName}\nmacOS: {Environment.OSVersion.Version}\nArchitecture: {System.Runtime.InteropServices.RuntimeInformation.OSArchitecture}\n" +
-            $"Logical CPU cores: {Environment.ProcessorCount}\nInstalled memory: {GiB(r?.TotalMemoryBytes)}\n" +
-            $"Data volume: {(_session.HasLiveSample ? _source.Volume.Path : "—")}\nAvailable: {GiB(_session.HasLiveSample ? _source.Volume.FreeBytes : null)} / {GiB(_session.HasLiveSample ? _source.Volume.TotalBytes : null)}\n\n" +
-            "Network interfaces:\n" + string.Join("\n", _source.NetworkInterfaces.Select(n => $"{n.Name} · {n.Id}"));
-        var dialog = new ProcessDialog("About MacMon and hardware", text);
+        var dialog = new HardwareInfoWindow(() =>
+        {
+            var r = _session.HasLiveSample ? _session.Latest?.Resources : null;
+            HardwareEntry Entry(string label, string value) => new(UiText.Get(label), value);
+            return new HardwareSection[]
+            {
+                new(UiText.Get("System"), [Entry("Computer", Environment.MachineName), Entry("macOS", Environment.OSVersion.Version.ToString()),
+                    Entry("Architecture", System.Runtime.InteropServices.RuntimeInformation.OSArchitecture.ToString())]),
+                new(UiText.Get("Processor and memory"), [Entry("Logical CPU cores", Environment.ProcessorCount.ToString()), Entry("Installed memory", GiB(r?.TotalMemoryBytes)),
+                    Entry("GPU", r?.GpuName ?? "—")]),
+                new(UiText.Get("Disk"), [Entry("Data volume", _session.HasLiveSample ? _source.Volume.Path : "—"),
+                    Entry("Available", GiB(_session.HasLiveSample ? _source.Volume.FreeBytes : null)), Entry("Capacity", GiB(_session.HasLiveSample ? _source.Volume.TotalBytes : null))]),
+                new(UiText.Get("Network interfaces"), _source.NetworkInterfaces.Select(n => new HardwareEntry(n.Id, n.Name)).ToArray())
+            };
+        });
         if (CompactMode) dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        await dialog.ShowDialog<bool>(this);
+        await dialog.ShowDialog(this);
+    }
+    private async Task ShowExportDialog()
+    {
+        var dialog = new ExportDialog();
+        if (CompactMode) dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        if (await dialog.ShowDialog<ExportSelection?>(this) is { } selection)
+            await Export(selection.Kind, selection.ChartRange);
     }
     private void OnRowPinClick(object? sender, RoutedEventArgs args)
     {

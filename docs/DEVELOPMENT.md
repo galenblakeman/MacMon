@@ -945,3 +945,46 @@ ad-hoc signature verification, ZIP integrity and SHA-256 verification pass.
 
 Artifact: `MacMon-0.12.1-osx-arm64-dev.zip`, SHA-256:
 `0a734705c0276b21d8ea091828de330fe37165114c4171531828bb810827c5de`.
+
+
+## WinMon dialog and layout parity — 0.13.0/build 23
+
+Info now uses a dedicated window with labeled System, Processor and memory,
+Disk and Network sections, selectable values, Refresh and Copy actions. Full
+and compact Export open the same modal data/time-range chooser, followed by
+the native CSV save picker. Usage exports remain whole-session; history exports
+can select all retained samples or the current chart range, independent of table
+filters. Cancel performs no export.
+
+Settings pairs field labels with their controls horizontally, including the
+capture folder. Every theme change now applies its associated default palette;
+manual palette changes remain possible afterward. All null-safe item-template
+handling from 0.12.1 is preserved. English and Spanish labels cover new dialogs.
+
+Charts draw opaque filled areas between consecutive valid points without
+bridging source changes, unavailable values or time gaps. Fill and trace use
+one geometry each per series rather than per-point geometry objects. Heatmaps
+retain intensity shading. Axis labels render above fills; narrow preview charts
+use fewer X-axis labels to avoid overlap.
+
+Tab summaries align right. Processes shows Processes / observed Threads /
+Handles unavailable, with the Mac limitation and displayed-row count in its
+tooltip. Process pins move to the first column. Table lists reserve a fixed
+12px scrollbar gutter, rows remove container borders, and numeric sort headers
+stretch/right-align against the same row column definitions. Rendered tests
+check header/cell right edges within one pixel at supported widths in both
+themes, plus the left-side pin position.
+
+Native verification on the M2 Pro covered Info refresh/formatting, full and
+compact Export dialogs, Usage range hiding, actual retained-process CSV export
+(19 columns, 134,177 rows in a temporary local file), custom Neon palette changing
+to Evergreen Instrument's Warm Earth Tones default, and process/jobs/usage
+columns and right-side summaries. Canceled the appearance draft to preserve
+saved Midnight Ink / Neon preferences; returned to full Processes view.
+
+Validation: `bash tools/verify.sh --smoke` passes: 172 Mac tests, three
+release-workflow tests, zero build warnings/errors, native collector and launchd
+smoke. Native UI inspection and the local CSV write pass. Strict ad-hoc signing,
+ZIP integrity and SHA-256 verification pass. Native diagnostic output is empty.
+Artifact: `MacMon-0.13.0-osx-arm64-dev.zip`, SHA-256:
+`6801ea2938ee227c3459c70300645d16d962771a0b30110bc9195d917511ce0e`.

@@ -57,7 +57,7 @@ public sealed class ButtonLabelTemplate : IDataTemplate
         "LoginItems" => "Startup", "SaveSettings" => "Save",
         "ChangeFolder" or "OpenFolder" or "RevealExecutable" or "RevealUsageApp" => "Folder",
         "ResetUsage" or "DefaultShortcut" or "DefaultPalette" or "DefaultFolder" => "Reset",
-        "RefreshJobs" => "Reset", "ConfigureCaptures" => "Settings", "OpenCaptureReport" => "Document",
+        "RefreshJobs" or "RefreshInfo" => "Reset", "ConfigureCaptures" => "Settings", "OpenCaptureReport" => "Document",
         "CloseDetails" or "CancelSettings" or "CancelAction" => "Close",
         not null when name.StartsWith("Copy", StringComparison.Ordinal) => "Copy",
         not null when name.StartsWith("Export", StringComparison.Ordinal) || name.EndsWith("Csv", StringComparison.Ordinal) => "Export",

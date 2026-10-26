@@ -57,6 +57,7 @@ public sealed partial class MainWindow : Window
         _historyOrigins = new HistoryProvenance(_bootId);
         VersionLabel.Text = typeof(MainWindow).Assembly.GetName().Version?.ToString(3);
         OpenInfo.Click += async (_, _) => await ShowHardwareInfo();
+        OpenExport.Click += async (_, _) => await ShowExportDialog();
         MacDesktopIntegration.Activated += ShowFromShortcut;
         _session = new MonitorSession(() => _source,
             () => new SamplingOptions(Retain: _retain),
@@ -86,7 +87,7 @@ public sealed partial class MainWindow : Window
         JobsView.SummaryChanged += summary => { JobSummary.Text = summary; ToolTip.SetTip(JobSummary, JobsView.SummaryDetails); };
         EnterCompactView.Click += (_, _) => SetCompactView(true);
         CompactPanel.InfoRequested += async () => await ShowHardwareInfo();
-        CompactPanel.ExportRequested += async kind => await Export(kind);
+        CompactPanel.ExportRequested += async () => await ShowExportDialog();
         CompactPanel.FullViewRequested += () => SetCompactView(false);
         CompactPanel.SettingsRequested += async () => await ShowSettings();
         CompactPanel.TopmostChanged += value => AlwaysOnTop.IsChecked = value;
@@ -115,7 +116,6 @@ public sealed partial class MainWindow : Window
         UsageSearch.TextChanged += (_, _) => UpdateUsage();
 
         ResetUsage.Click += (_, _) => { _session.Usage.Reset(DateTimeOffset.Now); UpdateUsage(); };
-        ExportUsage.Click += async (_, _) => { OpenExport.Flyout?.Hide(); await Export(CsvExportKind.UsageTotals); };
         DataTabs.SelectionChanged += (_, args) => { if (args.Source == DataTabs) { UpdateTabSummary(); UpdateProcesses(); UpdateUsage(); JobsView.SetActive(!CompactMode && DataTabs.SelectedIndex == 1); } };
         ProcessSearchBox.TextChanged += (_, _) => UpdateProcesses();
 
@@ -149,8 +149,6 @@ public sealed partial class MainWindow : Window
         Chart.SampleSelected += InspectSample;
         CaptureMode.Click += (_, _) => { if (_session.Latest is { } sample) InspectSample(sample); };
         LiveMode.Click += (_, _) => ReturnToLive();
-        ExportResources.Click += async (_, _) => { OpenExport.Flyout?.Hide(); await Export(CsvExportKind.ResourceHistory); };
-        ExportProcesses.Click += async (_, _) => { OpenExport.Flyout?.Hide(); await Export(CsvExportKind.ProcessSamples); };
         AlwaysOnTop.IsCheckedChanged += (_, _) => { Topmost = AlwaysOnTop.IsChecked == true; CompactPanel.AlwaysOnTop = Topmost; };
         ShowProperties.Click += async (_, _) => await ShowProcessDetails();
         CopyProcessDetails.Click += async (_, _) => await CopyProcess();
@@ -274,8 +272,8 @@ public sealed partial class MainWindow : Window
         EmptyProcessLabel.Text = _session.Error == SamplingError.ProcessesUnavailable
             ? "Process enumeration unavailable · retrying…"
             : sample.IsGap ? "Establishing process baselines…" : "No matching processes";
-        ProcessCountLabel.Text = $"{rows.Length} shown · processes {sample.Resources.ProcessCount?.ToString() ?? "—"} · observed threads {sample.Processes.Sum(p => (long)(p.ThreadCount ?? 0))}";
-        ToolTip.SetTip(ProcessCountLabel, $"{sample.UnavailableProcesses} processes unavailable. Thread count sums readable observations; handles are not collected on macOS.");
+        ProcessCountLabel.Text = UiText.Format("Processes: {0} · Threads: {1} · Handles: —", sample.Resources.ProcessCount?.ToString() ?? "—", sample.Processes.Sum(p => (long)(p.ThreadCount ?? 0)));
+        ToolTip.SetTip(ProcessCountLabel, $"{rows.Length} rows shown; {sample.UnavailableProcesses} processes unavailable. Thread count sums readable observations; handles are not collected on macOS.");
         UpdateSelection();
     }
 
@@ -317,9 +315,9 @@ public sealed partial class MainWindow : Window
         return TrailHistory().TakeLast(ProcessRanking.DefaultWindowSeconds + 1).ToArray();
     }
 
-    private async Task Export(CsvExportKind kind)
+    private async Task Export(CsvExportKind kind, bool chartRange = true)
     {
-        var samples = HistoryInspection.VisibleSamples(_session.History.Samples, RangeSeconds).ToArray();
+        var samples = (chartRange ? HistoryInspection.VisibleSamples(_session.History.Samples, RangeSeconds) : _session.History.Samples).ToArray();
         var apps = _session.Usage.Apps.ToArray();
         var since = _session.Usage.Since;
         var machine = _session.Usage.MachineBusyTicks;

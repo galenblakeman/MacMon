@@ -25,8 +25,8 @@
       </Grid>
     </Border>
     <WrapPanel Orientation="Horizontal"><TextBlock Text="{local:Loc &quot;Wait&quot;}" VerticalAlignment="Center" /><NumericUpDown x:Name="Cooldown" Minimum="1" Maximum="3600" Width="90" Margin="8,0" /><TextBlock Text="{local:Loc &quot;seconds before capturing the same rule again&quot;}" VerticalAlignment="Center" TextWrapping="Wrap" /></WrapPanel>
-    <TextBlock Text="{local:Loc &quot;Save location&quot;}" Classes="label" />
-    <TextBox x:Name="CaptureFolder" IsReadOnly="True" AutomationProperties.Name="{local:Loc &quot;Capture save location&quot;}" />
+    <Grid ColumnDefinitions="120,*" ColumnSpacing="12"><TextBlock Text="{local:Loc &quot;Save location&quot;}" Classes="label" VerticalAlignment="Center" />
+    <TextBox Grid.Column="1" x:Name="CaptureFolder" IsReadOnly="True" AutomationProperties.Name="{local:Loc &quot;Capture save location&quot;}" /></Grid>
     <StackPanel Orientation="Horizontal" Spacing="8"><Button x:Name="ChangeFolder" Content="{local:Loc &quot;Change…&quot;}" /><Button x:Name="OpenFolder" Content="{local:Loc &quot;Open folder&quot;}" /><Button x:Name="DefaultFolder" Content="{local:Loc &quot;Default&quot;}" /></StackPanel>
     <TextBlock Text="{local:Loc &quot;The newest 200 MacMon reports are kept in each folder. Existing reports stay where they were saved.&quot;}" Classes="label" TextWrapping="Wrap" />
     <CheckBox x:Name="NotifyCapture" Content="{local:Loc &quot;Notify when a report is saved&quot;}" />
