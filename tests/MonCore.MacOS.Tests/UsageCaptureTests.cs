@@ -102,6 +102,13 @@ public sealed class UsageCaptureTests
     }
 
     [Test]
+    public void ReportUtcLabelUsesUtcEvenWhenSampleHasLocalOffset()
+    {
+        var sample = Sample(1) with { Timestamp = new DateTimeOffset(2026, 10, 25, 22, 0, 0, TimeSpan.FromHours(-5)) };
+        Assert.That(MacCaptureReports.Text(sample, [], "test"), Does.Contain("UTC: 2026-10-26T03:00:00.0000000+00:00"));
+    }
+
+    [Test]
     public async Task FailedReportWriteIsReportedWithoutFaultingTheDrain()
     {
         var file = Path.GetTempFileName();

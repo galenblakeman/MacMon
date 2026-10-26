@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.Platform.Storage;
@@ -21,6 +22,12 @@ public sealed partial class MainWindow : Window
     private bool _refreshingCaptures;
     private bool _closing;
     private bool _shutdownComplete;
+    private readonly string? _bootId = MacBootIdentity.Read();
+    private readonly string _preferencesPath = Path.Combine(MacPaths.AppSupport, "settings.json");
+    private MacPreferences _preferences = new();
+    private bool _preferencesWritable = true;
+    private bool _processActionPending;
+    private Task<string?[]>? _termination;
     private ProcessSelection _selection = new(MacFrameSource.IdentityPolicy);
     private volatile Func<ProcessUsage, bool>? _retain;
     private bool _refreshingRows;
@@ -115,6 +122,12 @@ public sealed partial class MainWindow : Window
         };
         ExportResources.Click += async (_, _) => await Export(CsvExportKind.ResourceHistory);
         ExportProcesses.Click += async (_, _) => await Export(CsvExportKind.ProcessSamples);
+        AlwaysOnTop.IsCheckedChanged += (_, _) => Topmost = AlwaysOnTop.IsChecked == true;
+        ShowProperties.Click += async (_, _) => await ShowProcessDetails();
+        CopyProcessDetails.Click += async (_, _) => await CopyProcess();
+        RevealExecutable.Click += (_, _) => RevealSelectedExecutable();
+        EndProcess.Click += async (_, _) => await EndSelectedProcesses();
+        ApplyPreferences();
         Opened += (_, _) => _sampling = _session.Run(_shutdown.Token);
         Closing += OnClosing;
     }
@@ -208,6 +221,7 @@ public sealed partial class MainWindow : Window
             PinSelection.IsEnabled = false;
             ProcessCountLabel.Text = "Capture expired";
             SelectionLabel.Text = "Return to Live or select another moment.";
+            ProcessActionsPanel.IsVisible = false;
             return;
         }
         ResidentHeader.Text = Grouped ? "Resident sum*" : "Resident";
@@ -229,6 +243,13 @@ public sealed partial class MainWindow : Window
     private void UpdateSelection()
     {
         var selected = _selection.Resolve(LiveHistory(), Grouped, _inspection.IsHistorical, Sort);
+        ProcessActionsPanel.IsVisible = selected is not null;
+        RevealExecutable.IsEnabled = selected is not null && selected.Usage.ImagePath.Length > 0;
+        EndProcess.Content = Grouped ? "End group…" : "End process…";
+        EndProcess.IsEnabled = !_processActionPending && !_inspection.IsHistorical && selected?.State == PinnedProcessState.Present &&
+            selected.Usage.ProcessId > 1 && (Grouped
+                ? selected.Usage.MemberIds.Count > 0 && selected.Usage.MemberIds.All(pid => pid > 1 && pid != Environment.ProcessId)
+                : selected.Usage.ProcessId != Environment.ProcessId);
         PinSelection.IsEnabled = selected is not null;
         PinSelection.Content = selected is not null && _pins.Contains(selected.Usage, Grouped) ? "Unpin selected" : "Pin selected";
         SelectionLabel.Text = selected is null ? "Select a process to inspect its lifetime and path."
@@ -349,6 +370,99 @@ public sealed partial class MainWindow : Window
         if (Clipboard is { } clipboard) { await clipboard.SetTextAsync(text); _operationStatus = "Capture copied."; }
     }
 
+    private (PinnedProcess? Selected, MonitorSample? Sample) SelectedProcess() =>
+        (_selection.Resolve(LiveHistory(), Grouped, _inspection.IsHistorical, Sort), TrailHistory().LastOrDefault());
+
+    private async Task ShowProcessDetails()
+    {
+        var (selected, sample) = SelectedProcess();
+        if (selected is null || sample is null) return;
+        await new ProcessDialog("Process properties", ProcessDetails.Text(selected, sample, Grouped, _inspection.IsHistorical)).ShowDialog<bool>(this);
+    }
+
+    private async Task CopyProcess()
+    {
+        var (selected, sample) = SelectedProcess();
+        if (selected is null || sample is null || Clipboard is not { } clipboard) return;
+        await clipboard.SetTextAsync(ProcessDetails.Text(selected, sample, Grouped, _inspection.IsHistorical));
+        _operationStatus = "Process details copied.";
+    }
+
+    private void RevealSelectedExecutable()
+    {
+        var (selected, _) = SelectedProcess();
+        if (selected is null || !File.Exists(selected.Usage.ImagePath)) { _operationStatus = "Executable path is unavailable."; return; }
+        try { using var reveal = Process.Start(new ProcessStartInfo("/usr/bin/open")
+            { UseShellExecute = false, ArgumentList = { "-R", selected.Usage.ImagePath } }); }
+        catch (Exception ex) when (ex is IOException or System.ComponentModel.Win32Exception)
+        { _operationStatus = $"Could not reveal executable: {ex.Message}"; }
+    }
+
+    private async Task EndSelectedProcesses()
+    {
+        var (selected, _) = SelectedProcess();
+        if (_processActionPending || _inspection.IsHistorical || selected?.State != PinnedProcessState.Present || _session.LatestFull is not { } latest) return;
+        var usage = selected.Usage;
+        var policy = MacFrameSource.IdentityPolicy;
+        var members = latest.Processes.Where(process => Grouped
+            ? policy.Comparer.Equals(policy.ExecutableKey(process), policy.ExecutableKey(usage))
+            : process.Identity == usage.Identity).ToArray();
+        if (members.Length == 0) { _operationStatus = "The selected process is no longer observed."; return; }
+        var actions = new MacProcessActions();
+        var targets = members.Select(actions.Prepare).ToArray();
+        if (targets.Any(target => target is null))
+        { _operationStatus = "Could not prepare every target. System, other-user, MacMon, changed or inaccessible processes are protected."; return; }
+        var details = "Request SIGTERM for exactly these observed process lifetimes? Unsaved work can be lost.\n" +
+            "Processes started after this dialog opens are excluded. macOS may deny the request, and a process may ignore SIGTERM.\n\n" +
+            string.Join("\n", targets.Select(target => $"{target!.Process.Name} · PID {target.Process.ProcessId}\n{target.Process.ImagePath}"));
+        _processActionPending = true;
+        try
+        {
+            if (!await new ProcessDialog(Grouped ? "End executable group?" : "End process?", details, true).ShowDialog<bool>(this)) return;
+            _termination = Task.Run(() => targets.Select(target => actions.Terminate(target!)).ToArray());
+            var results = await _termination;
+            var errors = results.Where(error => error is not null).ToArray();
+            _operationStatus = $"Termination requested for {results.Length - errors.Length} of {results.Length} captured targets." +
+                (errors.Length > 0 ? $" {errors[0]}" : "");
+        }
+        finally { _processActionPending = false; if (!_closing) UpdateSelection(); }
+    }
+
+    private void ApplyPreferences()
+    {
+        var loaded = MacPreferenceStore.Load(_preferencesPath, _bootId);
+        _preferences = loaded.Preferences; _preferencesWritable = loaded.CanSave;
+        if (loaded.Error is not null) _operationStatus = loaded.Error;
+        Width = _preferences.Width; Height = _preferences.Height;
+        if (Screens.Primary is { } screen)
+        {
+            Width = Math.Min(Width, Math.Max(MinWidth, screen.WorkingArea.Width / screen.Scaling - 40));
+            Height = Math.Min(Height, Math.Max(MinHeight, screen.WorkingArea.Height / screen.Scaling - 60));
+        }
+        MainLayout.RowDefinitions[1].Height = new GridLength(_preferences.DashboardRatio, GridUnitType.Star);
+        MainLayout.RowDefinitions[3].Height = new GridLength(1, GridUnitType.Star);
+        _pins.Restore(_preferences.Pins);
+        GroupProcesses.IsChecked = _preferences.Grouped; PinnedOnly.IsChecked = _preferences.PinnedOnly;
+        ProcessSortBox.SelectedIndex = _preferences.ProcessSort; UsageSortBox.SelectedIndex = _preferences.UsageSort;
+        DataTabs.SelectedIndex = _preferences.DataTab; HistoryRange.SelectedIndex = _preferences.HistoryRange;
+        AlwaysOnTop.IsChecked = _preferences.AlwaysOnTop;
+        _source.NetworkInterfaceId = _preferences.NetworkId;
+        _captureOptions = _preferences.Captures;
+        _captureRules = new(_captureOptions.Rules, TimeSpan.FromSeconds(_captureOptions.CooldownSeconds), Environment.ProcessorCount);
+        UpdateRetention();
+    }
+
+    private MacPreferences PreferencesSnapshot() => _preferences with
+    {
+        BootId = _bootId, Grouped = Grouped, PinnedOnly = PinnedOnly.IsChecked == true,
+        Pins = _pins.Snapshot(), ProcessSort = ProcessSortBox.SelectedIndex, UsageSort = UsageSortBox.SelectedIndex,
+        DataTab = DataTabs.SelectedIndex, HistoryRange = HistoryRange.SelectedIndex, NetworkId = _source.NetworkInterfaceId,
+        AlwaysOnTop = Topmost, Captures = _captureOptions,
+        Width = WindowState == WindowState.Normal ? Width : _preferences.Width,
+        Height = WindowState == WindowState.Normal ? Height : _preferences.Height,
+        DashboardRatio = MainLayout.RowDefinitions[1].Height.Value / Math.Max(0.01, MainLayout.RowDefinitions[3].Height.Value)
+    };
+
     private async void OnClosing(object? sender, WindowClosingEventArgs args)
     {
         if (_shutdownComplete) return;
@@ -362,6 +476,14 @@ public sealed partial class MainWindow : Window
         await _shutdown.CancelAsync();
         if (_sampling is not null) await _sampling;
         await _reportWriter.Complete();
+        if (_termination is not null) await _termination;
+        if (_preferencesWritable)
+        {
+            var snapshot = PreferencesSnapshot().Normalized(_bootId);
+            try { await Task.Run(() => MacPreferenceStore.Save(_preferencesPath, snapshot)); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            { await new ProcessDialog("Settings could not be saved", $"{ex.Message}\nThe app will close without saving these settings.").ShowDialog<bool>(this); }
+        }
         _shutdown.Dispose();
         _shutdownComplete = true;
         Close();

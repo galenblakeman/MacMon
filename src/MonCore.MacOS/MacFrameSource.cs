@@ -33,7 +33,7 @@ public sealed class MacFrameSource : IFrameSource
     public CollectorCapabilities Capabilities { get; } = new(
         SystemMetricCapabilities.Cpu | SystemMetricCapabilities.Memory | SystemMetricCapabilities.Disk | SystemMetricCapabilities.Network,
         ProcessMetricCapabilities.Cpu | ProcessMetricCapabilities.ResidentMemory |
-        ProcessMetricCapabilities.Threads | ProcessMetricCapabilities.ExecutablePath | ProcessMetricCapabilities.Io, ProcessActionCapabilities.None);
+        ProcessMetricCapabilities.Threads | ProcessMetricCapabilities.ExecutablePath | ProcessMetricCapabilities.Io, ProcessActionCapabilities.Terminate);
 
     public CapturedFrame Capture(SamplingOptions options)
     {

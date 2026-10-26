@@ -73,7 +73,7 @@ internal sealed unsafe partial class DarwinProcessApi : IMacProcessApi
             : null;
         return new NativeProcessInfo((int)bsd.Pid, (int)bsd.ParentPid, bsd.StartSeconds, bsd.StartMicroseconds,
             name.Length == 0 ? $"PID {bsd.Pid}" : name, cpu, task?.ResidentSize,
-            task is { ThreadCount: >= 0 } threads ? threads.ThreadCount : null);
+            task is { ThreadCount: >= 0 } threads ? threads.ThreadCount : null) { EffectiveUserId = bsd.Uid };
     }
 
     private static string Text(byte* buffer, int size)

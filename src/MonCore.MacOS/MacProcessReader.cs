@@ -22,6 +22,7 @@ internal interface IMacProcessReader : IDisposable
 internal sealed record NativeProcessInfo(int ProcessId, int ParentProcessId, ulong StartSeconds,
     ulong StartMicroseconds, string Name, ulong? CpuNanoseconds, ulong? ResidentBytes, long? ThreadCount)
 {
+    public uint? EffectiveUserId { get; init; }
     public ulong? DiskReadBytes { get; init; }
     public ulong? DiskWriteBytes { get; init; }
 }

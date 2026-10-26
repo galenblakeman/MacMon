@@ -2,7 +2,7 @@
 
 macOS resource monitor built with C# and Avalonia, using WinMon's portable MonCore library.
 
-MacMon provides live system CPU usage, a two-minute CPU/memory chart, estimated physical-memory usage, live memory pressure and available space on the data volume. The process list shows CPU averaged over five seconds, resident memory and thread counts. Switch between individual processes and executable groups, pin rows, filter to pins, and follow 30-second trends for the selected CPU/memory/thread metric. Grouped memory shows a resident sum that can count shared pages more than once. Search by name or PID, sort by CPU/memory/threads/disk I/O, and select a row to inspect its start time and executable path. Individual selection and pins follow a process lifetime, so a reused PID cannot inherit them. Group pins follow the exact executable path; pins currently last for this session.
+MacMon provides live system CPU usage, a two-minute CPU/memory chart, estimated physical-memory usage, live memory pressure and available space on the data volume. The process list shows CPU averaged over five seconds, resident memory and thread counts. Switch between individual processes and executable groups, pin rows, filter to pins, and follow 30-second trends for the selected CPU/memory/thread metric. Grouped memory shows a resident sum that can count shared pages more than once. Search by name or PID, sort by CPU/memory/threads/disk I/O, and select a row to inspect its start time and executable path. Individual selection and pins follow a process lifetime, so a reused PID cannot inherit them. Group pins follow the exact executable path; pins and view preferences are saved on clean exit. Individual pins restore only within the same boot; group pins can follow later instances.
 
 Network throughput follows the chosen interface (Automatic prefers an active Ethernet/Wi-Fi interface). Storage read/write rates aggregate all readable block-storage drivers, separately from the data volume’s free space. A second history plot shows network and storage total throughput on an automatic bytes-per-second scale. Process Disk I/O measures disk reads/writes only.
 
@@ -33,4 +33,6 @@ open artifacts/osx-arm64/MacMon.app
 
 The bundle is ad-hoc signed for development. Developer ID signing, notarization and distribution are future work. Intel packaging accepts `osx-x64`; it has not been validated on Intel hardware.
 
-GPU, launchd, process actions and saved history are not implemented yet. See [development notes](docs/DEVELOPMENT.md) for contracts, verification and remaining work.
+Select a process for Properties, Copy details, Reveal in Finder and a confirmed termination request. Termination uses a captured process generation, protects system/other-user/MacMon targets, and excludes processes started after confirmation opens. Historical views disable termination. Always on top, ranking/grouping, pins, history range, network selection, capture rules, pane ratio and window size restore on restart. Preferences live at `~/Library/Application Support/MacMon/settings.json`; invalid files are preserved and defaults are used.
+
+GPU, launchd and saved history are not implemented yet. See [development notes](docs/DEVELOPMENT.md) for contracts, verification and remaining work.
