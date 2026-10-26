@@ -656,4 +656,24 @@ the available width. The collector benchmark observed 411 processes at 6.51ms
 median / 6.92ms CPU and 1,050,105 allocated bytes per capture (collector only).
 Native smoke exercised disk0 as Disk 2 alongside the aggregate and changing CPU/
 GPU readings. Distinct-device and disconnect cases use fixtures; no physical
-unplug was performed. Final package refresh/native history confirmation follow.
+unplug was performed. Final package/native history confirmation is recorded below.
+
+Final 0.10.0/build 12 package verification: rebuilt from 39a0abc after a clean
+quit, passed ad-hoc strict signing and packaged resource/launchd smoke. Native
+settings selection of disk0 was confirmed before saving; Disk 2 reported live
+SSD throughput, GPU Focus enabled its series, and the six-gauge compact view
+rendered correctly. A clean restart retained the disk choice and Focus mode.
+The format-2 native history file and restored capture contained GPU 61.0% and
+primary/secondary disk 424.0 KiB/s, confirming the hardware persistence fix.
+CPU clock estimates continued live around 2.8–3.0 GHz; GPU showed 56–64% during
+native UI interaction. These are observations on this M2 Pro, not cross-hardware
+validation or a calibrated hardware-frequency measurement.
+
+The test's Disk 2 selection was returned to Off to avoid duplicating the existing
+aggregate, and original preferences were verified after a clean quit: Dark/High
+contrast/Bowl, Usage tab, Focus CPU, 30m, original series mask 15, 884×990 full
+size, compact width 1000, ratio 1.92 and always-on-top off. The final package is
+left open in Live mode, showing a 2.84 GHz estimate and 58% GPU at the last check.
+ZIP integrity and SHA-256 verification passed for
+`MacMon-0.10.0-osx-arm64-dev.zip`:
+`a36265235145b6839c102de8d9361c36c74323a7a1259271de57c2a94e644e38`.
