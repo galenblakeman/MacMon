@@ -31,8 +31,10 @@
     </Style>
     <Style Selector="TextBlock.toolbarLabel"><Setter Property="FontSize" Value="13" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
     <Style Selector="TextBlock.columnLabel"><Setter Property="FontSize" Value="11" /><Setter Property="Foreground" Value="{DynamicResource MacMutedBrush}" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
-    <Style Selector="ComboBox"><Setter Property="MinHeight" Value="28" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="6,3" /></Style>
+    <Style Selector="ComboBox"><Setter Property="VerticalContentAlignment" Value="Center" /><Setter Property="MinHeight" Value="28" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="6,3" /></Style>
     <Style Selector="TextBox"><Setter Property="MinHeight" Value="28" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="6,3" /></Style>
+    <Style Selector="ComboBoxItem"><Setter Property="VerticalContentAlignment" Value="Center" /></Style>
+    <Style Selector="ComboBox.rankingChoice"><Setter Property="MinWidth" Value="0" /><Setter Property="Padding" Value="3,2" /></Style>
     <Style Selector="Button.titleAction, ToggleButton.titleAction"><Setter Property="chrome:WindowDecorationProperties.ElementRole" Value="User" /><Setter Property="Background" Value="Transparent" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="6,4" /></Style>
     <Style Selector="Button.chip, RadioButton.chip"><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="7,3" /><Setter Property="MinHeight" Value="26" /><Setter Property="Background" Value="Transparent" /></Style>
     <Style Selector="RadioButton.chip"><Setter Property="Template"><ControlTemplate><Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}"><ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border></ControlTemplate></Setter></Style>

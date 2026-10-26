@@ -786,3 +786,16 @@ Strict ad-hoc signing, packaged resource/launchd smoke and ZIP integrity/checksu
 verification pass. The app is left open in Live mode with the existing settings.
 Artifact: `MacMon-0.11.1-osx-arm64-dev.zip`, SHA-256:
 `04e1e7af39ec6016a1b144a697f8473724821e01c31d74a9ebded275c5fca379`.
+
+
+## Compact ranking dropdowns — 0.11.2/build 15
+
+Processes, Jobs and Usage use 54px Top selectors and 96px sort-by selectors,
+with reduced horizontal padding. ComboBox selected content and ComboBoxItem
+content align vertically in the center across the app. Native inspection
+confirmed all three table headers; the Processes toolbar fits one line at the
+existing 884px window width. Returned to Processes/Live after inspection.
+
+Validation: 15 table/shell regression checks pass, zero build warnings/errors.
+Packaged resource/launchd smoke, strict signing and ZIP/checksum verification
+pass. Artifact: `MacMon-0.11.2-osx-arm64-dev.zip`, SHA-256: `4cdee8333579aff5acc35148d6484adc1a37a84c2ecbe9db4bc109ad0396f01a`.
