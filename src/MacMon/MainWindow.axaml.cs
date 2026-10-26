@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.Platform.Storage;
 using Avalonia.Input.Platform;
+using Avalonia.Input;
 using MonCore.MacOS;
 using WinMon.Monitoring;
 
@@ -30,6 +31,10 @@ public sealed partial class MainWindow : Window
     private readonly string _preferencesPath = Path.Combine(MacPaths.AppSupport, "settings.json");
     private MacPreferences _preferences = new();
     private bool _preferencesWritable = true;
+    private bool _keepHistory;
+    private bool _settingsOpen;
+    private int _settingsSection;
+    private Task<string?>? _settingsSave;
     private bool _processActionPending;
     private Task<string?[]>? _termination;
     private ProcessSelection _selection = new(MacFrameSource.IdentityPolicy);
@@ -67,13 +72,12 @@ public sealed partial class MainWindow : Window
         }));
         _session.LiveSampleRecorded += ObserveCaptures;
         _session.LiveSampleRecorded += JobsView.ObserveLiveSample;
-        ConfigureCaptures.Click += async (_, _) =>
+        OpenSettings.Click += async (_, _) => await ShowSettings();
+        ConfigureCaptures.Click += async (_, _) => await ShowSettings(3);
+        KeyDown += async (_, args) =>
         {
-            var options = await new AutoCaptureWindow(_captureOptions).ShowDialog<MacCaptureOptions?>(this);
-            if (options is null) return;
-            _captureOptions = options.Normalized();
-            _captureRules = new(_captureOptions.Rules, TimeSpan.FromSeconds(_captureOptions.CooldownSeconds), Environment.ProcessorCount);
-            _operationStatus = _captureOptions.Enabled ? "Automatic captures enabled" : "Automatic captures disabled";
+            if (args.Key == Key.OemComma && args.KeyModifiers == KeyModifiers.Meta)
+            { args.Handled = true; await ShowSettings(); }
         };
         CapturesList.SelectionChanged += (_, _) =>
         {
@@ -182,7 +186,7 @@ public sealed partial class MainWindow : Window
         ActivityChart.SelectedTimestamp = Chart.SelectedTimestamp;
         Chart.Update(_session.History.Samples);
         ActivityChart.Update(_session.History.Samples);
-        ActivityScale.Text = $"Network blue · storage gold · max {Rate(ActivityChart.ActivityMaximum)}";
+        ActivityScale.Text = $"Network · storage · max {Rate(ActivityChart.ActivityMaximum)}";
         CaptureStatus.Text = !_inspection.IsHistorical ? $"Live · recording · {_session.History.Samples.Count} retained samples" : captured is null
             ? "Capture expired from retained history · return to Live or select another moment"
             : $"Captured {captured.Timestamp:yyyy-MM-dd HH:mm:ss zzz} · CPU {captured.TotalCpuPercent?.ToString("F1") ?? "—"}% · memory {GiB(captured.Resources.UsedMemoryBytes)} · network ↓ {Rate(captured.Resources.ReceiveBytesPerSecond)} ↑ {Rate(captured.Resources.SendBytesPerSecond)} · retained process observations";
@@ -453,10 +457,53 @@ public sealed partial class MainWindow : Window
         finally { _processActionPending = false; if (!_closing) UpdateSelection(); }
     }
 
+    private async Task ShowSettings(int? section = null)
+    {
+        if (_settingsOpen || _closing) return;
+        _settingsOpen = true;
+        var networks = new[] { new MacNetworkChoice("", "Automatic · active Ethernet/Wi-Fi") }
+            .Concat(_source.NetworkInterfaces).ToList();
+        if (_source.NetworkInterfaceId is { Length: > 0 } id && networks.All(choice => choice.Id != id))
+            networks.Add(new(id, $"{id} · disconnected"));
+        var window = new SettingsWindow(PreferencesSnapshot(), networks, section ?? _settingsSection,
+            _preferencesWritable, SaveSettings);
+        try { await window.ShowDialog(this); }
+        finally { _settingsSection = window.Section; _settingsOpen = false; }
+    }
+
+    private Task<string?> SaveSettings(SettingsValues values) => _settingsSave = SaveSettingsCore(values);
+
+    private async Task<string?> SaveSettingsCore(SettingsValues values)
+    {
+        if (!_preferencesWritable) return "The existing settings file is protected from replacement.";
+        var snapshot = values.ApplyTo(PreferencesSnapshot(), _bootId);
+        try { await Task.Run(() => MacPreferenceStore.Save(_preferencesPath, snapshot)); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        { return $"Settings could not be saved: {ex.Message}"; }
+        _preferences = snapshot;
+        AlwaysOnTop.IsChecked = snapshot.AlwaysOnTop;
+        _keepHistory = snapshot.KeepHistory;
+        HistoryRange.SelectedIndex = snapshot.HistoryRange;
+        _source.NetworkInterfaceId = snapshot.NetworkId;
+        _networkChoicesKey = "\0"; // Rebuild the interface choice even if the discovered set did not change.
+        if (_captureOptions.Enabled != snapshot.Captures.Enabled ||
+            _captureOptions.CooldownSeconds != snapshot.Captures.CooldownSeconds ||
+            !_captureOptions.Rules.SequenceEqual(snapshot.Captures.Rules))
+        {
+            _captureOptions = snapshot.Captures;
+            _captureRules = new(_captureOptions.Rules, TimeSpan.FromSeconds(_captureOptions.CooldownSeconds), Environment.ProcessorCount);
+        }
+        (Application.Current as App)?.ApplyAppearance(snapshot.Theme, snapshot.Palette);
+        _operationStatus = "Settings saved";
+        Update();
+        return null;
+    }
+
     private void ApplyPreferences()
     {
         var loaded = MacPreferenceStore.Load(_preferencesPath, _bootId);
         _preferences = loaded.Preferences; _preferencesWritable = loaded.CanSave;
+        (Application.Current as App)?.ApplyAppearance(_preferences.Theme, _preferences.Palette);
         if (loaded.Error is not null) _operationStatus = loaded.Error;
         Width = _preferences.Width; Height = _preferences.Height;
         if (Screens.Primary is { } screen)
@@ -472,8 +519,7 @@ public sealed partial class MainWindow : Window
         JobsView.SortIndex = _preferences.JobSort; JobsView.FilterIndex = _preferences.JobFilter;
         DataTabs.SelectedIndex = _preferences.DataTab; HistoryRange.SelectedIndex = _preferences.HistoryRange;
         AlwaysOnTop.IsChecked = _preferences.AlwaysOnTop;
-        KeepHistoryAcrossRestarts.IsChecked = _preferences.KeepHistory;
-        KeepHistoryAcrossRestarts.IsEnabled = loaded.CanSave;
+        _keepHistory = _preferences.KeepHistory;
         _session.History.Resize(RangeSeconds);
         _source.NetworkInterfaceId = _preferences.NetworkId;
         _captureOptions = _preferences.Captures;
@@ -486,7 +532,7 @@ public sealed partial class MainWindow : Window
         BootId = _bootId, Grouped = Grouped, PinnedOnly = PinnedOnly.IsChecked == true,
         Pins = _pins.Snapshot(), ProcessSort = ProcessSortBox.SelectedIndex, UsageSort = UsageSortBox.SelectedIndex,
         DataTab = DataTabs.SelectedIndex, JobSort = JobsView.SortIndex, JobFilter = JobsView.FilterIndex, HistoryRange = HistoryRange.SelectedIndex, NetworkId = _source.NetworkInterfaceId,
-        AlwaysOnTop = Topmost, Captures = _captureOptions, KeepHistory = KeepHistoryAcrossRestarts.IsChecked == true,
+        AlwaysOnTop = Topmost, Captures = _captureOptions, KeepHistory = _keepHistory,
         Width = WindowState == WindowState.Normal ? Width : _preferences.Width,
         Height = WindowState == WindowState.Normal ? Height : _preferences.Height,
         DashboardRatio = MainLayout.RowDefinitions[1].Height.Value / Math.Max(0.01, MainLayout.RowDefinitions[3].Height.Value)
@@ -494,7 +540,7 @@ public sealed partial class MainWindow : Window
 
     private async Task StartAsync()
     {
-        var keep = KeepHistoryAcrossRestarts.IsChecked == true;
+        var keep = _keepHistory;
         var range = RangeSeconds;
         var restored = await Task.Run(() => keep
             ? MacHistoryStore.Load(_historyPath, range, DateTimeOffset.UtcNow, Stopwatch.GetTimestamp()) : new HistoryLoadResult([]));
@@ -548,6 +594,7 @@ public sealed partial class MainWindow : Window
         if (_sampling is not null) await _sampling;
         await _reportWriter.Complete();
         if (_termination is not null) await _termination;
+        if (_settingsSave is not null) await _settingsSave;
         if (_preferencesWritable)
         {
             var snapshot = PreferencesSnapshot().Normalized(_bootId);

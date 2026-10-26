@@ -4,12 +4,11 @@ using WinMon.Monitoring;
 
 namespace MacMon;
 
-public sealed partial class AutoCaptureWindow : Window
+public sealed partial class CaptureSettingsEditor : UserControl
 {
-    public AutoCaptureWindow() : this(MacCaptureOptions.Default) { }
-    public AutoCaptureWindow(MacCaptureOptions options)
+    public CaptureSettingsEditor() { InitializeComponent(); Load(MacCaptureOptions.Default); }
+    public void Load(MacCaptureOptions options)
     {
-        InitializeComponent();
         options = options.Normalized();
         EnabledCapture.IsChecked = options.Enabled;
         Cooldown.Value = options.CooldownSeconds;
@@ -30,10 +29,15 @@ public sealed partial class AutoCaptureWindow : Window
             threshold.SetValue(AutomationProperties.NameProperty, $"{enabled.Content} threshold");
             seconds.SetValue(AutomationProperties.NameProperty, $"{enabled.Content} duration seconds");
         }
-        SaveChanges.Click += (_, _) => Close(new MacCaptureOptions(EnabledCapture.IsChecked == true,
-            controls.Select(control => new CaptureRuleSetting(control.Item1, control.Item2.IsChecked == true,
-                (double)(control.Item3.Value ?? 1), (int)(control.Item4.Value ?? 1))).ToArray(),
-            (int)(Cooldown.Value ?? 60)).Normalized());
-        CancelChanges.Click += (_, _) => Close(null);
     }
+    public MacCaptureOptions Value => new MacCaptureOptions(EnabledCapture.IsChecked == true,
+        new[]
+        {
+            (CaptureMetric.Cpu, CpuEnabled, CpuThreshold, CpuSeconds),
+            (CaptureMetric.Memory, MemoryEnabled, MemoryThreshold, MemorySeconds),
+            (CaptureMetric.Network, NetworkEnabled, NetworkThreshold, NetworkSeconds),
+            (CaptureMetric.Process, ProcessEnabled, ProcessThreshold, ProcessSeconds)
+        }.Select(control => new CaptureRuleSetting(control.Item1, control.Item2.IsChecked == true,
+            (double)(control.Item3.Value ?? 1), (int)(control.Item4.Value ?? 1))).ToArray(),
+        (int)(Cooldown.Value ?? 60)).Normalized();
 }

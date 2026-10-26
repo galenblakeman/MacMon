@@ -8,7 +8,10 @@ public sealed class ProcessSparkline : Control
 {
     public static readonly StyledProperty<ProcessTrail?> TrailProperty =
         AvaloniaProperty.Register<ProcessSparkline, ProcessTrail?>(nameof(Trail));
-    static ProcessSparkline() => AffectsRender<ProcessSparkline>(TrailProperty);
+    public static readonly StyledProperty<IBrush> StrokeProperty =
+        AvaloniaProperty.Register<ProcessSparkline, IBrush>(nameof(Stroke), Brushes.MediumAquamarine);
+    public IBrush Stroke { get => GetValue(StrokeProperty); set => SetValue(StrokeProperty, value); }
+    static ProcessSparkline() => AffectsRender<ProcessSparkline>(TrailProperty, StrokeProperty);
     public ProcessTrail? Trail { get => GetValue(TrailProperty); set => SetValue(TrailProperty, value); }
 
     public override void Render(DrawingContext context)
@@ -16,7 +19,7 @@ public sealed class ProcessSparkline : Control
         base.Render(context);
         if (Trail?.Values is not { Count: > 1 } values) return;
         var maximum = Math.Max(1, values.Max() ?? 1);
-        var pen = new Pen(Brushes.MediumAquamarine, 1.5);
+        var pen = new Pen(Stroke, 1.5);
         Point? previous = null;
         for (var i = 0; i < values.Count; i++)
         {

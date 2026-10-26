@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="using:MacMon"
         x:Class="MacMon.MainWindow" Title="MacMon" Width="1000" Height="1000"
-        MinWidth="800" MinHeight="760" Background="#0E1721">
+        MinWidth="800" MinHeight="760">
   <Grid x:Name="MainLayout" Margin="28" RowSpacing="10">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
@@ -19,7 +19,7 @@
       <StackPanel Grid.Column="1" HorizontalAlignment="Right" Spacing="4">
         <TextBlock x:Name="MachineLabel" Classes="label" />
         <CheckBox x:Name="AlwaysOnTop" Content="Always on top" HorizontalAlignment="Right" />
-        <CheckBox x:Name="KeepHistoryAcrossRestarts" Content="Keep history across restarts" HorizontalAlignment="Right" />
+        <Button x:Name="OpenSettings" Content="Settings…" HorizontalAlignment="Right" />
       </StackPanel>
     </Grid>
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -28,14 +28,14 @@
       <Border Classes="card">
         <StackPanel Spacing="8">
           <TextBlock Text="CPU · machine capacity" Classes="label" />
-          <TextBlock x:Name="CpuValue" Text="—" FontSize="32" Foreground="#6DE3CB" />
+          <TextBlock x:Name="CpuValue" Text="—" FontSize="32" Foreground="{DynamicResource CpuText}" />
           <TextBlock x:Name="KernelValue" Text="Establishing baseline…" Classes="label" />
         </StackPanel>
       </Border>
       <Border Grid.Column="1" Classes="card">
         <StackPanel Spacing="8">
           <TextBlock Text="Memory · physical usage estimate" Classes="label" />
-          <TextBlock x:Name="MemoryValue" Text="—" FontSize="32" />
+          <TextBlock x:Name="MemoryValue" Foreground="{DynamicResource MemoryText}" Text="—" FontSize="32" />
           <TextBlock x:Name="MemoryDetails" Text="Reading memory…" Classes="label" TextWrapping="Wrap" />
         </StackPanel>
       </Border>
@@ -52,13 +52,13 @@
         <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="5">
           <TextBlock Text="Network" Classes="label" VerticalAlignment="Center" />
           <ComboBox Grid.Column="1" x:Name="NetworkAdapter" AutomationProperties.Name="Network interface" HorizontalAlignment="Stretch" />
-          <TextBlock Grid.Row="1" Grid.ColumnSpan="2" x:Name="NetworkValue" Text="↓ — · ↑ —" TextWrapping="Wrap" />
+          <TextBlock Grid.Row="1" Grid.ColumnSpan="2" x:Name="NetworkValue" Foreground="{DynamicResource NetworkText}" Text="↓ — · ↑ —" TextWrapping="Wrap" />
         </Grid>
       </Border>
       <Border Grid.Column="1" Classes="card" Padding="14">
         <StackPanel Spacing="10">
           <TextBlock Text="Storage activity · all block-storage drivers" Classes="label" />
-          <TextBlock x:Name="StorageValue" Text="Read — · write —" TextWrapping="Wrap" />
+          <TextBlock x:Name="StorageValue" Foreground="{DynamicResource StorageText}" Text="Read — · write —" TextWrapping="Wrap" />
         </StackPanel>
       </Border>
     </Grid>
@@ -78,11 +78,11 @@
         </Grid>
         <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="16">
           <Grid RowDefinitions="Auto,*" RowSpacing="6">
-            <TextBlock Text="CPU teal · memory purple · 0–100%" Classes="label" FontSize="12" />
+            <TextBlock Text="CPU · memory · 0–100%" Classes="label" FontSize="12" />
             <local:CpuChart Grid.Row="1" x:Name="Chart" />
           </Grid>
           <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="6">
-            <TextBlock x:Name="ActivityScale" Text="Network blue · storage gold · auto scale" Classes="label" FontSize="12" />
+            <TextBlock x:Name="ActivityScale" Text="Network · storage · auto scale" Classes="label" FontSize="12" />
             <local:CpuChart Grid.Row="1" x:Name="ActivityChart" ShowActivity="True" />
           </Grid>
         </Grid>
@@ -107,7 +107,7 @@
       </Grid>
     </ScrollViewer>
     <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" ResizeDirection="Rows"
-                  ResizeBehavior="PreviousAndNext" Focusable="True" Background="#2C3947" AutomationProperties.Name="Resize dashboard and data panes" />
+                  ResizeBehavior="PreviousAndNext" Focusable="True" Background="{DynamicResource MacGridBrush}" AutomationProperties.Name="Resize dashboard and data panes" />
     <Border Grid.Row="3" Classes="card" MinHeight="300">
       <TabControl x:Name="DataTabs">
         <TabItem Header="Processes">
@@ -153,11 +153,11 @@
               <DataTemplate x:DataType="local:ProcessRow">
                 <Grid ColumnDefinitions="*,80,100,120,80,100,90" Margin="0,3" ToolTip.Tip="{Binding Path}">
                   <Grid ColumnDefinitions="Auto,*" ColumnSpacing="5">
-                    <TextBlock Text="{Binding Pin}" Foreground="#BD9AFF" />
+                    <TextBlock Text="{Binding Pin}" Classes="pinMetric" />
                     <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                   </Grid>
                   <TextBlock Grid.Column="1" Text="{Binding Pid}" />
-                  <TextBlock Grid.Column="2" Text="{Binding Cpu}" Foreground="#6DE3CB" />
+                  <TextBlock Grid.Column="2" Text="{Binding Cpu}" Classes="cpuMetric" />
                   <TextBlock Grid.Column="3" Text="{Binding Resident}" />
                   <TextBlock Grid.Column="4" Text="{Binding Threads}" />
                   <TextBlock Grid.Column="5" Text="{Binding Io}" />
@@ -206,7 +206,7 @@
                 <DataTemplate x:DataType="local:UsageRow">
                   <Grid ColumnDefinitions="*,100,90,120,110,100" Margin="0,3" ToolTip.Tip="{Binding Path}">
                     <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Grid.Column="1" Text="{Binding Cpu}" Foreground="#6DE3CB" />
+                    <TextBlock Grid.Column="1" Text="{Binding Cpu}" Classes="cpuMetric" />
                     <TextBlock Grid.Column="2" Text="{Binding Share}" />
                     <TextBlock Grid.Column="3" Text="{Binding DiskIo}" />
                     <TextBlock Grid.Column="4" Text="{Binding Processes}" />

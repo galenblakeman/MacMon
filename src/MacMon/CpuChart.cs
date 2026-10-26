@@ -8,6 +8,25 @@ namespace MacMon;
 
 public sealed class CpuChart : Control
 {
+    public static readonly StyledProperty<IBrush> CpuBrushProperty =
+        AvaloniaProperty.Register<CpuChart, IBrush>(nameof(CpuBrush), new SolidColorBrush(Color.Parse("#6DE3CB")));
+    public IBrush CpuBrush { get => GetValue(CpuBrushProperty); set => SetValue(CpuBrushProperty, value); }
+    public static readonly StyledProperty<IBrush> MemoryBrushProperty =
+        AvaloniaProperty.Register<CpuChart, IBrush>(nameof(MemoryBrush), new SolidColorBrush(Color.Parse("#BD9AFF")));
+    public IBrush MemoryBrush { get => GetValue(MemoryBrushProperty); set => SetValue(MemoryBrushProperty, value); }
+    public static readonly StyledProperty<IBrush> NetworkBrushProperty =
+        AvaloniaProperty.Register<CpuChart, IBrush>(nameof(NetworkBrush), new SolidColorBrush(Color.Parse("#73BFFF")));
+    public IBrush NetworkBrush { get => GetValue(NetworkBrushProperty); set => SetValue(NetworkBrushProperty, value); }
+    public static readonly StyledProperty<IBrush> StorageBrushProperty =
+        AvaloniaProperty.Register<CpuChart, IBrush>(nameof(StorageBrush), new SolidColorBrush(Color.Parse("#F6C85F")));
+    public IBrush StorageBrush { get => GetValue(StorageBrushProperty); set => SetValue(StorageBrushProperty, value); }
+    public static readonly StyledProperty<IBrush> GridBrushProperty =
+        AvaloniaProperty.Register<CpuChart, IBrush>(nameof(GridBrush), new SolidColorBrush(Color.Parse("#394959")));
+    public IBrush GridBrush { get => GetValue(GridBrushProperty); set => SetValue(GridBrushProperty, value); }
+    public static readonly StyledProperty<IBrush> MarkerBrushProperty =
+        AvaloniaProperty.Register<CpuChart, IBrush>(nameof(MarkerBrush), new SolidColorBrush(Color.Parse("#FFFFFF")));
+    public IBrush MarkerBrush { get => GetValue(MarkerBrushProperty); set => SetValue(MarkerBrushProperty, value); }
+    static CpuChart() => AffectsRender<CpuChart>(CpuBrushProperty, MemoryBrushProperty, NetworkBrushProperty, StorageBrushProperty, GridBrushProperty, MarkerBrushProperty);
     private IReadOnlyList<MonitorSample> _samples = [];
     public IReadOnlyList<MacCaptureRecord> Captures { get; set; } = [];
     public event Action<MacCaptureRecord>? CaptureSelected;
@@ -48,20 +67,20 @@ public sealed class CpuChart : Control
         var width = Bounds.Width;
         var height = Bounds.Height;
         if (width <= 0 || height <= 0) return;
-        var gridPen = new Pen(new SolidColorBrush(Color.Parse("#2C3947")), 1);
+        var gridPen = new Pen(GridBrush, 1);
         for (var i = 0; i <= 4; i++)
             context.DrawLine(gridPen, new Point(0, height * i / 4), new Point(width, height * i / 4));
         if (_samples.Count == 0) return;
         var now = _samples[^1].MonotonicTimestamp;
         if (ShowActivity)
         {
-            DrawSeries(context, width, height, now, NetworkTotal, "#73BFFF", true, ActivityMaximum);
-            DrawSeries(context, width, height, now, StorageTotal, "#F6C85F", true, ActivityMaximum);
+            DrawSeries(context, width, height, now, NetworkTotal, NetworkBrush, true, ActivityMaximum);
+            DrawSeries(context, width, height, now, StorageTotal, StorageBrush, true, ActivityMaximum);
         }
         else
         {
-            DrawSeries(context, width, height, now, sample => sample.TotalCpuPercent, "#6DE3CB", true);
-            DrawSeries(context, width, height, now, sample => sample.Resources.MemoryPercent, "#BD9AFF", false);
+            DrawSeries(context, width, height, now, sample => sample.TotalCpuPercent, CpuBrush, true);
+            DrawSeries(context, width, height, now, sample => sample.Resources.MemoryPercent, MemoryBrush, false);
         }
         foreach (var capture in Captures.Where(MarkerVisible))
         {
@@ -72,13 +91,13 @@ public sealed class CpuChart : Control
                 path.BeginFigure(new Point(x, 9), true);
                 path.LineTo(new Point(x - 5, 0)); path.LineTo(new Point(x + 5, 0)); path.EndFigure(true);
             }
-            context.DrawGeometry(Brushes.White, null, geometry);
+            context.DrawGeometry(MarkerBrush, null, geometry);
         }
         if (SelectedTimestamp is { } selected)
         {
             var age = (now - selected) / (double)Stopwatch.Frequency;
             if (age is >= 0 && age <= RangeSeconds)
-                context.DrawLine(new Pen(Brushes.White, 1), new Point(width * (1 - age / RangeSeconds), 0),
+                context.DrawLine(new Pen(MarkerBrush, 1), new Point(width * (1 - age / RangeSeconds), 0),
                     new Point(width * (1 - age / RangeSeconds), height));
         }
     }
@@ -93,9 +112,9 @@ public sealed class CpuChart : Control
         (_samples[^1].MonotonicTimestamp - capture.Peak.MonotonicTimestamp) / (double)Stopwatch.Frequency / RangeSeconds);
 
     private void DrawSeries(DrawingContext context, double width, double height, long now,
-        Func<MonitorSample, double?> value, string color, bool interval, double maximum = 100)
+        Func<MonitorSample, double?> value, IBrush brush, bool interval, double maximum = 100)
     {
-        var line = new Pen(new SolidColorBrush(Color.Parse(color)), 2);
+        var line = new Pen(brush, 2);
         Point? previous = null;
         long previousTime = 0;
         foreach (var sample in _samples)

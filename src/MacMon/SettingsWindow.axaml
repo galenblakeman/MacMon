@@ -1,0 +1,74 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:MacMon" x:Class="MacMon.SettingsWindow" Title="MacMon Settings"
+        Width="860" Height="660" MinWidth="800" MinHeight="560" WindowStartupLocation="CenterOwner">
+  <Grid Margin="24" RowDefinitions="Auto,*,Auto,Auto" RowSpacing="16">
+    <TextBlock Text="Settings" FontSize="26" FontWeight="SemiBold" />
+    <Grid Grid.Row="1" ColumnDefinitions="175,*" ColumnSpacing="24">
+      <ListBox x:Name="Sections" SelectedIndex="0" AutomationProperties.Name="Settings section" Background="Transparent" BorderThickness="0">
+        <ListBoxItem Content="General" /><ListBoxItem Content="Appearance" />
+        <ListBoxItem Content="Monitoring" /><ListBoxItem Content="Automatic captures" />
+      </ListBox>
+      <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="0,0,8,0">
+          <StackPanel x:Name="GeneralPage" Spacing="16">
+            <TextBlock Text="General" FontSize="21" FontWeight="SemiBold" />
+            <CheckBox x:Name="TopmostSetting" Content="Always on top" />
+            <TextBlock Classes="label" TextWrapping="Wrap" Text="Keep MacMon above other windows. You can also change this from the main window." />
+            <TextBlock Classes="label" TextWrapping="Wrap" Text="Open Settings with ⌘,. Save applies every section; Cancel discards your edits." />
+          </StackPanel>
+          <StackPanel x:Name="AppearancePage" Spacing="14" IsVisible="False">
+            <TextBlock Text="Appearance" FontSize="21" FontWeight="SemiBold" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+              <StackPanel Spacing="6"><TextBlock Text="Theme" Classes="label" /><ComboBox x:Name="ThemeChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Theme" /></StackPanel>
+              <StackPanel Grid.Column="1" Spacing="6"><TextBlock Text="Chart palette" Classes="label" /><ComboBox x:Name="PaletteChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Chart palette" /></StackPanel>
+            </Grid>
+            <TextBlock Classes="label" TextWrapping="Wrap" Text="System follows your Mac’s appearance. The chart palette stays independent when you change the theme." />
+            <TextBlock x:Name="PaletteDescription" Classes="label" TextWrapping="Wrap" />
+            <TextBlock Text="Preview" FontWeight="SemiBold" />
+            <ThemeVariantScope x:Name="PreviewScope">
+              <Border Background="{DynamicResource MacWindowBrush}" CornerRadius="10" Padding="14">
+                <Border Classes="card" Padding="14">
+                  <StackPanel Spacing="8">
+                    <TextBlock Text="Resource history · sample readings" Foreground="{DynamicResource MacTextBrush}" FontWeight="SemiBold" />
+                    <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="8">
+                      <StackPanel><TextBlock Text="CPU" Foreground="{DynamicResource MacMutedBrush}" /><TextBlock Text="24.0%" Foreground="{DynamicResource CpuText}" FontSize="20" /></StackPanel>
+                      <StackPanel Grid.Column="1"><TextBlock Text="Memory" Foreground="{DynamicResource MacMutedBrush}" /><TextBlock Text="62.0%" Foreground="{DynamicResource MemoryText}" FontSize="20" /></StackPanel>
+                      <StackPanel Grid.Column="2"><TextBlock Text="Network" Foreground="{DynamicResource MacMutedBrush}" /><TextBlock Text="4.2 MiB/s" Foreground="{DynamicResource NetworkText}" FontSize="16" /></StackPanel>
+                      <StackPanel Grid.Column="3"><TextBlock Text="Storage" Foreground="{DynamicResource MacMutedBrush}" /><TextBlock Text="18 MiB/s" Foreground="{DynamicResource StorageText}" FontSize="16" /></StackPanel>
+                    </Grid>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
+                      <local:CpuChart x:Name="PreviewChart" Height="60" />
+                      <local:CpuChart Grid.Column="1" x:Name="PreviewActivity" Height="60" ShowActivity="True" />
+                    </Grid>
+                    <TextBlock Text="CPU / memory · network / storage" Foreground="{DynamicResource MacMutedBrush}" FontSize="12" />
+                  </StackPanel>
+                </Border>
+              </Border>
+            </ThemeVariantScope>
+          </StackPanel>
+          <StackPanel x:Name="MonitoringPage" Spacing="14" IsVisible="False">
+            <TextBlock Text="Monitoring" FontSize="21" FontWeight="SemiBold" />
+            <CheckBox x:Name="KeepHistorySetting" Content="Keep history across restarts" />
+            <TextBlock Classes="label" TextWrapping="Wrap" Text="Save bounded resource and process history on clean exit. Usage totals start fresh. Turning this off removes saved history at the next clean exit." />
+            <TextBlock Text="History range" Classes="label" />
+            <ComboBox x:Name="RangeChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Settings history range">
+              <ComboBoxItem Content="2 minutes" /><ComboBoxItem Content="10 minutes" /><ComboBoxItem Content="30 minutes" /><ComboBoxItem Content="60 minutes" />
+            </ComboBox>
+            <TextBlock Text="Network interface" Classes="label" />
+            <ComboBox x:Name="NetworkChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Settings network interface" />
+            <TextBlock Classes="label" TextWrapping="Wrap" Text="Automatic prefers an active Ethernet or Wi-Fi interface. Storage activity covers all readable block-storage drivers. Unavailable readings remain unavailable." />
+          </StackPanel>
+          <StackPanel x:Name="CapturesPage" Spacing="14" IsVisible="False">
+            <TextBlock Text="Automatic captures" FontSize="21" FontWeight="SemiBold" />
+            <local:CaptureSettingsEditor x:Name="CaptureEditor" />
+          </StackPanel>
+        </Grid>
+      </ScrollViewer>
+    </Grid>
+    <TextBlock Grid.Row="2" x:Name="SettingsStatus" Classes="label" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12">
+      <Button x:Name="CancelSettings" Content="Cancel" IsCancel="True" />
+      <Button x:Name="SaveSettings" Content="Save" />
+    </StackPanel>
+  </Grid>
+</Window>

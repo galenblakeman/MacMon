@@ -1,13 +1,53 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="MacMon.App" Name="MacMon" RequestedThemeVariant="Dark">
+             xmlns:local="using:MacMon" x:Class="MacMon.App" Name="MacMon" RequestedThemeVariant="Dark">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="MacWindowBrush" Color="#0E1721" />
+          <SolidColorBrush x:Key="MacCardBrush" Color="#17222E" />
+          <SolidColorBrush x:Key="MacTextBrush" Color="#F2F5F8" />
+          <SolidColorBrush x:Key="MacMutedBrush" Color="#9BAAB9" />
+          <SolidColorBrush x:Key="MacGridBrush" Color="#394959" />
+          <SolidColorBrush x:Key="MacMarkerBrush" Color="#FFFFFF" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="MacWindowBrush" Color="#EDF2F7" />
+          <SolidColorBrush x:Key="MacCardBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="MacTextBrush" Color="#17222E" />
+          <SolidColorBrush x:Key="MacMutedBrush" Color="#4D5E70" />
+          <SolidColorBrush x:Key="MacGridBrush" Color="#CDD7E2" />
+          <SolidColorBrush x:Key="MacMarkerBrush" Color="#17222E" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
   <Application.Styles>
     <FluentTheme />
-    <Style Selector="TextBlock.label"><Setter Property="Foreground" Value="#9BAAB9" /></Style>
+    <Style Selector="Window">
+      <Setter Property="Background" Value="{DynamicResource MacWindowBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource MacTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.label"><Setter Property="Foreground" Value="{DynamicResource MacMutedBrush}" /></Style>
+    <Style Selector="TextBlock.cpuMetric"><Setter Property="Foreground" Value="{DynamicResource CpuText}" /></Style>
+    <Style Selector="TextBlock.pinMetric"><Setter Property="Foreground" Value="{DynamicResource MemoryText}" /></Style>
+    <Style Selector="ListBoxItem:selected TextBlock.cpuMetric, ListBoxItem:selected TextBlock.pinMetric">
+      <Setter Property="Foreground" Value="{DynamicResource MacTextBrush}" />
+    </Style>
     <Style Selector="Border.card">
-      <Setter Property="Background" Value="#17222E" />
+      <Setter Property="Background" Value="{DynamicResource MacCardBrush}" />
       <Setter Property="CornerRadius" Value="12" />
       <Setter Property="Padding" Value="20" />
     </Style>
+    <Style Selector="local|CpuChart">
+      <Setter Property="CpuBrush" Value="{DynamicResource CpuStroke}" />
+      <Setter Property="MemoryBrush" Value="{DynamicResource MemoryStroke}" />
+      <Setter Property="NetworkBrush" Value="{DynamicResource NetworkStroke}" />
+      <Setter Property="StorageBrush" Value="{DynamicResource StorageStroke}" />
+      <Setter Property="GridBrush" Value="{DynamicResource MacGridBrush}" />
+      <Setter Property="MarkerBrush" Value="{DynamicResource MacMarkerBrush}" />
+    </Style>
+    <Style Selector="local|ProcessSparkline"><Setter Property="Stroke" Value="{DynamicResource CpuStroke}" /></Style>
   </Application.Styles>
 </Application>

@@ -1,6 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="MacMon.ProcessDialog" Width="660" Height="480" MinWidth="480" MinHeight="320"
-        WindowStartupLocation="CenterOwner" Background="#0E1721">
+        WindowStartupLocation="CenterOwner">
   <Grid Margin="24" RowDefinitions="*,Auto" RowSpacing="16">
     <TextBox x:Name="Details" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
              AutomationProperties.Name="Process details" FontFamily="Menlo" FontSize="13" />
