@@ -56,6 +56,7 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         _historyOrigins = new HistoryProvenance(_bootId);
+        VersionLabel.Text = typeof(MainWindow).Assembly.GetName().Version?.ToString(3);
         MachineLabel.Text = $"{Environment.MachineName} · {Environment.ProcessorCount} logical cores";
         _session = new MonitorSession(() => _source,
             () => new SamplingOptions(Retain: _retain),
@@ -77,7 +78,7 @@ public sealed partial class MainWindow : Window
             RefreshCaptures();
         }));
         _session.LiveSampleRecorded += _gaugeHistory.Observe;
-        ResourceCards.SizeChanged += (_, _) => ResourceCards.Columns = ResourceCards.Bounds.Width < 840 ? 2 : 4;
+        ResourceCards.SizeChanged += (_, _) => ResourceCards.Columns = ResourceCards.Bounds.Width < 700 ? 2 : 4;
         _session.LiveSampleRecorded += ObserveCaptures;
         _session.LiveSampleRecorded += JobsView.ObserveLiveSample;
         EnterCompactView.Click += (_, _) => SetCompactView(true);

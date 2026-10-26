@@ -1,11 +1,11 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="using:MacMon"
-        x:Class="MacMon.MainWindow" Title="MacMon" Width="1000" Height="1000"
+        x:Class="MacMon.MainWindow" Title="MacMon" Width="1000" Height="900"
         MinWidth="800" MinHeight="760">
   <Grid>
   <local:CompactView x:Name="CompactPanel" IsVisible="False" />
-  <Grid x:Name="MainLayout" Margin="28" RowSpacing="10">
+  <Grid x:Name="MainLayout" Margin="16" RowSpacing="8">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
       <RowDefinition Height="2*" MinHeight="120" />
@@ -13,36 +13,34 @@
       <RowDefinition Height="*" MinHeight="300" />
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
-    <Grid ColumnDefinitions="*,Auto">
-      <StackPanel Spacing="6">
-        <TextBlock Text="MacMon" FontSize="30" FontWeight="SemiBold" />
-        <TextBlock Text="A live view of your Mac" Classes="label" />
+    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" MinHeight="32">
+      <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <TextBlock Text="MacMon" FontSize="15" FontWeight="SemiBold" />
+        <TextBlock x:Name="VersionLabel" Classes="label" FontSize="11" VerticalAlignment="Center" />
       </StackPanel>
-      <StackPanel Grid.Column="1" HorizontalAlignment="Right" Spacing="4">
-        <TextBlock x:Name="MachineLabel" Classes="label" />
-        <CheckBox x:Name="AlwaysOnTop" Content="Always on top" HorizontalAlignment="Right" />
-        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
-          <Button x:Name="EnterCompactView" Content="Compact view" ToolTip.Tip="Compact view (⌘⇧M)" />
-          <Button x:Name="OpenSettings" Content="Settings…" />
-        </StackPanel>
+      <TextBlock Grid.Column="1" x:Name="MachineLabel" Classes="label" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+        <CheckBox x:Name="AlwaysOnTop" Content="Always on top" FontSize="12" />
+        <Button x:Name="EnterCompactView" Content="Compact" ToolTip.Tip="Compact view (⌘⇧M)" />
+        <Button x:Name="OpenSettings" Content="Settings…" ToolTip.Tip="Settings (⌘,)" />
       </StackPanel>
     </Grid>
     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-      <Grid RowDefinitions="Auto,Auto,240" RowSpacing="14" Margin="0,0,8,0">
+      <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8" Margin="0,0,4,0">
     <UniformGrid x:Name="ResourceCards" Grid.Row="0" Columns="4">
-      <Border Classes="card" Padding="14" Margin="0,0,8,8"><local:ResourceGauge x:Name="CpuGauge" Title="CPU" Fill="{DynamicResource CpuStroke}" /></Border>
-      <Border Classes="card" Padding="14" Margin="0,0,8,8"><local:ResourceGauge x:Name="MemoryGauge" Title="Memory" Fill="{DynamicResource MemoryStroke}" /></Border>
-      <Border Classes="card" Padding="14" Margin="0,0,8,8"><local:ResourceGauge x:Name="NetworkGauge" Title="Network" Fill="{DynamicResource NetworkStroke}" /></Border>
-      <Border Classes="card" Padding="14" Margin="0,0,0,8"><local:ResourceGauge x:Name="StorageGauge" Title="Storage" Fill="{DynamicResource StorageStroke}" /></Border>
+      <Border Classes="card" Padding="8" Margin="0,0,8,8"><local:ResourceGauge x:Name="CpuGauge" Title="CPU" Fill="{DynamicResource CpuStroke}" /></Border>
+      <Border Classes="card" Padding="8" Margin="0,0,8,8"><local:ResourceGauge x:Name="MemoryGauge" Title="Memory" Fill="{DynamicResource MemoryStroke}" /></Border>
+      <Border Classes="card" Padding="8" Margin="0,0,8,8"><local:ResourceGauge x:Name="NetworkGauge" Title="Network" Fill="{DynamicResource NetworkStroke}" /></Border>
+      <Border Classes="card" Padding="8" Margin="0,0,0,8"><local:ResourceGauge x:Name="StorageGauge" Title="Storage" Fill="{DynamicResource StorageStroke}" /></Border>
     </UniformGrid>
-    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="16">
-      <StackPanel Spacing="4"><TextBlock Text="Network interface" Classes="label" /><ComboBox x:Name="NetworkAdapter" AutomationProperties.Name="Network interface" HorizontalAlignment="Stretch" /></StackPanel>
-      <StackPanel Grid.Column="1" Spacing="4"><TextBlock Text="Data volume · available capacity" Classes="label" /><TextBlock x:Name="DiskValue" Text="—" /><TextBlock x:Name="DiskTotal" Classes="label" FontSize="11" /></StackPanel>
+    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="16" MinHeight="32">
+      <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="Network" Classes="label" VerticalAlignment="Center" /><ComboBox x:Name="NetworkAdapter" AutomationProperties.Name="Network interface" HorizontalAlignment="Stretch" MaxWidth="340" /></StackPanel>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8"><TextBlock Text="Data volume · available" Classes="label" VerticalAlignment="Center" /><TextBlock x:Name="DiskValue" Text="—" VerticalAlignment="Center" /><TextBlock x:Name="DiskTotal" Classes="label" FontSize="11" VerticalAlignment="Center" /></StackPanel>
     </Grid>
-    <Border Grid.Row="2" Classes="card">
-      <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
+    <Border Grid.Row="2" Classes="card" Padding="12">
+      <Grid RowDefinitions="Auto,*,Auto" RowSpacing="6">
         <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="Resource history" FontSize="18" FontWeight="SemiBold" />
+          <TextBlock Text="Resource history" FontSize="14" FontWeight="SemiBold" />
           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
             <TextBlock Text="0–100%" Classes="label" VerticalAlignment="Center" />
             <ComboBox x:Name="HistoryRange" SelectedIndex="0" AutomationProperties.Name="History range">
@@ -53,7 +51,7 @@
             </ComboBox>
           </StackPanel>
         </Grid>
-        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="16">
+        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="16" Height="112">
           <Grid RowDefinitions="Auto,*" RowSpacing="6">
             <TextBlock Text="CPU · memory · 0–100%" Classes="label" FontSize="12" />
             <local:CpuChart Grid.Row="1" x:Name="Chart" />
@@ -71,12 +69,14 @@
             <Button Grid.Column="3" x:Name="ExportResources" Content="Export resources" />
             <Button Grid.Column="4" x:Name="ExportProcesses" Content="Export processes" />
           </Grid>
+          <Expander Header="Automatic capture reports" HorizontalAlignment="Stretch" Padding="0">
           <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
             <Button x:Name="ConfigureCaptures" Content="Automatic captures…" />
             <ComboBox Grid.Column="1" x:Name="CapturesList" PlaceholderText="Saved automatic captures" AutomationProperties.Name="Automatic captures" HorizontalAlignment="Stretch" />
             <Button Grid.Column="2" x:Name="OpenCaptureReport" Content="Open report" IsEnabled="False" />
             <Button Grid.Column="3" x:Name="CopyCapture" Content="Copy capture" />
           </Grid>
+          </Expander>
           <TextBlock x:Name="CaptureStatus" Text="Live · recording" Classes="label" FontSize="12" TextWrapping="Wrap" />
         </StackPanel>
       </Grid>
@@ -85,10 +85,10 @@
     </ScrollViewer>
     <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" ResizeDirection="Rows"
                   ResizeBehavior="PreviousAndNext" Focusable="True" Background="{DynamicResource MacGridBrush}" AutomationProperties.Name="Resize dashboard and data panes" />
-    <Border Grid.Row="3" Classes="card" MinHeight="300">
+    <Border Grid.Row="3" Classes="card" MinHeight="300" Padding="12">
       <TabControl x:Name="DataTabs">
         <TabItem Header="Processes">
-      <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
+      <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="6">
         <Grid ColumnDefinitions="*,240,160" ColumnSpacing="12">
           <StackPanel Spacing="4">
             <TextBlock x:Name="ProcessCountLabel" Text="Establishing baselines…" Classes="label" FontSize="12" />
@@ -103,7 +103,7 @@
             <ComboBoxItem Content="Disk I/O" />
           </ComboBox>
         </Grid>
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="16">
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10">
           <CheckBox x:Name="GroupProcesses" Content="Grouped" />
           <CheckBox x:Name="PinnedOnly" Content="Pinned only" />
           <Button x:Name="PinSelection" Content="Pin selected" IsEnabled="False" />
@@ -159,9 +159,9 @@
       </Grid>
         </TabItem>
         <TabItem Header="Usage">
-          <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10" Margin="0,10,0,0">
+          <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="6" Margin="0,10,0,0">
             <Grid ColumnDefinitions="*,220,150,Auto,Auto" ColumnSpacing="10">
-              <TextBlock Text="Session usage" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+              <TextBlock Text="Session usage" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
               <TextBox Grid.Column="1" x:Name="UsageSearch" PlaceholderText="Search name or path" AutomationProperties.Name="Search usage" />
               <ComboBox Grid.Column="2" x:Name="UsageSortBox" SelectedIndex="0" AutomationProperties.Name="Sort usage" HorizontalAlignment="Stretch">
                 <ComboBoxItem Content="CPU time" /><ComboBoxItem Content="Disk I/O" /><ComboBoxItem Content="Last active" />
@@ -199,9 +199,9 @@
       </TabControl>
     </Border>
     <StackPanel Grid.Row="4" Spacing="6">
-      <TextBlock x:Name="StatusLabel" Text="Starting native collector…" Classes="label" TextWrapping="Wrap" />
+      <TextBlock x:Name="StatusLabel" Text="Starting native collector…" Classes="label" FontSize="11" TextWrapping="Wrap" />
       <TextBlock Text="CPU is a share of total machine capacity · — means unavailable · resident memory includes shared pages"
-                 Classes="label" FontSize="12" TextWrapping="Wrap" />
+                 Classes="label" FontSize="11" TextWrapping="Wrap" />
     </StackPanel>
   </Grid>
   </Grid>

@@ -24,7 +24,7 @@ public sealed record MacPreferences
     public string GaugeStyle { get; init; } = "Bowl";
     public string Palette { get; init; } = "Classic";
     public double Width { get; init; } = 1000;
-    public double Height { get; init; } = 1000;
+    public double Height { get; init; } = 900;
     public double DashboardRatio { get; init; } = 2;
     public bool KeepHistory { get; init; }
     public SavedProcessPin[] Pins { get; init; } = [];

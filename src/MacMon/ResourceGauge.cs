@@ -43,12 +43,12 @@ public sealed class ResourceGauge : UserControl
     private string _description = "";
     public ResourceGauge()
     {
-        Height = 174;
+        Height = 116;
         var heading = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 4 };
         Grid.SetColumn(_detailsButton, 1);
         heading.Children.Add(_title); heading.Children.Add(_detailsButton);
         _detailsButton.Click += (_, _) => ShowDetails();
-        var panel = new StackPanel { Spacing = 4, Children = { heading, _marks, _value, _scale, _details } };
+        var panel = new StackPanel { Spacing = 3, Children = { heading, _marks, _value, _scale, _details } };
         Content = panel;
         Refresh();
     }
@@ -106,10 +106,10 @@ public sealed class ResourceGauge : UserControl
             details.DetailsView.Update(_detailsProvider());
             details.Topmost = (TopLevel.GetTopLevel(this) as Window)?.Topmost == true;
         }
-        Height = IsCompact ? 110 : 174;
-        _marks.Height = IsCompact ? 38 : 62;
-        _details.IsVisible = !IsCompact;
-        _value.FontSize = IsCompact ? 20 : ReadoutSize;
+        Height = IsCompact ? 110 : 116;
+        _marks.Height = IsCompact ? 38 : 32;
+        _details.IsVisible = false; // Descriptions remain available through the tooltip and Details window.
+        _value.FontSize = IsCompact ? 20 : Math.Min(22, ReadoutSize);
         _title.Text = Title; _value.Text = _reading.Text; _value.Foreground = Fill;
         _scale.Text = _reading.Value is null ? "Unavailable" : $"{_reading.Scale} · peak 2m";
         _details.Text = _description;

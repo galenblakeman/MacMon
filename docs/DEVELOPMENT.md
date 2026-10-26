@@ -337,3 +337,17 @@ checks validate the development ZIP checksum and extracted native signature/runt
 Native resize persistence uses measured client bounds (including at mode switches
 and save), rather than potentially stale requested Width/Height values. This keeps
 compact-width cleanup and full-window restoration consistent after native resizing.
+
+### UI parity slice 5 — application shell
+
+The full view now uses a compact versioned toolbar, four resource cards at the
+800px minimum width, consistent 28px buttons and smaller tab headings. Gauge
+descriptions remain accessible through tooltips and the live Details windows;
+secondary automatic-capture tools expand on demand. Dashboard/table resizing and
+separate full/compact sizes remain intact. New installations default to 1000×900;
+existing saved dimensions are preserved. The dashboard remains scrollable at
+small heights and when secondary tools are expanded.
+
+Verification: 119 Mac tests, three release-workflow tests, zero build warnings,
+and native resource/launchd smoke passed. Headless shell renders cover minimum
+and default sizes, both themes, card placement, chart sizing and data-pane space.
