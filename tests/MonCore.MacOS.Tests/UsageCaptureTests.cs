@@ -29,6 +29,8 @@ public sealed class UsageCaptureTests
             Assert.That(rows[1].App.Lifetimes, Is.EqualTo(2));
             Assert.That(rows[1].App.Running, Is.Zero);
             Assert.That(rows[1].App.IoBytes, Is.EqualTo(2048));
+            Assert.That(rows[1].DiskIo, Is.EqualTo("2.00 KiB"));
+            Assert.That(UsagePresentation.Report(rows, ledger.Since), Does.Contain("2.00 KiB"));
             Assert.That(UsagePresentation.Rows(ledger, "/A", UsageSort.DiskIo), Has.Length.EqualTo(2));
         });
         ledger.Reset(DateTimeOffset.UtcNow);

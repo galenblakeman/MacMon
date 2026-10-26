@@ -100,8 +100,8 @@ public sealed record ProcessRow(ProcessUsage Process, bool Pinned = false,
     public string Name => State == PinnedProcessState.Present ? Process.Name : $"{Process.Name} · {State}";
     public string Pid => Grouped ? $"{Process.MemberCount} procs" : Process.ProcessId.ToString();
     public string Cpu => State == PinnedProcessState.Present && Process.ObservedCpuPercent is { } value ? $"{value:F1}%" : "—";
-    public string Resident => State == PinnedProcessState.Present && Process.WorkingSetBytes is { } bytes ? $"{bytes / 1048576d:F1} MiB" : "—";
-    public string Io => State == PinnedProcessState.Present && Process.IoBytesPerSecond is { } bytes ? $"{bytes / 1048576:F2} MiB/s" : "—";
+    public string Resident => State == PinnedProcessState.Present && Process.WorkingSetBytes is { } bytes ? TableUnits.Memory(bytes) : "—";
+    public string Io => State == PinnedProcessState.Present && Process.IoBytesPerSecond is { } bytes ? TableUnits.IoRate(bytes) : "—";
     public string Threads => State == PinnedProcessState.Present ? Process.ThreadCount?.ToString() ?? "—" : "—";
     public string Path => (Process.ImagePath.Length > 0 ? Process.ImagePath : "Executable path unavailable") +
         (Grouped ? "\nResident sum may count shared pages more than once." : "") +

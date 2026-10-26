@@ -11,8 +11,8 @@ public sealed record LaunchdRow(LaunchdJob Job, string Label, string State, stri
     public ProcessTrail Trail { get; init; } = new([]);
     public string Name => Label.StartsWith("application.", StringComparison.Ordinal) && ProcessName != "—" ? ProcessName : Label;
     public string Cpu => Process?.ObservedCpuPercent is { } value ? $"{value:F1}%" : "—";
-    public string Resident => Process?.WorkingSetBytes is { } value ? $"{value / 1048576d:F1} MiB" : "—";
-    public string Io => Process?.IoBytesPerSecond is { } value ? $"{value / 1048576:F2} MiB/s" : "—";
+    public string Resident => Process?.WorkingSetBytes is { } value ? TableUnits.Memory(value) : "—";
+    public string Io => Process?.IoBytesPerSecond is { } value ? TableUnits.IoRate(value) : "—";
     public string ProcessDescription => $"{(Name == Label ? ProcessName : Label)} · PID {Pid}";
     public string Description => $"{Label}\n{State} · PID {Pid} · last {ExitStatus}\nResource readings describe only a fresh, verified direct process; child workers are excluded.";
     public override string ToString() => $"{Label}, {State}, PID {Pid}, last {ExitStatus}, observed process {ProcessName}";

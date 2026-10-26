@@ -1107,3 +1107,23 @@ pass; native stderr is empty. MacMon is left open on its original Jobs tab with
 saved appearance preserved.
 Artifact: `MacMon-0.13.4-osx-arm64-dev.zip`, SHA-256:
 `8735701fc876776281a4c3cb8a9dc643ec557d29781ced0ec72d47ed9488caa3`.
+
+
+## Adaptive table units — 0.13.5/build 28
+
+Process/job resident memory and disk I/O rates, plus Usage disk totals and copied
+reports, choose binary units per value: B, KiB, MiB, GiB, TiB, PiB and EiB.
+Rates retain /s. Memory uses one decimal and scaled I/O uses two; byte values
+use whole numbers. Zero is shown as 0 B (or 0 B/s), while missing, stale or invalid
+readings remain unavailable. Rounded values promote to the next unit instead
+of showing 1024 of the smaller unit. Sorting and monitoring still use raw values.
+Tests cover scale thresholds, rounding, English/Spanish decimal formatting,
+matched process/job rows, unavailable readings, Usage totals and copied reports.
+
+Validation: all 189 Mac tests and three release-workflow tests pass, with zero
+build warnings/errors and collector/launchd smoke checks. Native checks cover
+Processes, Jobs and Usage, including mixed zero/scaled rates and totals. Strict
+signing, ZIP integrity and checksum checks pass; native stderr is empty. The
+updated app is open with saved appearance preserved.
+Artifact: `MacMon-0.13.5-osx-arm64-dev.zip`, SHA-256:
+`0bbb8b50f5dc49e9f21ad8df88d49f020952756095b5078f1792a994d6300aa6`.
