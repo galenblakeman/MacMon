@@ -20,21 +20,27 @@ public sealed class MacFrameSource : IFrameSource
         _processReader = processReader;
     }
 
+    private string? _networkId;
+    public string? NetworkInterfaceId { get => Volatile.Read(ref _networkId); set => Volatile.Write(ref _networkId, value); }
+    private MacActivitySnapshot _activity = MacActivitySnapshot.Empty;
+    public IReadOnlyList<MacNetworkChoice> NetworkInterfaces => Volatile.Read(ref _activity).Interfaces;
+
     public MacMemorySnapshot Memory => Volatile.Read(ref _memory);
     private MacMemorySnapshot _memory = new(null, null, null, "Unavailable");
 
     public static ProcessIdentityPolicy IdentityPolicy => ProcessIdentityPolicy.ExactPaths;
 
     public CollectorCapabilities Capabilities { get; } = new(
-        SystemMetricCapabilities.Cpu | SystemMetricCapabilities.Memory | SystemMetricCapabilities.Disk,
+        SystemMetricCapabilities.Cpu | SystemMetricCapabilities.Memory | SystemMetricCapabilities.Disk | SystemMetricCapabilities.Network,
         ProcessMetricCapabilities.Cpu | ProcessMetricCapabilities.ResidentMemory |
-        ProcessMetricCapabilities.Threads | ProcessMetricCapabilities.ExecutablePath, ProcessActionCapabilities.None);
+        ProcessMetricCapabilities.Threads | ProcessMetricCapabilities.ExecutablePath | ProcessMetricCapabilities.Io, ProcessActionCapabilities.None);
 
     public CapturedFrame Capture(SamplingOptions options)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        var current = _reader.Read(options.PrimaryDrive ?? "/System/Volumes/Data");
+        var current = _reader.Read(options.PrimaryDrive ?? "/System/Volumes/Data", NetworkInterfaceId);
         Volatile.Write(ref _memory, current.Memory);
+        Volatile.Write(ref _activity, current.Activity);
         var batch = _processReader?.Read() ?? new MacProcessBatch([], 0);
         var before = _previous;
         _previous = current;
@@ -76,6 +82,14 @@ public sealed class MacFrameSource : IFrameSource
                         current.LogicalProcessors) * 100, 0, 100);
             }
 
+            double? io = null;
+            if (intervalValid && _previousProcesses.TryGetValue(process.Identity, out var previousIo))
+            {
+                var elapsed = (process.MonotonicTimestamp - previousIo.MonotonicTimestamp) / (double)Stopwatch.Frequency;
+                if (elapsed is > 0 and <= 2.5)
+                    io = ResourceRates.PerSecond(previousIo.DiskReadBytes, process.DiskReadBytes, elapsed) +
+                         ResourceRates.PerSecond(previousIo.DiskWriteBytes, process.DiskWriteBytes, elapsed);
+            }
             processes.Add(new ProcessUsage(process.Identity.ProcessId, process.Identity.StartToken,
                 process.Name, processCpu ?? 0, process.ResidentBytes)
             {
@@ -84,7 +98,8 @@ public sealed class MacFrameSource : IFrameSource
                 CpuAvailable = processCpu is not null,
                 ImagePath = process.ImagePath,
                 ParentProcessId = process.ParentProcessId,
-                ThreadCount = process.ThreadCount
+                ThreadCount = process.ThreadCount,
+                IoBytesPerSecond = io
             });
         }
 
@@ -109,13 +124,30 @@ public sealed class MacFrameSource : IFrameSource
                 ProcessCount = batch.EnumerationAvailable ? checked((uint)(processes.Count + batch.UnavailableProcesses)) : null,
                 DiskName = current.VolumePath,
                 DiskFreeBytes = current.VolumeFreeBytes,
-                DiskTotalBytes = current.VolumeTotalBytes
+                DiskTotalBytes = current.VolumeTotalBytes,
+                NetworkId = current.Activity.NetworkId,
+                NetworkName = current.Activity.NetworkName,
+                ReceiveBytesPerSecond = NetworkRate(before, current, seconds, intervalValid, true),
+                SendBytesPerSecond = NetworkRate(before, current, seconds, intervalValid, false),
+                SecondaryDiskName = "All block-storage drivers",
+                SecondaryDiskReadBytesPerSecond = StorageRate(before, current, seconds, intervalValid, true),
+                SecondaryDiskWriteBytesPerSecond = StorageRate(before, current, seconds, intervalValid, false)
             }
         };
         // Baseline and wake gaps are expected. A failed native CPU read is reported separately.
         return new CapturedFrame(sample, Error: current.Cpu is null ? SamplingError.CpuUnavailable :
             !batch.EnumerationAvailable ? SamplingError.ProcessesUnavailable : null);
     }
+
+    private static double? NetworkRate(SystemObservation? before, SystemObservation current, double seconds, bool valid, bool receive) =>
+        valid && before is not null && current.Activity.NetworkId.Length > 0 && before.Activity.NetworkId == current.Activity.NetworkId
+            ? ResourceRates.PerSecond(receive ? before.Activity.Received : before.Activity.Sent,
+                receive ? current.Activity.Received : current.Activity.Sent, seconds) : null;
+
+    private static double? StorageRate(SystemObservation? before, SystemObservation current, double seconds, bool valid, bool read) =>
+        valid && before is not null && current.Activity.StorageSet.Length > 0 && before.Activity.StorageSet == current.Activity.StorageSet
+            ? ResourceRates.PerSecond(read ? before.Activity.Read : before.Activity.Written,
+                read ? current.Activity.Read : current.Activity.Written, seconds) : null;
 
     public void Reset()
     {
@@ -138,10 +170,11 @@ internal sealed record SystemObservation(
     DateTimeOffset Timestamp, long MonotonicTimestamp, CpuCounters? Cpu, int LogicalProcessors,
     ulong? TotalMemoryBytes, string VolumePath, ulong? VolumeFreeBytes, ulong? VolumeTotalBytes)
 {
+    public MacActivitySnapshot Activity { get; init; } = MacActivitySnapshot.Empty;
     public MacMemorySnapshot Memory { get; init; } = new(null, null, null, "Unavailable");
 }
 
 internal interface IMacSystemReader : IDisposable
 {
-    SystemObservation Read(string volumePath);
+    SystemObservation Read(string volumePath, string? networkId = null);
 }

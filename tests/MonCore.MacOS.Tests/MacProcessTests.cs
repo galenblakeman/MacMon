@@ -41,6 +41,7 @@ public sealed class MacProcessTests
     {
         Assert.Multiple(() =>
         {
+            Assert.That(Marshal.SizeOf<DarwinProcessApi.RUsageV2>(), Is.EqualTo(160));
             Assert.That(Marshal.SizeOf<DarwinProcessApi.BsdInfo>(), Is.EqualTo(136));
             Assert.That(Marshal.SizeOf<DarwinProcessApi.TaskInfo>(), Is.EqualTo(96));
             Assert.That(Marshal.SizeOf<DarwinProcessApi.TaskAllInfo>(), Is.EqualTo(232));
@@ -152,6 +153,32 @@ public sealed class MacProcessTests
         Assert.That(new DarwinProcessApi().ReadInfo(int.MaxValue), Is.Null);
     }
 
+    [Test]
+    public void ProcessDiskIoResetsOnReuseRollbackAndMissingCounter()
+    {
+        var p0 = Process(0) with { DiskReadBytes = 100, DiskWriteBytes = 100 };
+        var p1 = Process(1) with { DiskReadBytes = 300, DiskWriteBytes = 200 };
+        var p2 = Process(2) with { DiskReadBytes = 50, DiskWriteBytes = 1000 };
+        var p3 = Process(3) with { DiskReadBytes = null, DiskWriteBytes = 1100 };
+        var p4 = Process(4, token: 2) with { DiskReadBytes = 400, DiskWriteBytes = 1200 };
+        using var source = Source(Enumerable.Range(0, 5).Select(Observation).ToArray(),
+            [Batch(p0), Batch(p1), Batch(p2), Batch(p3), Batch(p4)]);
+        Assert.That(source.Capture(Options).Full.Processes.Single().IoBytesPerSecond, Is.Null);
+        Assert.That(source.Capture(Options).Full.Processes.Single().IoBytesPerSecond, Is.EqualTo(300));
+        Assert.That(source.Capture(Options).Full.Processes.Single().IoBytesPerSecond, Is.Null);
+        Assert.That(source.Capture(Options).Full.Processes.Single().IoBytesPerSecond, Is.Null);
+        Assert.That(source.Capture(Options).Full.Processes.Single().IoBytesPerSecond, Is.Null);
+    }
+
+    [Test]
+    public void NativeSelfDiskIoCountersAreReadable()
+    {
+        if (!OperatingSystem.IsMacOS()) Assert.Ignore("macOS integration test");
+        var info = new DarwinProcessApi().ReadInfo(Environment.ProcessId)!;
+        Assert.That(info.DiskReadBytes, Is.Not.Null);
+        Assert.That(info.DiskWriteBytes, Is.Not.Null);
+    }
+
     private static MacFrameSource Source(SystemObservation[] system, MacProcessBatch[] processes) =>
         new(new FakeSystem(system), new FakeProcesses(processes));
     private static SystemObservation Observation(int second) => new(DateTimeOffset.UnixEpoch.AddSeconds(second),
@@ -165,7 +192,7 @@ public sealed class MacProcessTests
     private sealed class FakeSystem(IEnumerable<SystemObservation> observations) : IMacSystemReader
     {
         private readonly Queue<SystemObservation> _queue = new(observations);
-        public SystemObservation Read(string path) => _queue.Dequeue();
+        public SystemObservation Read(string path, string? networkId = null) => _queue.Dequeue();
         public void Dispose() { }
     }
     private sealed class FakeProcesses(IEnumerable<MacProcessBatch> batches) : IMacProcessReader

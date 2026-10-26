@@ -1,9 +1,9 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="using:MacMon"
-        x:Class="MacMon.MainWindow" Title="MacMon" Width="1000" Height="900"
+        x:Class="MacMon.MainWindow" Title="MacMon" Width="1000" Height="1000"
         MinWidth="800" MinHeight="760" Background="#0E1721">
-  <Grid Margin="28" RowDefinitions="Auto,Auto,220,*,Auto" RowSpacing="18">
+  <Grid Margin="28" RowDefinitions="Auto,Auto,Auto,240,*,Auto" RowSpacing="18">
     <Grid ColumnDefinitions="*,Auto">
       <StackPanel Spacing="6">
         <TextBlock Text="MacMon" FontSize="30" FontWeight="SemiBold" />
@@ -34,10 +34,25 @@
         </StackPanel>
       </Border>
     </Grid>
-    <Border Grid.Row="2" Classes="card">
+    <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="16">
+      <Border Classes="card" Padding="14">
+        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="5">
+          <TextBlock Text="Network" Classes="label" VerticalAlignment="Center" />
+          <ComboBox Grid.Column="1" x:Name="NetworkAdapter" AutomationProperties.Name="Network interface" HorizontalAlignment="Stretch" />
+          <TextBlock Grid.Row="1" Grid.ColumnSpan="2" x:Name="NetworkValue" Text="↓ — · ↑ —" TextWrapping="Wrap" />
+        </Grid>
+      </Border>
+      <Border Grid.Column="1" Classes="card" Padding="14">
+        <StackPanel Spacing="10">
+          <TextBlock Text="Storage activity · all block-storage drivers" Classes="label" />
+          <TextBlock x:Name="StorageValue" Text="Read — · write —" TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+    </Grid>
+    <Border Grid.Row="3" Classes="card">
       <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
         <Grid ColumnDefinitions="*,Auto">
-          <TextBlock Text="CPU and memory history" FontSize="18" FontWeight="SemiBold" />
+          <TextBlock Text="Resource history" FontSize="18" FontWeight="SemiBold" />
           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
             <TextBlock Text="0–100%" Classes="label" VerticalAlignment="Center" />
             <ComboBox x:Name="HistoryRange" SelectedIndex="0" AutomationProperties.Name="History range">
@@ -48,12 +63,21 @@
             </ComboBox>
           </StackPanel>
         </Grid>
-        <local:CpuChart Grid.Row="1" x:Name="Chart" />
+        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="16">
+          <Grid RowDefinitions="Auto,*" RowSpacing="6">
+            <TextBlock Text="CPU teal · memory purple · 0–100%" Classes="label" FontSize="12" />
+            <local:CpuChart Grid.Row="1" x:Name="Chart" />
+          </Grid>
+          <Grid Grid.Column="1" RowDefinitions="Auto,*" RowSpacing="6">
+            <TextBlock x:Name="ActivityScale" Text="Network blue · storage gold · auto scale" Classes="label" FontSize="12" />
+            <local:CpuChart Grid.Row="1" x:Name="ActivityChart" ShowActivity="True" />
+          </Grid>
+        </Grid>
         <StackPanel Grid.Row="2" Spacing="6">
           <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
             <Button x:Name="LiveMode" Content="Live" />
             <Button Grid.Column="1" x:Name="CaptureMode" Content="Capture" />
-            <TextBlock Grid.Column="2" Text="CPU teal · memory purple · click chart to inspect" Classes="label" VerticalAlignment="Center" FontSize="12" TextWrapping="Wrap" />
+            <TextBlock Grid.Column="2" Text="Click either chart to inspect" Classes="label" VerticalAlignment="Center" FontSize="12" TextWrapping="Wrap" />
             <Button Grid.Column="3" x:Name="ExportResources" Content="Export resources" />
             <Button Grid.Column="4" x:Name="ExportProcesses" Content="Export processes" />
           </Grid>
@@ -61,7 +85,7 @@
         </StackPanel>
       </Grid>
     </Border>
-    <Border Grid.Row="3" Classes="card">
+    <Border Grid.Row="4" Classes="card">
       <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
         <Grid ColumnDefinitions="*,240,160" ColumnSpacing="12">
           <StackPanel Spacing="4">
@@ -75,6 +99,7 @@
             <ComboBoxItem Content="CPU usage" />
             <ComboBoxItem Content="Resident memory" />
             <ComboBoxItem Content="Threads" />
+            <ComboBoxItem Content="Disk I/O" />
           </ComboBox>
         </Grid>
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="16">
@@ -83,13 +108,14 @@
           <Button x:Name="PinSelection" Content="Pin selected" IsEnabled="False" />
           <TextBlock Text="30s trend · selected metric · local scale" Classes="label" VerticalAlignment="Center" FontSize="12" />
         </StackPanel>
-        <Grid Grid.Row="2" ColumnDefinitions="*,80,100,120,80,90" Margin="10,0,10,0">
+        <Grid Grid.Row="2" ColumnDefinitions="*,80,100,120,80,100,90" Margin="10,0,10,0">
           <TextBlock Text="Name" Classes="label" />
           <TextBlock Grid.Column="1" Text="PID" Classes="label" />
           <TextBlock Grid.Column="2" Text="CPU · avg 5s" Classes="label" />
           <TextBlock Grid.Column="3" x:Name="ResidentHeader" Text="Resident" Classes="label" />
           <TextBlock Grid.Column="4" Text="Threads" Classes="label" />
-          <TextBlock Grid.Column="5" Text="Trend" Classes="label" />
+          <TextBlock Grid.Column="5" Text="Disk I/O · 5s" Classes="label" />
+          <TextBlock Grid.Column="6" Text="Trend" Classes="label" />
         </Grid>
         <Grid Grid.Row="3">
           <ListBox x:Name="ProcessList" Background="Transparent" BorderThickness="0"
@@ -101,7 +127,7 @@
             </ListBox.Styles>
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="local:ProcessRow">
-                <Grid ColumnDefinitions="*,80,100,120,80,90" Margin="0,3" ToolTip.Tip="{Binding Path}">
+                <Grid ColumnDefinitions="*,80,100,120,80,100,90" Margin="0,3" ToolTip.Tip="{Binding Path}">
                   <Grid ColumnDefinitions="Auto,*" ColumnSpacing="5">
                     <TextBlock Text="{Binding Pin}" Foreground="#BD9AFF" />
                     <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
@@ -110,7 +136,8 @@
                   <TextBlock Grid.Column="2" Text="{Binding Cpu}" Foreground="#6DE3CB" />
                   <TextBlock Grid.Column="3" Text="{Binding Resident}" />
                   <TextBlock Grid.Column="4" Text="{Binding Threads}" />
-                  <local:ProcessSparkline Grid.Column="5" Trail="{Binding Trail}" Height="20" />
+                  <TextBlock Grid.Column="5" Text="{Binding Io}" />
+                  <local:ProcessSparkline Grid.Column="6" Trail="{Binding Trail}" Height="20" />
                 </Grid>
               </DataTemplate>
             </ListBox.ItemTemplate>
@@ -122,7 +149,7 @@
                    Classes="label" FontSize="12" TextWrapping="Wrap" MaxHeight="65" />
       </Grid>
     </Border>
-    <StackPanel Grid.Row="4" Spacing="6">
+    <StackPanel Grid.Row="5" Spacing="6">
       <TextBlock x:Name="StatusLabel" Text="Starting native collector…" Classes="label" TextWrapping="Wrap" />
       <TextBlock Text="CPU is a share of total machine capacity · — means unavailable · resident memory includes shared pages"
                  Classes="label" FontSize="12" TextWrapping="Wrap" />

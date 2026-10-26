@@ -9,6 +9,7 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.Contains("--collector-benchmark")) return CollectorBenchmark.Run();
         if (args.Contains("--presentation-benchmark")) return PresentationBenchmark.Run();
         if (args.Contains("--smoke")) return Smoke();
         return AppBuilder.Configure<App>().UsePlatformDetect().StartWithClassicDesktopLifetime(args);
@@ -30,7 +31,7 @@ internal static class Program
             history.Add(frame.Full);
             Console.WriteLine($"{frame.Full.Timestamp:O} CPU={frame.Full.TotalCpuPercent?.ToString("F1") ?? "unavailable"} " +
                               $"RAM={frame.Full.Resources.TotalMemoryBytes} Used={frame.Full.Resources.UsedMemoryBytes} Pressure={source.Memory.Pressure} " +
-                              $"VolumeFree={frame.Full.Resources.DiskFreeBytes} " +
+                              $"VolumeFree={frame.Full.Resources.DiskFreeBytes} Network={frame.Full.Resources.NetworkName} Rx={frame.Full.Resources.ReceiveBytesPerSecond} Tx={frame.Full.Resources.SendBytesPerSecond} DiskRead={frame.Full.Resources.SecondaryDiskReadBytesPerSecond} DiskWrite={frame.Full.Resources.SecondaryDiskWriteBytesPerSecond} " +
                               $"Processes={frame.Full.Processes.Count} Unavailable={frame.Full.UnavailableProcesses} " +
                               $"SelfCpu={frame.Full.Processes.FirstOrDefault(p => p.ProcessId == Environment.ProcessId)?.ObservedCpuPercent} " +
                               $"Error={frame.Error}");

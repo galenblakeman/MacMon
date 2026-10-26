@@ -9,6 +9,7 @@ internal sealed unsafe partial class DarwinSystemReader : IMacSystemReader
     private readonly uint _host;
     private readonly int _logicalProcessors;
     private bool _disposed;
+    private readonly MacActivityReader _activity = new();
 
     public DarwinSystemReader()
     {
@@ -20,7 +21,7 @@ internal sealed unsafe partial class DarwinSystemReader : IMacSystemReader
             processors is > 0 and <= int.MaxValue ? (int)processors : Environment.ProcessorCount;
     }
 
-    public SystemObservation Read(string volumePath)
+    public SystemObservation Read(string volumePath, string? networkId = null)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var instant = Stopwatch.GetTimestamp();
@@ -47,7 +48,7 @@ internal sealed unsafe partial class DarwinSystemReader : IMacSystemReader
         }
 
         return new SystemObservation(timestamp, instant, cpu, _logicalProcessors,
-            memory, volumePath, free, total) { Memory = ReadMemory(memory) };
+            memory, volumePath, free, total) { Memory = ReadMemory(memory), Activity = _activity.Read(networkId) };
     }
 
     private MacMemorySnapshot ReadMemory(ulong? total)

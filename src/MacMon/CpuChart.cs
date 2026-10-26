@@ -9,6 +9,12 @@ namespace MacMon;
 public sealed class CpuChart : Control
 {
     private IReadOnlyList<MonitorSample> _samples = [];
+    public bool ShowActivity { get; set; }
+    public double ActivityMaximum => Math.Max(1024, _samples.Where(sample => _samples.Count > 0 &&
+        (_samples[^1].MonotonicTimestamp - sample.MonotonicTimestamp) / (double)Stopwatch.Frequency <= RangeSeconds)
+        .Select(sample => Math.Max(NetworkTotal(sample) ?? 0, StorageTotal(sample) ?? 0)).DefaultIfEmpty().Max());
+    private static double? NetworkTotal(MonitorSample sample) => sample.Resources.ReceiveBytesPerSecond + sample.Resources.SendBytesPerSecond;
+    private static double? StorageTotal(MonitorSample sample) => sample.Resources.SecondaryDiskReadBytesPerSecond + sample.Resources.SecondaryDiskWriteBytesPerSecond;
     public int RangeSeconds { get; set; } = 120;
     public long? SelectedTimestamp { get; set; }
     public event Action<MonitorSample>? SampleSelected;
@@ -38,8 +44,16 @@ public sealed class CpuChart : Control
             context.DrawLine(gridPen, new Point(0, height * i / 4), new Point(width, height * i / 4));
         if (_samples.Count == 0) return;
         var now = _samples[^1].MonotonicTimestamp;
-        DrawSeries(context, width, height, now, sample => sample.TotalCpuPercent, "#6DE3CB", true);
-        DrawSeries(context, width, height, now, sample => sample.Resources.MemoryPercent, "#BD9AFF", false);
+        if (ShowActivity)
+        {
+            DrawSeries(context, width, height, now, NetworkTotal, "#73BFFF", true, ActivityMaximum);
+            DrawSeries(context, width, height, now, StorageTotal, "#F6C85F", true, ActivityMaximum);
+        }
+        else
+        {
+            DrawSeries(context, width, height, now, sample => sample.TotalCpuPercent, "#6DE3CB", true);
+            DrawSeries(context, width, height, now, sample => sample.Resources.MemoryPercent, "#BD9AFF", false);
+        }
         if (SelectedTimestamp is { } selected)
         {
             var age = (now - selected) / (double)Stopwatch.Frequency;
@@ -50,7 +64,7 @@ public sealed class CpuChart : Control
     }
 
     private void DrawSeries(DrawingContext context, double width, double height, long now,
-        Func<MonitorSample, double?> value, string color, bool interval)
+        Func<MonitorSample, double?> value, string color, bool interval, double maximum = 100)
     {
         var line = new Pen(new SolidColorBrush(Color.Parse(color)), 2);
         Point? previous = null;
@@ -65,7 +79,7 @@ public sealed class CpuChart : Control
                 continue;
             }
 
-            var point = new Point(width * (1 - age / RangeSeconds), height * (1 - Math.Clamp(cpu, 0, 100) / 100));
+            var point = new Point(width * (1 - age / RangeSeconds), height * (1 - Math.Clamp(cpu, 0, maximum) / maximum));
             if (previous is { } start &&
                 (sample.MonotonicTimestamp - previousTime) / (double)Stopwatch.Frequency <= 2.5)
                 context.DrawLine(line, start, point);

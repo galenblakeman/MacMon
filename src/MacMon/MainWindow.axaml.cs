@@ -16,6 +16,8 @@ public sealed partial class MainWindow : Window
     private volatile Func<ProcessUsage, bool>? _retain;
     private bool _refreshingRows;
     private string _operationStatus = "";
+    private string _networkChoicesKey = "";
+    private bool _refreshingAdapters;
     private readonly ProcessPins _pins = new(MacFrameSource.IdentityPolicy);
     private readonly HistoryInspection _inspection = new();
     private int RangeSeconds => HistoryRange.SelectedIndex switch { 1 => 600, 2 => 1800, 3 => 3600, _ => 120 };
@@ -29,6 +31,13 @@ public sealed partial class MainWindow : Window
             () => new SamplingOptions(Retain: _retain),
             action => Dispatcher.UIThread.Post(action), identityPolicy: MacFrameSource.IdentityPolicy);
         _session.Recorded += Update;
+        NetworkAdapter.ItemsSource = new[] { new MacNetworkChoice("", "Automatic · active Ethernet/Wi-Fi") };
+        NetworkAdapter.SelectedIndex = 0;
+        NetworkAdapter.SelectionChanged += (_, _) =>
+        {
+            if (!_refreshingAdapters && NetworkAdapter.SelectedItem is MacNetworkChoice choice)
+                _source.NetworkInterfaceId = choice.Id.Length == 0 ? null : choice.Id;
+        };
         ProcessSearchBox.TextChanged += (_, _) => UpdateProcesses();
         ProcessSortBox.SelectionChanged += (_, _) => UpdateProcesses();
         ProcessList.SelectionChanged += (_, _) =>
@@ -54,13 +63,14 @@ public sealed partial class MainWindow : Window
             UpdateRetention();
             UpdateProcesses();
         };
+        ActivityChart.SampleSelected += sample => { _inspection.Select(sample); Update(); };
         Chart.SampleSelected += sample => { _inspection.Select(sample); Update(); };
         CaptureMode.Click += (_, _) => { if (_session.Latest is { } sample) _inspection.Select(sample); Update(); };
         LiveMode.Click += (_, _) => { _inspection.Live(); Update(); };
         HistoryRange.SelectionChanged += (_, _) =>
         {
             _session.History.Resize(RangeSeconds);
-            Chart.RangeSeconds = RangeSeconds;
+            Chart.RangeSeconds = ActivityChart.RangeSeconds = RangeSeconds;
             Update();
         };
         ExportResources.Click += async (_, _) => await Export(CsvExportKind.ResourceHistory);
@@ -96,13 +106,17 @@ public sealed partial class MainWindow : Window
             $"Pressure: {_source.Memory.Pressure} · compressed {GiB(_source.Memory.CompressedBytes)}";
         DiskValue.Text = GiB(sample.Resources.DiskFreeBytes);
         DiskTotal.Text = $"of {GiB(sample.Resources.DiskTotalBytes)}";
+        UpdateActivity(sample);
         var display = TrailHistory();
         var captured = display.LastOrDefault();
         Chart.SelectedTimestamp = _inspection.IsHistorical ? captured?.MonotonicTimestamp : null;
+        ActivityChart.SelectedTimestamp = Chart.SelectedTimestamp;
         Chart.Update(_session.History.Samples);
+        ActivityChart.Update(_session.History.Samples);
+        ActivityScale.Text = $"Network blue · storage gold · max {Rate(ActivityChart.ActivityMaximum)}";
         CaptureStatus.Text = !_inspection.IsHistorical ? $"Live · recording · {_session.History.Samples.Count} retained samples" : captured is null
             ? "Capture expired from retained history · return to Live or select another moment"
-            : $"Captured {captured.Timestamp:yyyy-MM-dd HH:mm:ss zzz} · CPU {captured.TotalCpuPercent?.ToString("F1") ?? "—"}% · memory {GiB(captured.Resources.UsedMemoryBytes)} · retained process observations";
+            : $"Captured {captured.Timestamp:yyyy-MM-dd HH:mm:ss zzz} · CPU {captured.TotalCpuPercent?.ToString("F1") ?? "—"}% · memory {GiB(captured.Resources.UsedMemoryBytes)} · network ↓ {Rate(captured.Resources.ReceiveBytesPerSecond)} ↑ {Rate(captured.Resources.SendBytesPerSecond)} · retained process observations";
         UpdateProcesses();
         StatusLabel.Text = _session.Error is null
             ? $"Updated {sample.Timestamp:HH:mm:ss} · macOS {Environment.OSVersion.Version}"
@@ -110,10 +124,32 @@ public sealed partial class MainWindow : Window
         if (_operationStatus.Length > 0) StatusLabel.Text += $" · {_operationStatus}";
     }
 
+    private void UpdateActivity(MonitorSample sample)
+    {
+        var resource = sample.Resources;
+        NetworkValue.Text = $"{resource.NetworkName} · ↓ {Rate(resource.ReceiveBytesPerSecond)} · ↑ {Rate(resource.SendBytesPerSecond)}";
+        StorageValue.Text = $"Read {Rate(resource.SecondaryDiskReadBytesPerSecond)} · write {Rate(resource.SecondaryDiskWriteBytesPerSecond)}";
+        var interfaces = _source.NetworkInterfaces;
+        var key = string.Join("\n", interfaces.Select(adapter => adapter.Id + adapter.Name));
+        if (_networkChoicesKey == key) return;
+        _networkChoicesKey = key;
+        var selected = _source.NetworkInterfaceId ?? "";
+        var choices = new[] { new MacNetworkChoice("", "Automatic · active Ethernet/Wi-Fi") }.Concat(interfaces).ToList();
+        if (!choices.Any(choice => choice.Id == selected)) choices.Add(new(selected, $"{selected} · disconnected"));
+        _refreshingAdapters = true;
+        NetworkAdapter.ItemsSource = choices;
+        NetworkAdapter.SelectedItem = choices.First(choice => choice.Id == selected);
+        _refreshingAdapters = false;
+    }
+
+    private static string Rate(double? value) => value is { } bytes
+        ? bytes >= 1048576 ? $"{bytes / 1048576:F1} MiB/s" : $"{bytes / 1024:F1} KiB/s" : "—";
+
     private ProcessSort Sort => ProcessSortBox.SelectedIndex switch
     {
         1 => ProcessSort.Memory,
         2 => ProcessSort.Threads,
+        3 => ProcessSort.Io,
         _ => ProcessSort.Cpu
     };
 

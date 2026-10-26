@@ -40,7 +40,13 @@ internal sealed unsafe partial class DarwinProcessApi : IMacProcessApi
     {
         TaskAllInfo info;
         if (ProcPidInfo(pid, 2, 0, &info, sizeof(TaskAllInfo)) == sizeof(TaskAllInfo))
-            return Convert(info.Bsd, info.Task);
+        {
+            var observation = Convert(info.Bsd, info.Task);
+            RUsageV2 usage;
+            return ProcPidRusage(pid, 2, &usage) == 0
+                ? observation with { DiskReadBytes = usage.DiskRead, DiskWriteBytes = usage.DiskWrite }
+                : observation;
+        }
         // A protected task can still have readable BSD identity/metadata. Keep unknown CPU and memory unknown.
         return ReadIdentity(pid);
     }
@@ -83,6 +89,17 @@ internal sealed unsafe partial class DarwinProcessApi : IMacProcessApi
         var scaled = (UInt128)ticks * numerator / denominator;
         return scaled <= ulong.MaxValue ? (ulong)scaled : null;
     }
+
+    [StructLayout(LayoutKind.Sequential, Size = 160)]
+    internal struct RUsageV2
+    {
+        public fixed byte Uuid[16];
+        public fixed ulong Counters[16];
+        public ulong DiskRead, DiskWrite;
+    }
+
+    [LibraryImport(LibProc, EntryPoint = "proc_pid_rusage")]
+    private static partial int ProcPidRusage(int pid, int flavor, RUsageV2* buffer);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct TimebaseInfo

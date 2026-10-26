@@ -136,7 +136,7 @@ public sealed class MacFrameSourceTests
     {
         private readonly Queue<SystemObservation> _readings = new(readings);
         public int DisposeCount { get; private set; }
-        public SystemObservation Read(string volumePath) => _readings.Dequeue();
+        public SystemObservation Read(string volumePath, string? networkId = null) => _readings.Dequeue();
         public void Dispose() => DisposeCount++;
     }
 }

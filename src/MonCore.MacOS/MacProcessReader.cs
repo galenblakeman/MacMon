@@ -5,7 +5,11 @@ namespace MonCore.MacOS;
 
 internal sealed record MacProcessObservation(ProcessLifetimeIdentity Identity, DateTimeOffset? StartedAtUtc,
     string Name, string ImagePath, int ParentProcessId, ulong? CpuNanoseconds, ulong? ResidentBytes,
-    long? ThreadCount, long MonotonicTimestamp);
+    long? ThreadCount, long MonotonicTimestamp)
+{
+    public ulong? DiskReadBytes { get; init; }
+    public ulong? DiskWriteBytes { get; init; }
+}
 
 internal sealed record MacProcessBatch(IReadOnlyList<MacProcessObservation> Processes, int UnavailableProcesses,
     bool EnumerationAvailable = true);
@@ -16,7 +20,11 @@ internal interface IMacProcessReader : IDisposable
 }
 
 internal sealed record NativeProcessInfo(int ProcessId, int ParentProcessId, ulong StartSeconds,
-    ulong StartMicroseconds, string Name, ulong? CpuNanoseconds, ulong? ResidentBytes, long? ThreadCount);
+    ulong StartMicroseconds, string Name, ulong? CpuNanoseconds, ulong? ResidentBytes, long? ThreadCount)
+{
+    public ulong? DiskReadBytes { get; init; }
+    public ulong? DiskWriteBytes { get; init; }
+}
 
 internal interface IMacProcessApi
 {
@@ -68,7 +76,7 @@ internal sealed class MacProcessReader(IMacProcessApi api) : IMacProcessReader
             result.Add(new MacProcessObservation(
                 new ProcessLifetimeIdentity(pid, token, ProcessLifetimeIdentity.UnixMicroseconds),
                 start, info.Name, path, info.ParentProcessId, info.CpuNanoseconds, info.ResidentBytes,
-                info.ThreadCount, instant));
+                info.ThreadCount, instant) { DiskReadBytes = info.DiskReadBytes, DiskWriteBytes = info.DiskWriteBytes });
         }
 
         return new MacProcessBatch(result, unavailable);
