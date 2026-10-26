@@ -6,7 +6,7 @@ public sealed record MacCaptureOptions(bool Enabled, IReadOnlyList<CaptureRuleSe
     string? Folder = null, bool Notify = false)
 {
     public string ReportFolder => Folder ?? Path.Combine(MacPaths.AppSupport, "Captures");
-    public static CaptureMetric[] SupportedMetrics => [CaptureMetric.Cpu, CaptureMetric.Gpu, CaptureMetric.Memory, CaptureMetric.Network, CaptureMetric.Process];
+    public static CaptureMetric[] SupportedMetrics => [CaptureMetric.Cpu, CaptureMetric.Memory, CaptureMetric.PrimaryDisk, CaptureMetric.SecondaryDisk, CaptureMetric.Network, CaptureMetric.Gpu, CaptureMetric.Process];
     public static MacCaptureOptions Default => new(false,
         CaptureRuleSetting.Defaults.Where(rule => SupportedMetrics.Contains(rule.Metric)).ToArray());
     public MacCaptureOptions Normalized() => new(Enabled, SupportedMetrics.Select(metric =>

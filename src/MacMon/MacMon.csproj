@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <Version>0.13.13</Version>
-    <MacMonBundleBuild>36</MacMonBundleBuild>
+    <Version>0.13.14</Version>
+    <MacMonBundleBuild>37</MacMonBundleBuild>
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>

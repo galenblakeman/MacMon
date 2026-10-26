@@ -5,25 +5,32 @@
     <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{local:Loc &quot;Automatic capture&quot;}" FontSize="21" FontWeight="SemiBold" /><CheckBox Grid.Column="1" x:Name="EnabledCapture" Content="{local:Loc &quot;Off&quot;}" AutomationProperties.Name="{local:Loc &quot;Enable automatic captures&quot;}" /></Grid>
     <TextBlock Classes="label" TextWrapping="Wrap" Text="{local:Loc &quot;Capture a peak when a rule stays above its threshold. Readings continue while you inspect a capture.&quot;}" />
     <Border Classes="card" BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="1" Padding="10">
-      <Grid ColumnDefinitions="*,85,Auto,65,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6" RowSpacing="8">
+      <Grid ColumnDefinitions="*,85,Auto,65,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6" RowSpacing="8">
         <TextBlock Text="{local:Loc &quot;Rule&quot;}" Classes="label" /><TextBlock Grid.Column="1" Text="{local:Loc &quot;Above&quot;}" Classes="label" /><TextBlock Grid.Column="3" Text="{local:Loc &quot;For&quot;}" Classes="label" />
         <CheckBox Grid.Row="1" x:Name="CpuEnabled" Content="{local:Loc &quot;CPU&quot;}" />
         <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="CpuThreshold" Minimum="1" Maximum="100" /><TextBlock Grid.Row="1" Grid.Column="2" Text="{local:Loc &quot;%&quot;}" VerticalAlignment="Center" />
         <NumericUpDown Grid.Row="1" Grid.Column="3" x:Name="CpuSeconds" Minimum="1" Maximum="300" /><TextBlock Grid.Row="1" Grid.Column="4" Text="{local:Loc &quot;s&quot;}" VerticalAlignment="Center" />
-        <CheckBox Grid.Row="2" x:Name="GpuEnabled" Content="{local:Loc &quot;GPU&quot;}" />
-        <NumericUpDown Grid.Row="2" Grid.Column="1" x:Name="GpuThreshold" Minimum="1" Maximum="100" /><TextBlock Grid.Row="2" Grid.Column="2" Text="{local:Loc &quot;%&quot;}" VerticalAlignment="Center" />
-        <NumericUpDown Grid.Row="2" Grid.Column="3" x:Name="GpuSeconds" Minimum="1" Maximum="300" /><TextBlock Grid.Row="2" Grid.Column="4" Text="{local:Loc &quot;s&quot;}" VerticalAlignment="Center" />
-        <CheckBox Grid.Row="3" x:Name="MemoryEnabled" Content="{local:Loc &quot;Memory&quot;}" ToolTip.Tip="{local:Loc &quot;macOS memory usage estimate&quot;}" />
-        <NumericUpDown Grid.Row="3" Grid.Column="1" x:Name="MemoryThreshold" Minimum="1" Maximum="100" /><TextBlock Grid.Row="3" Grid.Column="2" Text="{local:Loc &quot;%&quot;}" VerticalAlignment="Center" />
-        <NumericUpDown Grid.Row="3" Grid.Column="3" x:Name="MemorySeconds" Minimum="1" Maximum="300" /><TextBlock Grid.Row="3" Grid.Column="4" Text="{local:Loc &quot;s&quot;}" VerticalAlignment="Center" />
-        <CheckBox Grid.Row="4" x:Name="NetworkEnabled" Content="{local:Loc &quot;Network&quot;}" ToolTip.Tip="{local:Loc &quot;Busier direction: download or upload&quot;}" />
-        <NumericUpDown Grid.Row="4" Grid.Column="1" x:Name="NetworkThreshold" Minimum="0.1" Maximum="100000" Increment="1" /><TextBlock Grid.Row="4" Grid.Column="2" Text="{local:Loc &quot;Mbps&quot;}" VerticalAlignment="Center" />
-        <NumericUpDown Grid.Row="4" Grid.Column="3" x:Name="NetworkSeconds" Minimum="1" Maximum="300" /><TextBlock Grid.Row="4" Grid.Column="4" Text="{local:Loc &quot;s&quot;}" VerticalAlignment="Center" />
-        <CheckBox Grid.Row="5" x:Name="ProcessEnabled" Content="{local:Loc &quot;Any process&quot;}" />
-        <NumericUpDown Grid.Row="5" Grid.Column="1" x:Name="ProcessThreshold" Minimum="1" Maximum="25600" /><TextBlock Grid.Row="5" Grid.Column="2" Text="{local:Loc &quot;% of one core&quot;}" VerticalAlignment="Center" FontSize="11" />
-        <NumericUpDown Grid.Row="5" Grid.Column="3" x:Name="ProcessSeconds" Minimum="1" Maximum="300" /><TextBlock Grid.Row="5" Grid.Column="4" Text="{local:Loc &quot;s&quot;}" VerticalAlignment="Center" />
+        <CheckBox Grid.Row="2" x:Name="MemoryEnabled" Content="{local:Loc &quot;Memory&quot;}" ToolTip.Tip="{local:Loc &quot;macOS memory usage estimate&quot;}" />
+        <NumericUpDown Grid.Row="2" Grid.Column="1" x:Name="MemoryThreshold" Minimum="1" Maximum="100" /><TextBlock Grid.Row="2" Grid.Column="2" Text="{local:Loc &quot;%&quot;}" VerticalAlignment="Center" />
+        <NumericUpDown Grid.Row="2" Grid.Column="3" x:Name="MemorySeconds" Minimum="1" Maximum="300" /><TextBlock Grid.Row="2" Grid.Column="4" Text="{local:Loc &quot;s&quot;}" VerticalAlignment="Center" />
+        <CheckBox Grid.Row="3" x:Name="DiskEnabled" Content="{local:Loc &quot;Disk&quot;}" ToolTip.Tip="{local:Loc &quot;Estimated I/O activity; requires readable operation timing counters&quot;}" />
+        <NumericUpDown Grid.Row="3" Grid.Column="1" x:Name="DiskThreshold" Minimum="1" Maximum="100" /><TextBlock Grid.Row="3" Grid.Column="2" Text="%" VerticalAlignment="Center" />
+        <NumericUpDown Grid.Row="3" Grid.Column="3" x:Name="DiskSeconds" Minimum="1" Maximum="300" /><TextBlock Grid.Row="3" Grid.Column="4" Text="{local:Loc &quot;s&quot;}" VerticalAlignment="Center" />
+        <CheckBox Grid.Row="4" x:Name="Disk2Enabled" Content="{local:Loc &quot;Disk 2&quot;}" ToolTip.Tip="{local:Loc &quot;Estimated I/O activity; select a second disk under Monitoring&quot;}" />
+        <NumericUpDown Grid.Row="4" Grid.Column="1" x:Name="Disk2Threshold" Minimum="1" Maximum="100" /><TextBlock Grid.Row="4" Grid.Column="2" Text="%" VerticalAlignment="Center" />
+        <NumericUpDown Grid.Row="4" Grid.Column="3" x:Name="Disk2Seconds" Minimum="1" Maximum="300" /><TextBlock Grid.Row="4" Grid.Column="4" Text="{local:Loc &quot;s&quot;}" VerticalAlignment="Center" />
+        <CheckBox Grid.Row="5" x:Name="NetworkEnabled" Content="{local:Loc &quot;Network&quot;}" ToolTip.Tip="{local:Loc &quot;Busier direction: download or upload&quot;}" />
+        <NumericUpDown Grid.Row="5" Grid.Column="1" x:Name="NetworkThreshold" Minimum="0.1" Maximum="100000" Increment="1" /><TextBlock Grid.Row="5" Grid.Column="2" Text="{local:Loc &quot;Mbps&quot;}" VerticalAlignment="Center" />
+        <NumericUpDown Grid.Row="5" Grid.Column="3" x:Name="NetworkSeconds" Minimum="1" Maximum="300" /><TextBlock Grid.Row="5" Grid.Column="4" Text="{local:Loc &quot;s&quot;}" VerticalAlignment="Center" />
+        <CheckBox Grid.Row="6" x:Name="GpuEnabled" Content="{local:Loc &quot;GPU&quot;}" />
+        <NumericUpDown Grid.Row="6" Grid.Column="1" x:Name="GpuThreshold" Minimum="1" Maximum="100" /><TextBlock Grid.Row="6" Grid.Column="2" Text="{local:Loc &quot;%&quot;}" VerticalAlignment="Center" />
+        <NumericUpDown Grid.Row="6" Grid.Column="3" x:Name="GpuSeconds" Minimum="1" Maximum="300" /><TextBlock Grid.Row="6" Grid.Column="4" Text="{local:Loc &quot;s&quot;}" VerticalAlignment="Center" />
+        <CheckBox Grid.Row="7" x:Name="ProcessEnabled" Content="{local:Loc &quot;Any process&quot;}" />
+        <NumericUpDown Grid.Row="7" Grid.Column="1" x:Name="ProcessThreshold" Minimum="1" Maximum="25600" /><TextBlock Grid.Row="7" Grid.Column="2" Text="{local:Loc &quot;% of one core&quot;}" VerticalAlignment="Center" FontSize="11" />
+        <NumericUpDown Grid.Row="7" Grid.Column="3" x:Name="ProcessSeconds" Minimum="1" Maximum="300" /><TextBlock Grid.Row="7" Grid.Column="4" Text="{local:Loc &quot;s&quot;}" VerticalAlignment="Center" />
       </Grid>
     </Border>
+    <TextBlock Text="{local:Loc &quot;Disk rules use estimated I/O activity, not Windows active time. Disk 2 requires a selected second disk. Missing counters and source changes restart the duration.&quot;}" Classes="label" TextWrapping="Wrap" />
     <WrapPanel Orientation="Horizontal"><TextBlock Text="{local:Loc &quot;Wait&quot;}" VerticalAlignment="Center" /><NumericUpDown x:Name="Cooldown" Minimum="1" Maximum="3600" Width="90" Margin="8,0" /><TextBlock Text="{local:Loc &quot;seconds before capturing the same rule again&quot;}" VerticalAlignment="Center" TextWrapping="Wrap" /></WrapPanel>
     <Grid ColumnDefinitions="120,*" ColumnSpacing="12"><TextBlock Text="{local:Loc &quot;Save location&quot;}" Classes="label" VerticalAlignment="Center" />
     <TextBox Grid.Column="1" x:Name="CaptureFolder" IsReadOnly="True" AutomationProperties.Name="{local:Loc &quot;Capture save location&quot;}" /></Grid>

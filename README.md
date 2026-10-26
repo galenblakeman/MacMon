@@ -60,3 +60,5 @@ Table searches include clear buttons. Right-click rows for their actions; Jobs s
 Memory uses adaptive binary units (KiB/MiB/GiB); I/O rates and totals use decimal units (KB/MB/GB), with one decimal throughout. I/O columns describe disk reads and writes, excluding network traffic.
 
 Collapsing or expanding an action bar applies across Processes, Jobs and Usage and is remembered on restart.
+
+Automatic Capture supports **Disk** and **Disk 2** rules based on estimated I/O activity (%), with duration and cooldown. Both default off. Choose a second disk under Monitoring before using its rule; missing timing counters and source changes require a fresh trigger run. Reports identify the estimate and source at the peak.

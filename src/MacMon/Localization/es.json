@@ -324,5 +324,8 @@
   "Peak {0}": "Pico {0}",
   "Clear search": "Borrar búsqueda",
   "Show processes": "Mostrar procesos",
-  "Click to sort; click again to reverse. Unavailable values remain last.": "Haz clic para ordenar; otra vez para invertir. Los valores no disponibles quedan al final."
+  "Click to sort; click again to reverse. Unavailable values remain last.": "Haz clic para ordenar; otra vez para invertir. Los valores no disponibles quedan al final.",
+  "Estimated I/O activity; requires readable operation timing counters": "Actividad de E/S estimada; requiere contadores de tiempo legibles",
+  "Estimated I/O activity; select a second disk under Monitoring": "Actividad de E/S estimada; selecciona un segundo disco en Monitorización",
+  "Disk rules use estimated I/O activity, not Windows active time. Disk 2 requires a selected second disk. Missing counters and source changes restart the duration.": "Las reglas de disco usan actividad de E/S estimada, no el tiempo activo de Windows. Disco 2 requiere un segundo disco seleccionado. Los contadores no disponibles y los cambios de origen reinician la duración."
 }

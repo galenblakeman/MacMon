@@ -126,7 +126,7 @@ public sealed class CpuChart : Control
     private double X(long time, Rect plot) => plot.X + plot.Width * (1 -
         (_samples[^1].MonotonicTimestamp - time) / (double)Stopwatch.Frequency / RangeSeconds);
     private static int CaptureMetricIndex(MacCaptureRecord capture) => capture.Metric switch
-    { CaptureMetric.Memory => 1, CaptureMetric.Network => 2, CaptureMetric.Gpu => 4, _ => 0 };
+    { CaptureMetric.Memory => 1, CaptureMetric.Network => 2, CaptureMetric.Gpu => 4, CaptureMetric.PrimaryDisk => 3, CaptureMetric.SecondaryDisk => 5, _ => 0 };
     private bool MarkerVisible(MacCaptureRecord capture, ChartPanel panel) => _samples.Count > 0 &&
         capture.Peak.MonotonicTimestamp > 0 && panel.Metrics.Contains(CaptureMetricIndex(capture)) &&
         (_samples[^1].MonotonicTimestamp - capture.Peak.MonotonicTimestamp) / (double)Stopwatch.Frequency is var age && age >= 0 && age <= RangeSeconds;

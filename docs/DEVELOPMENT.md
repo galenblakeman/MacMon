@@ -1292,3 +1292,23 @@ with zero build warnings/errors. Native Jobs → Usage → Processes checks conf
 shared collapse and expansion, restored to the original expanded Jobs view.
 The remaining main-window gauge-detail rate helper now delegates to the decimal
 formatter; its focused unit regression passes after that cleanup.
+
+## Parity slice 7: estimated disk capture rules — 0.13.14/build 37
+
+Automatic Capture adds Disk and Disk 2 percent rules in WinMon's resource order.
+They use MacMon's capped estimate from read/write operation times, explicitly
+labeled as estimated I/O activity in Settings and reports. Existing preferences
+migrate both rules to disabled. Disk 2 remains unavailable without a selected
+second disk; absent timing counters and source-change baselines break runs.
+The shared rule engine retains duration, cooldown and hysteresis behavior.
+Markers attach to the appropriate primary/second disk chart lane; saved report
+metadata accepts the additional metrics. Regression checks exercise missing/gap
+readings, second-disk absence, peak provenance, cooldown/re-arm and Settings
+serialization. Runtime reporting keeps the selected source names at the peak.
+
+Validation: 211 full-suite tests, three release checks and collector/launchd
+smoke pass with no build warnings/errors. Final rule ordering, Settings layouts
+and report reloads pass 15 focused tests after the ordering/report refinements
+(213 tests total). Synthetic peak reports retain their exact disk metric and
+sample key after saving and reloading. Existing native disk baselines cover
+source changes and missing operation counters.

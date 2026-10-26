@@ -42,9 +42,11 @@ public sealed partial class CaptureSettingsEditor : UserControl
         var controls = new[]
         {
             (CaptureMetric.Cpu, CpuEnabled, CpuThreshold, CpuSeconds),
-            (CaptureMetric.Gpu, GpuEnabled, GpuThreshold, GpuSeconds),
             (CaptureMetric.Memory, MemoryEnabled, MemoryThreshold, MemorySeconds),
+            (CaptureMetric.PrimaryDisk, DiskEnabled, DiskThreshold, DiskSeconds),
+            (CaptureMetric.SecondaryDisk, Disk2Enabled, Disk2Threshold, Disk2Seconds),
             (CaptureMetric.Network, NetworkEnabled, NetworkThreshold, NetworkSeconds),
+            (CaptureMetric.Gpu, GpuEnabled, GpuThreshold, GpuSeconds),
             (CaptureMetric.Process, ProcessEnabled, ProcessThreshold, ProcessSeconds)
         };
         foreach (var (metric, enabled, threshold, seconds) in controls)
@@ -62,9 +64,11 @@ public sealed partial class CaptureSettingsEditor : UserControl
         new[]
         {
             (CaptureMetric.Cpu, CpuEnabled, CpuThreshold, CpuSeconds),
-            (CaptureMetric.Gpu, GpuEnabled, GpuThreshold, GpuSeconds),
             (CaptureMetric.Memory, MemoryEnabled, MemoryThreshold, MemorySeconds),
+            (CaptureMetric.PrimaryDisk, DiskEnabled, DiskThreshold, DiskSeconds),
+            (CaptureMetric.SecondaryDisk, Disk2Enabled, Disk2Threshold, Disk2Seconds),
             (CaptureMetric.Network, NetworkEnabled, NetworkThreshold, NetworkSeconds),
+            (CaptureMetric.Gpu, GpuEnabled, GpuThreshold, GpuSeconds),
             (CaptureMetric.Process, ProcessEnabled, ProcessThreshold, ProcessSeconds)
         }.Select(control => new CaptureRuleSetting(control.Item1, control.Item2.IsChecked == true,
             (double)(control.Item3.Value ?? 1), (int)(control.Item4.Value ?? 1))).ToArray(),

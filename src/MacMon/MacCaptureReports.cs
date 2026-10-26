@@ -25,18 +25,23 @@ public static class MacCaptureReports
     {
         var id = Guid.NewGuid();
         var unit = capture.Rule.Metric == CaptureMetric.Network ? "Mbps" : capture.Rule.Metric == CaptureMetric.Process ? "% of one core" : "%";
-        var label = $"{capture.Rule.Metric} · peak {capture.PeakValue:F1} {unit}";
+        var metric = capture.Rule.Metric switch
+        { CaptureMetric.PrimaryDisk => "Disk · estimated I/O activity", CaptureMetric.SecondaryDisk => "Disk 2 · estimated I/O activity", _ => capture.Rule.Metric.ToString() };
+        var label = $"{metric} · peak {capture.PeakValue:F1} {unit}";
         return new(id, SampleKey.Of(capture.Peak), capture.Rule.Metric, label,
             Path.Combine(directory, $"MacMon-capture-{capture.Peak.Timestamp.UtcDateTime:yyyyMMddTHHmmssfffZ}-{id:N}.txt"));
     }
 
     public static string AutomaticText(CaptureFired capture)
     {
-        var sort = capture.Rule.Metric == CaptureMetric.Memory ? ProcessSort.Memory : ProcessSort.Cpu;
+        var sort = capture.Rule.Metric switch
+        { CaptureMetric.Memory => ProcessSort.Memory, CaptureMetric.PrimaryDisk or CaptureMetric.SecondaryDisk => ProcessSort.Io, _ => ProcessSort.Cpu };
         var rows = capture.Peak.Processes.OrderByDescending(process => sort == ProcessSort.Memory
-            ? process.WorkingSetBytes ?? 0 : process.ObservedCpuPercent ?? -1).Take(20).ToArray();
+            ? process.WorkingSetBytes ?? 0 : sort == ProcessSort.Io ? process.IoBytesPerSecond ?? -1 : process.ObservedCpuPercent ?? -1).Take(20).ToArray();
         return OwnershipMarker + "\n" +
             $"Rule: {capture.Rule.Metric} above {capture.Rule.Threshold.ToString("F1", CultureInfo.InvariantCulture)} for {capture.Rule.Seconds} consecutive readings\n" +
+            (capture.Rule.Metric is CaptureMetric.PrimaryDisk or CaptureMetric.SecondaryDisk
+                ? "Measurement: Estimated I/O activity (%); overlapping operation times, capped at 100. Not Windows active time.\nProcess I/O includes all devices and does not attribute activity to the selected disk.\n" : "") +
             $"Peak value: {capture.PeakValue.ToString("F1", CultureInfo.InvariantCulture)}\n" +
             (capture.Process is { } process ? $"Triggering process: {Clean(process.Name)} · PID {process.ProcessId}\n" : "") +
             Text(capture.Peak, rows, "Top 20 observed processes at the peak; interval readings, without five-second averaging.");
