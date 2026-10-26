@@ -48,11 +48,11 @@ public sealed class MacLaunchdReader
             foreach (var pid in _processes.EnumeratePids() ?? [])
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (Identity(_processes.ReadIdentity(pid), uid) is { } identity) before[pid] = identity;
+                if (pid > 0 && Identity(_processes.ReadIdentity(pid), uid, pid) is { } identity) before[pid] = identity;
             }
             var jobs = Parse(await ReadCommand("list", cancellationToken), context);
             var verified = jobs.Select(job => job.ReportedPid is { } pid && before.TryGetValue(pid, out var identity) &&
-                Identity(_processes.ReadIdentity(pid), uid) == identity ? job with { ObservedIdentity = identity } : job).ToArray();
+                Identity(_processes.ReadIdentity(pid), uid, pid) == identity ? job with { ObservedIdentity = identity } : job).ToArray();
             return new(DateTimeOffset.Now, context, verified);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
@@ -68,8 +68,8 @@ public sealed class MacLaunchdReader
         return result.Output;
     }
 
-    private static ProcessLifetimeIdentity? Identity(NativeProcessInfo? info, uint uid) =>
-        info is { ProcessId: > 0, StartSeconds: > 0, StartMicroseconds: < 1_000_000 } && info.EffectiveUserId == uid &&
+    private static ProcessLifetimeIdentity? Identity(NativeProcessInfo? info, uint uid, int pid) =>
+        info is { ProcessId: > 0, StartSeconds: > 0, StartMicroseconds: < 1_000_000 } && info.ProcessId == pid && info.EffectiveUserId == uid &&
         info.StartSeconds <= ((ulong)long.MaxValue - info.StartMicroseconds) / 1_000_000
             ? new(info.ProcessId, (long)(info.StartSeconds * 1_000_000 + info.StartMicroseconds), ProcessLifetimeDomain.UnixMicroseconds) : null;
 
@@ -108,6 +108,7 @@ internal sealed class LaunchctlRunner : ILaunchctlRunner
     {
         if (command is not ("list" or "manageruid" or "managername")) throw new ArgumentException("Unsupported read command.");
         if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException("launchd monitoring requires macOS.");
+        cancellationToken.ThrowIfCancellationRequested();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(3));
         using var process = new Process { StartInfo = new("/bin/launchctl")

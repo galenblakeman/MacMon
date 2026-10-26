@@ -9,14 +9,18 @@ public sealed record LaunchdRow(LaunchdJob Job, string Label, string State, stri
 {
     public override string ToString() => $"{Label}, {State}, PID {Pid}, last {ExitStatus}, observed process {ProcessName}";
 }
-public sealed class LaunchdInventory
+public sealed class LaunchdInventory(TimeProvider? clock = null)
 {
+    private readonly TimeProvider _clock = clock ?? TimeProvider.System;
+    private long _receivedAt;
+    public TimeSpan Age => LastSuccess is null ? TimeSpan.MaxValue : _clock.GetElapsedTime(_receivedAt);
+    public bool IsStale => LastSuccess is not null && (Error is not null || Age.TotalSeconds >= 15);
     public LaunchdSnapshot? LastSuccess { get; private set; }
     public string? Error { get; private set; }
     public void Apply(LaunchdSnapshot snapshot)
     {
         Error = snapshot.Error;
-        if (snapshot.Available) LastSuccess = snapshot;
+        if (snapshot.Available) { LastSuccess = snapshot; _receivedAt = _clock.GetTimestamp(); }
     }
 }
 

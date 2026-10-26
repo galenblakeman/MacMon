@@ -37,6 +37,7 @@ host_arch="$(uname -m)"
 if [[ "$runtime" == "osx-arm64" && "$host_arch" == "arm64" ]] || \
    [[ "$runtime" == "osx-x64" && "$host_arch" == "x86_64" ]]; then
     "$bundle/Contents/MacOS/MacMon" --smoke
+    "$bundle/Contents/MacOS/MacMon" --launchd-smoke
 else
     echo "Native bundle smoke skipped: $runtime differs from host $host_arch."
 fi

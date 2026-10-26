@@ -86,7 +86,7 @@ public sealed partial class MainWindow : Window
         UsageSortBox.SelectionChanged += (_, _) => UpdateUsage();
         ResetUsage.Click += (_, _) => { _session.Usage.Reset(DateTimeOffset.Now); UpdateUsage(); };
         ExportUsage.Click += async (_, _) => await Export(CsvExportKind.UsageTotals);
-        DataTabs.SelectionChanged += (_, args) => { if (args.Source == DataTabs) { UpdateProcesses(); UpdateUsage(); if (DataTabs.SelectedIndex == 2) JobsView.Activate(); } };
+        DataTabs.SelectionChanged += (_, args) => { if (args.Source == DataTabs) { UpdateProcesses(); UpdateUsage(); JobsView.SetActive(DataTabs.SelectedIndex == 2); } };
         NetworkAdapter.ItemsSource = new[] { new MacNetworkChoice("", "Automatic · active Ethernet/Wi-Fi") };
         NetworkAdapter.SelectedIndex = 0;
         NetworkAdapter.SelectionChanged += (_, _) =>
@@ -469,6 +469,7 @@ public sealed partial class MainWindow : Window
         _pins.Restore(_preferences.Pins);
         GroupProcesses.IsChecked = _preferences.Grouped; PinnedOnly.IsChecked = _preferences.PinnedOnly;
         ProcessSortBox.SelectedIndex = _preferences.ProcessSort; UsageSortBox.SelectedIndex = _preferences.UsageSort;
+        JobsView.SortIndex = _preferences.JobSort; JobsView.FilterIndex = _preferences.JobFilter;
         DataTabs.SelectedIndex = _preferences.DataTab; HistoryRange.SelectedIndex = _preferences.HistoryRange;
         AlwaysOnTop.IsChecked = _preferences.AlwaysOnTop;
         KeepHistoryAcrossRestarts.IsChecked = _preferences.KeepHistory;
@@ -484,7 +485,7 @@ public sealed partial class MainWindow : Window
     {
         BootId = _bootId, Grouped = Grouped, PinnedOnly = PinnedOnly.IsChecked == true,
         Pins = _pins.Snapshot(), ProcessSort = ProcessSortBox.SelectedIndex, UsageSort = UsageSortBox.SelectedIndex,
-        DataTab = DataTabs.SelectedIndex, HistoryRange = HistoryRange.SelectedIndex, NetworkId = _source.NetworkInterfaceId,
+        DataTab = DataTabs.SelectedIndex, JobSort = JobsView.SortIndex, JobFilter = JobsView.FilterIndex, HistoryRange = HistoryRange.SelectedIndex, NetworkId = _source.NetworkInterfaceId,
         AlwaysOnTop = Topmost, Captures = _captureOptions, KeepHistory = KeepHistoryAcrossRestarts.IsChecked == true,
         Width = WindowState == WindowState.Normal ? Width : _preferences.Width,
         Height = WindowState == WindowState.Normal ? Height : _preferences.Height,

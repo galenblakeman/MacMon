@@ -33,6 +33,8 @@ public sealed class MacLaunchdTests
     public void LargeOutputAndLabelsAreRejected()
     {
         Assert.Throws<InvalidDataException>(() => MacLaunchdReader.Parse(new string('x', 2_097_153), Context));
+        var tooMany = "PID\tStatus\tLabel\n" + string.Concat(Enumerable.Range(0, 20_001).Select(i => $"-\t0\tjob{i}\n"));
+        Assert.Throws<InvalidDataException>(() => MacLaunchdReader.Parse(tooMany, Context));
         Assert.Throws<InvalidDataException>(() => MacLaunchdReader.Parse("PID\tStatus\tLabel\n-\t0\t" + new string('x', 4097), Context));
     }
 
@@ -47,6 +49,7 @@ public sealed class MacLaunchdTests
         Assert.That(snapshot.Jobs.Single(j => j.ReportedPid == 43).ObservedIdentity, Is.Null, "PID reused");
         Assert.That(snapshot.Jobs.Single(j => j.ReportedPid == 44).ObservedIdentity, Is.Null, "other user");
         Assert.That(snapshot.Jobs.Single(j => j.ReportedPid == 45).ObservedIdentity, Is.Null, "exited");
+        Assert.That(snapshot.Jobs.Single(j => j.ReportedPid == 46).ObservedIdentity, Is.Null, "mismatched BSD PID");
         Assert.That(runner.Commands, Is.EqualTo(new[] { "manageruid", "managername", "list" }));
     }
 
@@ -92,7 +95,7 @@ public sealed class MacLaunchdTests
             return Task.FromResult(new LaunchctlResult(ExitCode, command switch
             {
                 "manageruid" => User + "\n", "managername" => Manager + "\n",
-                _ => "PID\tStatus\tLabel\n42\t0\ta\n43\t0\tb\n44\t0\tc\n45\t0\td\n-\t0\tidle\n"
+                _ => "PID\tStatus\tLabel\n42\t0\ta\n43\t0\tb\n44\t0\tc\n45\t0\td\n46\t0\te\n-\t0\tidle\n"
             }));
         }
     }
@@ -100,11 +103,11 @@ public sealed class MacLaunchdTests
     private sealed class Processes : IMacProcessApi
     {
         public bool After { get; set; }
-        public int[] EnumeratePids() => [42, 43, 44, 45];
+        public int[] EnumeratePids() => [42, 43, 44, 45, 46];
         public string ReadPath(int pid) => "";
         public NativeProcessInfo? ReadInfo(int pid) => ReadIdentity(pid);
         public NativeProcessInfo? ReadIdentity(int pid) => After && pid == 45 ? null :
-            new(pid, 1, (ulong)(After && pid == 43 ? 999 : 100), 123, "job", null, null, null)
+            new(pid == 46 ? 999 : pid, 1, (ulong)(After && pid == 43 ? 999 : 100), 123, "job", null, null, null)
             { EffectiveUserId = pid == 44 ? 502u : 501u };
     }
 }

@@ -13,6 +13,8 @@ public sealed record MacPreferences
     public int ProcessSort { get; init; }
     public int UsageSort { get; init; }
     public int DataTab { get; init; }
+    public int JobSort { get; init; }
+    public int JobFilter { get; init; }
     public int HistoryRange { get; init; }
     public string? NetworkId { get; init; }
     public bool AlwaysOnTop { get; init; }
@@ -27,7 +29,7 @@ public sealed record MacPreferences
     {
         BootId = bootId,
         ProcessSort = Math.Clamp(ProcessSort, 0, 3), UsageSort = Math.Clamp(UsageSort, 0, 2),
-        DataTab = Math.Clamp(DataTab, 0, 1), HistoryRange = Math.Clamp(HistoryRange, 0, 3),
+        DataTab = Math.Clamp(DataTab, 0, 2), JobSort = Math.Clamp(JobSort, 0, 2), JobFilter = Math.Clamp(JobFilter, 0, 2), HistoryRange = Math.Clamp(HistoryRange, 0, 3),
         Width = double.IsFinite(Width) ? Math.Clamp(Width, 800, 2400) : 1000,
         Height = double.IsFinite(Height) ? Math.Clamp(Height, 760, 1800) : 1000,
         DashboardRatio = double.IsFinite(DashboardRatio) ? Math.Clamp(DashboardRatio, 0.25, 5) : 2,

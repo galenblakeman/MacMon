@@ -50,7 +50,7 @@ The repeatable core microbenchmark is `tools/MonCore.Performance`. For an existi
 
 Windows runtime, smoke, performance and Store checks were reported completed and passing by the maintainer on October 25, 2026.
 
-Outstanding platform checks: Intel execution; actual sleep/wake and reboot behavior. Simulated clock/wake gaps are covered. GPU and launchd remain research work. Mac persistence and distribution tooling are implemented below; actual Developer ID notarization remains an external gate.
+Outstanding platform checks: Intel execution; actual sleep/wake and reboot behavior. Simulated clock/wake gaps are covered. GPU remains research work. Read-only current-context launchd monitoring is implemented below. Mac persistence and distribution tooling are implemented below; actual Developer ID notarization remains an external gate.
 
 ## Parity implementation progress
 
@@ -64,7 +64,7 @@ Work proceeds in separately verified commits on `codex/winmon-parity-slices`.
 6. Process tools and preferences: implemented. 62 tests and native smoke pass. Packaged properties, copy, captured-target termination of a disposable sleep process, disabled self-group action, saved grouped pin/filter/always-on-top restoration, keyboard pane resizing and dashboard scrolling verified.
 7. Portable persistence and distribution readiness: implemented. 72 Mac tests, three release-workflow tests and native smoke pass. Packaged restart/history/report restoration verified. Developer ID notarization, Intel execution and physical sleep/wake/reboot remain external validation gates; details follow.
 
-GPU and launchd require separate capability research. Windows runtime, smoke, performance and Store verification are complete per maintainer report; they do not need to be repeated for Mac-only UI/collector changes.
+GPU remains separate capability research; the launchd investigation below now has a read-only implementation. Windows runtime, smoke, performance and Store verification are complete per maintainer report; they do not need to be repeated for Mac-only UI/collector changes.
 
 ### Process presentation and performance
 
@@ -135,11 +135,11 @@ Packaged UI verification confirmed a live low-threshold CPU trigger, saved repor
 
 A next GPU slice should first prototype capability discovery behind an unsupported fallback, validate idle/loaded readings on multiple Apple Silicon generations and Intel/integrated/discrete configurations, and establish units/reset/source identity before exposing a chart. Per-process attribution needs a separate supported source. Until those checks pass, GPU stays unavailable and no GPU rule or estimated process attribution is offered.
 
-### Separate launchd investigation
+### Initial launchd investigation
 
 The installed SDK's `launchctl(1)` manual explicitly warns that newer output has no fixed format and is intended for humans rather than API parsing. A read-only normal-user `launchctl list` succeeded with 512 job rows in this login session; only the count was retained. No job was modified. Apple's [launchd job documentation](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html) provides the job/KeepAlive model. System, user and GUI domains have distinct identity and permission boundaries.
 
-A next launchd slice should provide a read-only current-user inventory with domain+label identity, distinguish loaded/running/inactive/disabled states, and mark partial or unsupported discovery explicitly. Any CLI parser needs captured-version fixtures and failure detection rather than an assumed stable format. Reported PIDs must be matched to verified process lifetimes; worker attribution should remain conservative. Model this as Mac jobs rather than Windows Services compatibility records. Only after inventory is reliable should explicit start/stop actions account for KeepAlive relaunch and domain permissions. No launchd implementation or service-management action ships in this parity pass.
+A next launchd slice should provide a read-only current-user inventory with domain+label identity, distinguish loaded/running/inactive/disabled states, and mark partial or unsupported discovery explicitly. Any CLI parser needs captured-version fixtures and failure detection rather than an assumed stable format. Reported PIDs must be matched to verified process lifetimes; worker attribution should remain conservative. Model this as Mac jobs rather than Windows Services compatibility records. Only after inventory is reliable should explicit start/stop actions account for KeepAlive relaunch and domain permissions. This investigation informed the read-only implementation below. Service-management actions remain outside its scope.
 
 ## Read-only launchd implementation
 
@@ -158,3 +158,15 @@ Before listing, the adapter captures readable same-context-user process lifetime
 The Jobs tab searches label/PID/observed process, filters all loaded/running/not running, and sorts by exact label, running first or PID. Rows identify states as observations, retain signed last-termination semantics and never infer disabled state or job health. Details/copy show full labels, context, observation time and only a fresh exact-lifetime process match; no launchd control actions are present. Discovery runs off the dispatcher and concurrent manual requests coalesce. Failed discovery keeps the last successful inventory explicitly stale, with process association suppressed. Selection follows context+label across refreshes rather than row position or PID. Job snapshots are independent of chart Capture, CSV history and session Usage.
 
 Verification: 87 Mac tests, three release workflow tests, zero warnings and native smoke passed. The Apple Silicon development package was checked for label search, Finder job selection, read-only details with verified start identity, manual refresh and layout.
+
+### Slice 3: refresh lifecycle and saved views
+
+A monotonic five-second cadence polls only while Jobs is selected and the window is visible and not minimized. In-flight requests coalesce; failure retries use the same cadence. The one-second UI heartbeat launches no discovery work for hidden tabs. Returning to an overdue view requests a refresh. Exit cancels and joins an in-flight discovery before disposing the monitor; late completions cannot publish rows. The last successful inventory becomes stale after 15 seconds or immediately after a failed attempt. Stale warnings appear beside the scope and in status/details, and process linkage is suppressed. Polling does not depend on chart Live/Capture or restored history.
+
+Context+label selection and list offset survive refreshes. Jobs sort/filter and the selected tab save through existing version-1 normalized preferences; old files default to All loaded/Label. Search text, job inventories and process associations are not persisted. App version is now 0.3.0/build 3. Both verification and native-architecture packaging run the read-only launchd smoke alongside the existing resource smoke.
+
+Tests cover strict captured-format shape, empty inventory versus unsupported output, bounds, duplicate labels, signed exit status, process reuse/exit/other-user/mismatched PID, filtering, fresh details, stale preservation and recovery, monotonic cadence, overlapping requests, cancellation, ignored late completion, and preference normalization/round-trip. Native discovery and UI observations do not start, stop, load, unload, enable or disable any jobs.
+
+Final evidence on October 26, 2026, Apple Silicon/macOS 26.6.2: 91 Mac tests and three release workflow tests passed with zero build warnings, plus resource and launchd native smoke. Discovery measured 82.2–97.4 ms in individual CLI/package observations with roughly 511–525 loaded jobs. Packaged UI checks covered automatic refresh, selection and scrolled-position retention, label search, running/not-running filtering, exact-lifetime details, chart Capture independence, and restart restoration of the Jobs tab with Running/PID choices. Archive SHA-256, extracted strict signatures, version/build and extracted launchd smoke passed. No launchd state was modified.
+
+A 30-interval process measurement with Jobs polling and Running/PID view showed mean 0.595% of total ten-core machine CPU, peak 1.646%, and peak resident 240.0 MiB for MacMon itself. It excludes the short-lived launchctl children, includes other desktop activity and is not a long-duration performance/leak guarantee. Intel, older macOS and real sleep/wake validation remain outstanding; Developer ID signing/notarization gates are unchanged.

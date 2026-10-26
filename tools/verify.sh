@@ -12,4 +12,5 @@ bash -n tools/package-app.sh tools/package-release.sh
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tools/tests -p 'test_*.py'
 if [[ "${1:-}" == "--smoke" ]]; then
     dotnet run --project src/MacMon -c Release --no-build --no-restore -- --smoke
+    dotnet run --project src/MacMon -c Release --no-build --no-restore -- --launchd-smoke
 fi

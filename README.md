@@ -12,6 +12,8 @@ The Usage tab totals observed CPU time and disk I/O by executable for this sessi
 
 Automatic captures can watch system CPU, estimated memory usage, network throughput or any process’s CPU. Configure thresholds, duration and cooldown with **Automatic captures…**. A fired rule marks the peak on the chart and saves a local text report under `~/Library/Application Support/MacMon/Captures`; only the newest 200 MacMon-owned reports are kept. Choose a capture to inspect its retained peak or open its report after history expires. **Copy capture** copies the current resource summary and process rows with their averaging notes.
 
+The **Jobs** tab monitors loaded launchd jobs in MacMon's current bootstrap context. Search label/PID/observed process, filter running or not running, sort, refresh, and inspect/copy read-only details. It refreshes every five seconds while visible and preserves selection. Scope and observation time are explicit; failures retain stale rows with a warning. “Not running” does not mean disabled, and last exit status does not describe current health. Process details require a fresh matching lifetime. Other domains, disabled-job configuration and child-worker attribution are outside this inventory; there are no job-control actions. Jobs remain live when the resource chart is in Capture mode. The selected tab and Jobs sort/filter restore on clean restart.
+
 Sampling, ranking, selection and bounded history run through MonCore. Baselines, failed readings and wake gaps appear as unavailable CPU readings instead of zero. macOS may deny access to some processes; the list reports unavailable readings and retries without requesting elevated privileges.
 
 Requires macOS, Python 3 for local-package normalization, and the .NET 10 SDK (validated with 10.0.401).
@@ -37,4 +39,4 @@ For distribution, `bash tools/package-release.sh RUNTIME 'Developer ID Applicati
 
 Select a process for Properties, Copy details, Reveal in Finder and a confirmed termination request. Termination uses a captured process generation, protects system/other-user/MacMon targets, and excludes processes started after confirmation opens. Historical views disable termination. Always on top, ranking/grouping, pins, history range, network selection, capture rules, pane ratio and window size restore on restart. Preferences live at `~/Library/Application Support/MacMon/settings.json`; invalid files are preserved and defaults are used.
 
-GPU and launchd remain separate research work; unavailable metrics are not synthesized. See [development notes](docs/DEVELOPMENT.md) for contracts, verification and remaining work.
+GPU remains research work; unavailable metrics are not synthesized. See [development notes](docs/DEVELOPMENT.md) for contracts, verification and remaining work.

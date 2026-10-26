@@ -28,13 +28,16 @@ public sealed class MacPreferenceTests
         try
         {
             MacPreferenceStore.Save(path, new MacPreferences { BootId = "boot", Grouped = true, PinnedOnly = true,
-                Width = 1200, Height = 900, NetworkId = "en1", AlwaysOnTop = true, HistoryRange = 2,
+                DataTab = 2, JobSort = 1, JobFilter = 2, Width = 1200, Height = 900, NetworkId = "en1", AlwaysOnTop = true, HistoryRange = 2,
                 Captures = MacCaptureOptions.Default with { Enabled = true } });
             var loaded = MacPreferenceStore.Load(path, "boot");
             Assert.Multiple(() =>
             {
                 Assert.That(loaded.Error, Is.Null);
                 Assert.That(loaded.Preferences.Grouped, Is.True);
+                Assert.That(loaded.Preferences.DataTab, Is.EqualTo(2));
+                Assert.That(loaded.Preferences.JobSort, Is.EqualTo(1));
+                Assert.That(loaded.Preferences.JobFilter, Is.EqualTo(2));
                 Assert.That(loaded.Preferences.NetworkId, Is.EqualTo("en1"));
                 Assert.That(loaded.Preferences.Captures.Enabled, Is.True);
                 Assert.That(loaded.Preferences.Width, Is.EqualTo(1200));
@@ -56,7 +59,7 @@ public sealed class MacPreferenceTests
     public void InvalidDimensionsAndIndicesNormalizeBeforeTheyReachControls()
     {
         var normalized = new MacPreferences { Width = double.NaN, Height = 1, DashboardRatio = double.PositiveInfinity,
-            ProcessSort = 999, UsageSort = -1, HistoryRange = 99 }.Normalized("boot");
+            ProcessSort = 999, UsageSort = -1, HistoryRange = 99, DataTab = 99, JobSort = -1, JobFilter = 99 }.Normalized("boot");
         Assert.Multiple(() =>
         {
             Assert.That(normalized.Width, Is.EqualTo(1000));
@@ -65,6 +68,9 @@ public sealed class MacPreferenceTests
             Assert.That(normalized.ProcessSort, Is.EqualTo(3));
             Assert.That(normalized.UsageSort, Is.Zero);
             Assert.That(normalized.HistoryRange, Is.EqualTo(3));
+            Assert.That(normalized.DataTab, Is.EqualTo(2));
+            Assert.That(normalized.JobSort, Is.Zero);
+            Assert.That(normalized.JobFilter, Is.EqualTo(2));
         });
     }
 
