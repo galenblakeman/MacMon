@@ -57,7 +57,7 @@ Outstanding platform checks: Intel execution; actual sleep/wake and reboot behav
 Work proceeds in separately verified commits on `codex/winmon-parity-slices`.
 
 1. Memory usage/pressure: implemented. Release build has zero warnings; 30 collector tests and native smoke pass. Packaged Apple Silicon app visually checked for memory card wrapping, live pressure and separate CPU/memory traces.
-2. Grouped processes, pins and sparklines: next.
+2. Grouped processes, pins and sparklines: implemented. 35 collector/presentation tests and native smoke pass; packaged app visually checked for grouping, search, pinned-only filtering, selection and trails. Pins are session-only until preferences land.
 3. History inspection and CSV export: pending.
 4. Network and disk activity: pending.
 5. Usage totals and automatic captures: pending.
@@ -65,3 +65,11 @@ Work proceeds in separately verified commits on `codex/winmon-parity-slices`.
 7. Portable persistence and distribution readiness: pending. Developer ID signing/notarization requires the maintainer's signing identity; Intel execution requires Intel hardware. Real sleep/wake and reboot checks remain outstanding.
 
 GPU and launchd require separate capability research. Windows runtime, smoke, performance and Store verification are complete per maintainer report; they do not need to be repeated for Mac-only UI/collector changes.
+
+### Process presentation and performance
+
+`ProcessPresentation` composes MonCore ranking, search and pins. Grouped memory is explicitly a resident sum, sorted by that sum in the Mac UI; no private-byte measurement is invented. Idle current lifetimes remain visible. Individual pins and selection retain lifetime identity; grouped pins use the same exact-path policy as ranking. Their combined immutable retention predicate reaches the sampler. Missing pins display a state and unavailable metrics. Switching grouping clears selection but preserves the separate pin lists.
+
+Thirty-second sparklines use the selected metric on an independent local scale. Missing retained observations and collection gaps break trails; absent compacted rows are not silently shown as measured zero. Group trails stay unavailable if an observed member's metric is missing. The trail builder uses one row index and fixed arrays per refresh, caching policy keys while preserving exec path changes.
+
+Run `dotnet run --project src/MacMon -c Release -- --presentation-benchmark` for 850 processes, 120 samples, 20 warmups and seven batches of 20 refreshes. On this Apple Silicon Mac, the final run measured medians of 0.545 ms / 316,856 bytes for ranking/filtering without trails, 1.045 ms / 1,014,256 bytes for individual rows with trails and 3.259 ms / 501,656 bytes for grouped rows with trails. The extra work buys 30-second per-row histories at one refresh per second; this is synthetic presentation overhead, not total application CPU or memory. An initial implementation allocated 4.3 MB per individual refresh; fixed arrays and cached keys reduced it before commit.

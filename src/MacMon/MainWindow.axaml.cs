@@ -14,6 +14,8 @@ public sealed partial class MainWindow : Window
     private ProcessSelection _selection = new(MacFrameSource.IdentityPolicy);
     private volatile Func<ProcessUsage, bool>? _retain;
     private bool _refreshingRows;
+    private readonly ProcessPins _pins = new(MacFrameSource.IdentityPolicy);
+    private bool Grouped => GroupProcesses.IsChecked == true;
 
     public MainWindow()
     {
@@ -28,10 +30,25 @@ public sealed partial class MainWindow : Window
         ProcessList.SelectionChanged += (_, _) =>
         {
             if (_refreshingRows) return;
-            if (ProcessList.SelectedItem is ProcessRow row) _selection.Select(row.Process, false);
+            if (ProcessList.SelectedItem is ProcessRow row) _selection.Select(row.Process, Grouped);
             else _selection = new ProcessSelection(MacFrameSource.IdentityPolicy);
-            _retain = _selection.RetentionSnapshot();
+            UpdateRetention();
             UpdateSelection();
+        };
+        GroupProcesses.IsCheckedChanged += (_, _) =>
+        {
+            _selection = new ProcessSelection(MacFrameSource.IdentityPolicy);
+            UpdateRetention();
+            UpdateProcesses();
+        };
+        PinnedOnly.IsCheckedChanged += (_, _) => UpdateProcesses();
+        PinSelection.Click += (_, _) =>
+        {
+            var selected = _selection.Resolve(LiveHistory(), Grouped, false, Sort);
+            if (selected is null) return;
+            _pins.Toggle(selected.Usage, Grouped);
+            UpdateRetention();
+            UpdateProcesses();
         };
         Opened += (_, _) => _sampling = _session.Run(_shutdown.Token);
         Closed += OnClosed;
@@ -81,15 +98,12 @@ public sealed partial class MainWindow : Window
     private void UpdateProcesses()
     {
         if (_session?.LatestFull is not { } sample) return;
-        var ranking = ProcessRanking.Rank(LiveHistory(), sort: Sort, includeInactive: true,
-            identityPolicy: MacFrameSource.IdentityPolicy);
-        // Show current lifetimes only; a recently exited high-CPU row must not look alive.
-        var current = sample.Processes.Select(process => process.Identity).ToHashSet();
-        var rows = ProcessSearch.Filter(ranking.Processes.Where(process => current.Contains(process.Identity)),
-            ProcessSearchBox.Text ?? "").Select(process => new ProcessRow(process)).ToArray();
+        ResidentHeader.Text = Grouped ? "Resident sum*" : "Resident";
+        var rows = ProcessPresentation.Rows(TrailHistory(), sample, Grouped, Sort,
+            ProcessSearchBox.Text ?? "", _pins, PinnedOnly.IsChecked == true);
         _refreshingRows = true;
         ProcessList.ItemsSource = rows;
-        ProcessList.SelectedItem = rows.FirstOrDefault(row => _selection.Contains(row.Process, false));
+        ProcessList.SelectedItem = rows.FirstOrDefault(row => _selection.Contains(row.Process, Grouped));
         _refreshingRows = false;
         EmptyProcessLabel.IsVisible = rows.Length == 0;
         EmptyProcessLabel.Text = _session.Error == SamplingError.ProcessesUnavailable
@@ -102,13 +116,28 @@ public sealed partial class MainWindow : Window
 
     private void UpdateSelection()
     {
-        var selected = _selection.Resolve(LiveHistory(), false, false, Sort);
+        var selected = _selection.Resolve(LiveHistory(), Grouped, false, Sort);
+        PinSelection.IsEnabled = selected is not null;
+        PinSelection.Content = selected is not null && _pins.Contains(selected.Usage, Grouped) ? "Unpin selected" : "Pin selected";
         SelectionLabel.Text = selected is null ? "Select a process to inspect its lifetime and path."
             : selected.State != PinnedProcessState.Present
                 ? $"{selected.Usage.Name} · PID {selected.Usage.ProcessId} · no longer observed or unavailable"
                 : $"{selected.Usage.Name} · PID {selected.Usage.ProcessId} · started " +
                   $"{selected.Usage.StartedAtUtc?.ToLocalTime().ToString("g") ?? "unavailable"}\n" +
                   (selected.Usage.ImagePath.Length > 0 ? selected.Usage.ImagePath : "Executable path unavailable");
+    }
+
+    private void UpdateRetention()
+    {
+        var selection = _selection.RetentionSnapshot();
+        var pins = _pins.RetentionSnapshot();
+        _retain = selection is null ? pins : pins is null ? selection : process => selection(process) || pins(process);
+    }
+
+    private IReadOnlyList<MonitorSample> TrailHistory()
+    {
+        var history = _session.History.Samples;
+        return _session.LatestFull is { } full ? [.. history.SkipLast(1), full] : history;
     }
 
     private IReadOnlyList<MonitorSample> LiveHistory()
@@ -130,15 +159,4 @@ public sealed partial class MainWindow : Window
         if (_sampling is not null) await _sampling;
         _shutdown.Dispose();
     }
-}
-
-public sealed record ProcessRow(ProcessUsage Process)
-{
-    public string Name => Process.Name;
-    public string Pid => Process.ProcessId.ToString();
-    public string Cpu => Process.ObservedCpuPercent is { } value ? $"{value:F1}%" : "—";
-    public string Resident => Process.WorkingSetBytes is { } bytes ? $"{bytes / 1048576d:F1} MiB" : "—";
-    public string Threads => Process.ThreadCount?.ToString() ?? "—";
-    public string Path => Process.ImagePath.Length > 0 ? Process.ImagePath : "Executable path unavailable";
-    public override string ToString() => $"{Name}, PID {Pid}, CPU {Cpu}, resident memory {Resident}, {Threads} threads";
 }

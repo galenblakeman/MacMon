@@ -48,7 +48,7 @@
       </Grid>
     </Border>
     <Border Grid.Row="3" Classes="card">
-      <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="10">
+      <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
         <Grid ColumnDefinitions="*,240,160" ColumnSpacing="12">
           <StackPanel Spacing="4">
             <TextBlock Text="Processes" FontSize="18" FontWeight="SemiBold" />
@@ -63,14 +63,21 @@
             <ComboBoxItem Content="Threads" />
           </ComboBox>
         </Grid>
-        <Grid Grid.Row="1" ColumnDefinitions="*,70,100,120,80" Margin="10,0,10,0">
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="16">
+          <CheckBox x:Name="GroupProcesses" Content="Grouped" />
+          <CheckBox x:Name="PinnedOnly" Content="Pinned only" />
+          <Button x:Name="PinSelection" Content="Pin selected" IsEnabled="False" />
+          <TextBlock Text="30s trend · selected metric · local scale" Classes="label" VerticalAlignment="Center" FontSize="12" />
+        </StackPanel>
+        <Grid Grid.Row="2" ColumnDefinitions="*,80,100,120,80,90" Margin="10,0,10,0">
           <TextBlock Text="Name" Classes="label" />
           <TextBlock Grid.Column="1" Text="PID" Classes="label" />
           <TextBlock Grid.Column="2" Text="CPU · avg 5s" Classes="label" />
-          <TextBlock Grid.Column="3" Text="Resident" Classes="label" />
+          <TextBlock Grid.Column="3" x:Name="ResidentHeader" Text="Resident" Classes="label" />
           <TextBlock Grid.Column="4" Text="Threads" Classes="label" />
+          <TextBlock Grid.Column="5" Text="Trend" Classes="label" />
         </Grid>
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="3">
           <ListBox x:Name="ProcessList" Background="Transparent" BorderThickness="0"
                    AutomationProperties.Name="Observed processes">
             <ListBox.Styles>
@@ -80,12 +87,16 @@
             </ListBox.Styles>
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="local:ProcessRow">
-                <Grid ColumnDefinitions="*,70,100,120,80" Margin="0,3" ToolTip.Tip="{Binding Path}">
-                  <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                <Grid ColumnDefinitions="*,80,100,120,80,90" Margin="0,3" ToolTip.Tip="{Binding Path}">
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="5">
+                    <TextBlock Text="{Binding Pin}" Foreground="#BD9AFF" />
+                    <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                  </Grid>
                   <TextBlock Grid.Column="1" Text="{Binding Pid}" />
                   <TextBlock Grid.Column="2" Text="{Binding Cpu}" Foreground="#6DE3CB" />
                   <TextBlock Grid.Column="3" Text="{Binding Resident}" />
                   <TextBlock Grid.Column="4" Text="{Binding Threads}" />
+                  <local:ProcessSparkline Grid.Column="5" Trail="{Binding Trail}" Height="20" />
                 </Grid>
               </DataTemplate>
             </ListBox.ItemTemplate>
@@ -93,7 +104,7 @@
           <TextBlock x:Name="EmptyProcessLabel" Text="Waiting for process readings…" Classes="label"
                      HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
         </Grid>
-        <TextBlock Grid.Row="3" x:Name="SelectionLabel" Text="Select a process to inspect its lifetime and path."
+        <TextBlock Grid.Row="4" x:Name="SelectionLabel" Text="Select a process to inspect its lifetime and path."
                    Classes="label" FontSize="12" TextWrapping="Wrap" MaxHeight="65" />
       </Grid>
     </Border>
