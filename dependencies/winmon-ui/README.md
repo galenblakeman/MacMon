@@ -36,3 +36,11 @@ Translation source SHA-256 values at the reference commit:
 
 - `Strings.resx`: `76bc1a4a0894c9c43da7b865fca77a56365c4d58541ebf9b7ba1493c83af9008`
 - `Strings.es.resx`: `1966b3a003e067cd10d9fabd88c59fb791e7a1454a2d3b5aa683af37394afe18`
+
+
+Chart axes additionally adapt the label layout and network tick formatting from
+`Controls/CpuGraph.cs` and `Monitoring/RateText.cs` at the same reference commit.
+SHA-256 values: `0a34ef7a34eb56836c5c1d513204538b06210febd27e956a00e02afafe101a6f`
+and `0fa78cf87cdd97b5ca4350ad053f753b78911c349cdded585e9c36686cf628b5`,
+respectively. macOS disks retain throughput labels because active-time utilization
+is unavailable; network scale rounding uses MacMon's visible download readings.

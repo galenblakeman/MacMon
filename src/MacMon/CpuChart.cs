@@ -39,6 +39,7 @@ public sealed class CpuChart : Control
     public IBrush MarkerBrush { get => GetValue(MarkerBrushProperty); set => SetValue(MarkerBrushProperty, value); }
     static CpuChart() => AffectsRender<CpuChart>(CpuBrushProperty, MemoryBrushProperty, NetworkBrushProperty, StorageBrushProperty, PlotBrushProperty, GridBrushProperty, MarkerBrushProperty, GpuBrushProperty, SecondDiskBrushProperty);
     private IReadOnlyList<MonitorSample> _samples = [];
+    private readonly Dictionary<(string, IBrush), FormattedText> _labels = [];
     private IReadOnlyList<MonitorSample> _visible = [];
     private double[] _maxima = [100, 100, 1024, 1024, 100, 1024];
     public IReadOnlyList<MacCaptureRecord> Captures { get; set; } = [];
@@ -111,7 +112,16 @@ public sealed class CpuChart : Control
     { ToolTip.SetIsOpen(this, false); base.OnDetachedFromVisualTree(e); }
     public double Maximum(int metric) => _maxima[metric];
     private IBrush Brush(int metric) => metric switch { 0 => CpuBrush, 1 => MemoryBrush, 2 => NetworkBrush, 4 => GpuBrush, 5 => SecondDiskBrush, _ => StorageBrush };
-    private ChartPanel[] Panels => ResourceCharts.Panels(new Size(Bounds.Width, Math.Max(0, Bounds.Height - 22)), VisibleMetrics, Mode, FocusMetric);
+    public ChartPanel[] Panels => ResourceCharts.Panels(new Size(Bounds.Width, Math.Max(0, Bounds.Height - 22)), VisibleMetrics, Mode, FocusMetric, LabelColumnWidth());
+    private double LabelColumnWidth()
+    {
+        var metrics = ResourceCharts.Metrics(VisibleMetrics);
+        if (metrics.Length == 0) return 0;
+        var labels = Mode == ResourceChartMode.Overlay
+            ? ResourceCharts.AxisLabels(metrics[0], Maximum(metrics[0])).AsEnumerable()
+            : metrics.Select(i => UiText.Get(ResourceCharts.Names[i])).Concat(metrics.Select(i => ResourceCharts.AxisLabel(i, Maximum(i))));
+        return Math.Ceiling(labels.Select(text => Text(text, MarkerBrush).Width).DefaultIfEmpty(29).Max() + 10);
+    }
     private double X(long time, Rect plot) => plot.X + plot.Width * (1 -
         (_samples[^1].MonotonicTimestamp - time) / (double)Stopwatch.Frequency / RangeSeconds);
     private static int CaptureMetricIndex(MacCaptureRecord capture) => capture.Metric switch
@@ -154,9 +164,20 @@ public sealed class CpuChart : Control
             ? "Resource history. Captured sample is outside the visible range" : $"Resource history. Captured {ResourceCharts.Describe(captured)}");
         RefreshHover();
     }
-    private void Label(DrawingContext context, string text, Point point, IBrush brush) => context.DrawText(
-        new FormattedText(text, System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
-            new Typeface("Inter, Arial"), 11, brush), point);
+    private FormattedText Text(string text, IBrush brush)
+    {
+        if (_labels.TryGetValue((text, brush), out var formatted)) return formatted;
+        if (_labels.Count >= 64) _labels.Clear();
+        formatted = new(text, System.Globalization.CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+            new Typeface("Inter, Arial"), 11, brush);
+        _labels[(text, brush)] = formatted;
+        return formatted;
+    }
+    private void Label(DrawingContext context, string text, Point point, IBrush brush, bool right = false)
+    {
+        var formatted = Text(text, brush);
+        context.DrawText(formatted, right ? point - new Vector(formatted.Width, 0) : point);
+    }
 
     public static string[] TimeLabels(DateTimeOffset end, int seconds) => Enumerable.Range(0, 5)
         .Select(i => end.AddSeconds(-seconds * (1 - i / 4d)).ToString(seconds <= 600 ? "HH:mm:ss" : "HH:mm")).ToArray();
@@ -174,11 +195,27 @@ public sealed class CpuChart : Control
             var metric = panel.Metrics[0];
             if (panel.SideLabel)
             {
-                Label(context, UiText.Get(ResourceCharts.Names[metric]), new(panel.Bounds.X + 2, panel.Bounds.Y + Math.Max(0, panel.Bounds.Height / 2 - 13)), Brush(metric));
-                if (panel.Bounds.Height >= 32) Label(context, ResourceCharts.Scale(metric, Maximum(metric)),
-                    new(panel.Bounds.X + 2, panel.Bounds.Y + panel.Bounds.Height / 2 + 1), MarkerBrush);
+                var compact = Mode == ResourceChartMode.Focus || panel.Bounds.Height < 32;
+                var center = panel.Bounds.Y + panel.Bounds.Height / 2;
+                Label(context, UiText.Get(ResourceCharts.Names[metric]), new(plot.X - 8, center - (compact ? 7 : 12)), Brush(metric), true);
+                if (!compact) Label(context, ResourceCharts.AxisLabel(metric, Maximum(metric)), new(plot.X - 8, center + 2), MarkerBrush, true);
             }
-            else if (panel.Metrics.Length == 1) Label(context, UiText.Get(ResourceCharts.Names[metric]), panel.Bounds.TopLeft + new Vector(5, 4), Brush(metric));
+            else
+            {
+                var labels = ResourceCharts.AxisLabels(metric, Maximum(metric), plot.Height >= 100 ? 4 : plot.Height >= 50 ? 2 : 1);
+                for (var tick = 0; tick < labels.Length; tick++)
+                {
+                    var y = plot.Y + plot.Height * tick / (labels.Length - 1);
+                    Label(context, labels[tick], new(plot.X - 8, Math.Max(panel.Bounds.Y, y - 7)), MarkerBrush, true);
+                }
+                if (panel.Metrics.Length == 1) Label(context, UiText.Get(ResourceCharts.Names[metric]), plot.TopLeft + new Vector(5, 4), Brush(metric));
+                else
+                {
+                    var rates = panel.Metrics.Where(i => i != metric && !ResourceCharts.IsPercent(i));
+                    var legend = string.Join(" · ", rates.Select(i => $"{UiText.Get(ResourceCharts.Names[i])}: {ResourceCharts.AxisLabel(i, Maximum(i))}"));
+                    if (legend.Length > 0) Label(context, legend, new(plot.Right - 4, plot.Top + 2), MarkerBrush, true);
+                }
+            }
             for (var i = 0; i <= 4; i++) context.DrawLine(new Pen(GridBrush, 1),
                 new(plot.X, plot.Y + plot.Height * i / 4), new(plot.Right, plot.Y + plot.Height * i / 4));
             for (var i = 0; i <= 4; i++) context.DrawLine(new Pen(GridBrush, 1),

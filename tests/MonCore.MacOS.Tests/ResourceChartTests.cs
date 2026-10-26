@@ -15,6 +15,50 @@ namespace MonCore.MacOS.Tests;
 
 public sealed class ResourceChartTests
 {
+    [Test]
+    public void AxisTicksMatchResourceUnitsAndWinMonNetworkPrecision()
+    {
+        foreach (var metric in new[] { 0, 1, 4 })
+            Assert.That(ResourceCharts.AxisLabels(metric, 100), Is.EqualTo(new[] { "100%", "75%", "50%", "25%", "0%" }));
+        Assert.That(ResourceCharts.AxisLabels(2, 125000), Is.EqualTo(new[] { "1 Mbps", "750 Kbps", "500 Kbps", "250 Kbps", "0 Kbps" }));
+        Assert.That(ResourceCharts.AxisLabel(2, 154250), Is.EqualTo("1.23 Mbps"));
+        var sample = Samples()[0];
+        foreach (var (bytes, bits) in new[] { (0d, 1e6), (187500d, 2e6), (312500d, 5e6), (2300000d, 20e6) })
+        {
+            var reading = sample with { Resources = sample.Resources with { ReceiveBytesPerSecond = bytes } };
+            Assert.That(ResourceCharts.Maximum([reading], 120, 2) * 8, Is.EqualTo(bits));
+        }
+        foreach (var metric in new[] { 3, 5 })
+        {
+            Assert.That(ResourceCharts.AxisLabels(metric, 4 * 1048576).First(), Is.EqualTo("4.0 MiB/s"));
+            Assert.That(ResourceCharts.AxisLabels(metric, 4 * 1048576).All(label => !label.Contains('%')), Is.True);
+        }
+    }
+
+    [AvaloniaTest]
+    public void AllPanelsShareMeasuredGutterAndAxisMarginsDoNotSelectSamples()
+    {
+        var chart = new CpuChart { Mode = ResourceChartMode.Focus, FocusMetric = 2, VisibleMetrics = 63 };
+        chart.Update(Samples());
+        var window = new Window { Width = 720, Height = 350, Content = chart };
+        try
+        {
+            window.Show(); Dispatcher.UIThread.RunJobs();
+            var plots = chart.Panels.Select(ResourceCharts.Plot).ToArray();
+            Assert.That(plots.Select(p => p.X).Distinct().Count(), Is.EqualTo(1));
+            Assert.That(plots[0].X, Is.GreaterThan(40));
+            var selections = 0; chart.SampleSelected += _ => selections++;
+            window.MouseMove(new Point(plots[0].X - 5, plots[0].Center.Y));
+            window.MouseDown(new Point(plots[0].X - 5, plots[0].Center.Y), MouseButton.Left);
+            window.MouseUp(new Point(plots[0].X - 5, plots[0].Center.Y), MouseButton.Left);
+            Assert.That(chart.HoveredSample, Is.Null);
+            Assert.That(selections, Is.Zero);
+            window.MouseMove(plots[0].Center);
+            Assert.That(chart.HoveredSample?.MonotonicTimestamp, Is.EqualTo(Samples()[60].MonotonicTimestamp));
+        }
+        finally { window.Close(); }
+    }
+
     internal static MonitorSample[] Samples() => Enumerable.Range(0, 121).Select(i => new MonitorSample(
         DateTimeOffset.UnixEpoch.AddSeconds(i), 40 + 30 * Math.Sin(i / 8d), [], 0,
         i == 45, (i + 1L) * Stopwatch.Frequency)
@@ -31,7 +75,7 @@ public sealed class ResourceChartTests
         var samples = Samples();
         Assert.That(ResourceCharts.Maximum(samples, 120, 0), Is.EqualTo(100));
         Assert.That(ResourceCharts.Maximum(samples, 120, 1), Is.EqualTo(100));
-        Assert.That(ResourceCharts.Maximum(samples, 120, 2), Is.EqualTo(65536));
+        Assert.That(ResourceCharts.Maximum(samples, 120, 2), Is.EqualTo(125000));
         Assert.That(ResourceCharts.Maximum(samples, 120, 3), Is.EqualTo(1048576));
         Assert.That(ResourceCharts.Value(samples[45], 0), Is.Null);
         Assert.That(ResourceCharts.Value(samples[45], 1), Is.Not.Null);
@@ -85,7 +129,7 @@ public sealed class ResourceChartTests
             chart.LiveRequested += () => { live++; selected = null; chart.SelectedTimestamp = null; };
             var window = new Window { Width = 720, Height = 220, Content = chart };
             window.Show(); Dispatcher.UIThread.RunJobs();
-            var panel = ResourceCharts.Panels(new Size(chart.Bounds.Width, chart.Bounds.Height - 22), 15, mode, 2).Last();
+            var panel = chart.Panels.Last();
             var plot = ResourceCharts.Plot(panel);
             var point = new Point(plot.X + plot.Width / 2, plot.Y + plot.Height / 2);
             window.MouseMove(point);
@@ -146,7 +190,7 @@ public sealed class ResourceChartTests
         window.Show(); Dispatcher.UIThread.RunJobs();
         void ClickPanel(int mask, int index)
         {
-            var plot = ResourceCharts.Plot(ResourceCharts.Panels(new Size(chart.Bounds.Width, chart.Bounds.Height - 22), mask, chart.Mode, 0)[index]);
+            var plot = ResourceCharts.Plot(chart.Panels[index]);
             var point = new Point(plot.X + plot.Width / 2, plot.Y + 3);
             window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
         }
@@ -188,7 +232,7 @@ public sealed class ResourceChartTests
             Dispatcher.UIThread.RunJobs();
             using var frame = window.CaptureRenderedFrame();
             Assert.That(frame, Is.Not.Null);
-            foreach (var panel in ResourceCharts.Panels(new Size(chart.Bounds.Width, chart.Bounds.Height - 22), mask, mode, 2))
+            foreach (var panel in chart.Panels)
             {
                 Assert.That(panel.Bounds.Right, Is.LessThanOrEqualTo(chart.Bounds.Width));
                 Assert.That(ResourceCharts.Plot(panel).Height, Is.GreaterThan(10));

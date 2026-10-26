@@ -810,3 +810,34 @@ in Processes/Live. Twelve table/settings layout checks pass with zero build
 warnings/errors. Packaged resource/launchd smoke, strict signing and ZIP/checksum
 verification pass. Artifact: `MacMon-0.11.3-osx-arm64-dev.zip`, SHA-256:
 `0a88fc597fcfcf47bcb574d51fe26dc1a81fe2e308afadc2bf743d1daa9b9f7d`.
+
+
+## WinMon chart Y-axis labels — 0.11.4/build 17
+
+Overlay and the main Focus plot show five Y-axis ticks at normal dashboard
+sizes; short previews reduce tick density. CPU, memory and GPU use percentages.
+Network uses WinMon's three-significant-digit bit-rate formatting and 1-2-5
+scale rounding with a 1 Mbps floor, based on visible MacMon download readings.
+Disk and Disk 2 retain KiB/s/MiB/s/GiB/s throughput axes because macOS active-time
+utilization is unavailable. Mixed overlays identify their independent rate
+maxima inside the plot.
+
+Small multiples and Heatmap show each resource name and its maximum, matching
+WinMon's two-line scale cue. Compact Focus lanes show names only. A measured,
+right-aligned label column is shared across all lanes and the large Focus plot.
+Rendering, hover, capture markers and click selection use the same inset plot
+rectangles. Text shaping uses a bounded cache of 64 labels per chart.
+
+Validation: 166 Mac regression tests and three release-workflow tests pass,
+zero build warnings/errors. The final network rounding refinement also passes
+16 targeted chart/GPU/disk checks. Added coverage verifies tick units/precision,
+rounding thresholds, common plot alignment, and that clicks in the axis margin
+do not capture samples. Existing chart tests continue to exercise gap rendering,
+all layouts, marker hits, hover and keyboard/click selection.
+
+Native package inspection covered Overlay, Small multiples, Heatmap, CPU/Memory/
+GPU Focus, Disk throughput ticks and final Network ticks of 20/15/10/5 Mbps and
+0 Kbps. CPU Focus was restored and a clean quit confirmed no preference changes.
+Strict ad-hoc signing, packaged resource/launchd smoke, ZIP integrity and checksum
+verification pass. Artifact: `MacMon-0.11.4-osx-arm64-dev.zip`, SHA-256:
+`54622978f9b3b5b69a34d0729ab01430ce8aeea70fc8d232e59b0a444ee5190a`.

@@ -4,7 +4,7 @@ using WinMon.Monitoring;
 namespace MacMon;
 
 public enum ResourceChartMode { Overlay, SmallMultiples, Heatmap, Focus }
-public sealed record ChartPanel(Rect Bounds, int[] Metrics, bool SideLabel = false);
+public sealed record ChartPanel(Rect Bounds, int[] Metrics, bool SideLabel = false, double LabelWidth = 0);
 
 /// <summary>Shared chart semantics: rates never become utilization percentages.</summary>
 public static class ResourceCharts
@@ -33,31 +33,55 @@ public static class ResourceCharts
     public static double? DiskRate(ResourceSample r, bool second) => LegacyDisk(r)
         ? second ? null : r.SecondaryDiskReadBytesPerSecond + r.SecondaryDiskWriteBytesPerSecond
         : second ? r.SecondaryDiskReadBytesPerSecond + r.SecondaryDiskWriteBytesPerSecond : r.DiskReadBytesPerSecond + r.DiskWriteBytesPerSecond;
-    public static double Maximum(IReadOnlyList<MonitorSample> samples, int rangeSeconds, int metric) => IsPercent(metric) ? 100 :
-        ResourceGaugeHistory.RateMaximum(HistoryInspection.VisibleSamples(samples, rangeSeconds).Select(s => Value(s, metric) ?? 0).DefaultIfEmpty().Max());
+    public static double Maximum(IReadOnlyList<MonitorSample> samples, int rangeSeconds, int metric)
+    {
+        if (IsPercent(metric)) return 100;
+        var peak = HistoryInspection.VisibleSamples(samples, rangeSeconds).Select(s => Value(s, metric) ?? 0).DefaultIfEmpty().Max();
+        if (metric != 2) return ResourceGaugeHistory.RateMaximum(peak);
+        // WinMon's 1-2-5 bit-rate scale keeps tick labels round, with a 1 Mbps floor.
+        var target = Math.Max(peak * 8, 1_000_000);
+        var magnitude = Math.Pow(10, Math.Floor(Math.Log10(target)));
+        var step = target / magnitude;
+        return (step <= 1 ? 1 : step <= 2 ? 2 : step <= 5 ? 5 : 10) * magnitude / 8;
+    }
     public static string Reading(MonitorSample sample, int metric) => Value(sample, metric) is not { } value ? "—" :
         IsPercent(metric) ? $"{value:F1}%" : metric == 2 ? ResourceGaugeHistory.NetworkRate(value) : ResourceGaugeHistory.Rate(value);
     public static string Describe(MonitorSample sample) => $"{sample.Timestamp:HH:mm:ss zzz} · " +
         string.Join(" · ", Enumerable.Range(0, Names.Length).Select(i => $"{UiText.Get(Names[i])} {Reading(sample, i)}")) + (sample.IsGap ? " · interval gap" : "");
     public static string Scale(int metric, double maximum) => IsPercent(metric) ? "0–100%" : $"0–{(metric == 2 ? ResourceGaugeHistory.NetworkRate(maximum) : ResourceGaugeHistory.Rate(maximum))}";
-    public static ChartPanel[] Panels(Size size, int mask, ResourceChartMode mode, int focus)
+    public static string AxisLabel(int metric, double value)
+    {
+        if (IsPercent(metric)) return $"{value:0}%";
+        if (metric != 2) return ResourceGaugeHistory.Rate(value);
+        var bits = value * 8;
+        var (number, unit) = bits >= 1e9 ? (bits / 1e9, "Gbps") : bits >= 1e6 ? (bits / 1e6, "Mbps") : (bits / 1e3, "Kbps");
+        return number.ToString(number < 10 ? "0.##" : number < 100 ? "0.#" : "0") + " " + unit;
+    }
+    public static string[] AxisLabels(int metric, double maximum, int divisions = 4) =>
+        Enumerable.Range(0, divisions + 1).Select(i => AxisLabel(metric, maximum * (1 - i / (double)divisions))).ToArray();
+
+    public static ChartPanel[] Panels(Size size, int mask, ResourceChartMode mode, int focus, double? labelWidth = null)
     {
         var metrics = Metrics(mask);
         if (metrics.Length == 0 || size.Width <= 0 || size.Height <= 0) return [];
-        if (mode == ResourceChartMode.Overlay) return [new(new(size), metrics)];
+        var gutter = labelWidth ?? (mode == ResourceChartMode.Overlay ? 39 : 92);
+        if (mode == ResourceChartMode.Overlay) return [new(new(size), metrics, LabelWidth: gutter)];
         if (mode == ResourceChartMode.Focus)
         {
             var selected = Focus(mask, focus);
             var others = metrics.Where(i => i != selected).ToArray();
-            if (others.Length == 0) return [new(new(size), [selected])];
-            var top = new ChartPanel(new(0, 0, size.Width, size.Height * .55), [selected]);
+            if (others.Length == 0) return [new(new(size), [selected], LabelWidth: gutter)];
+            var top = new ChartPanel(new(0, 0, size.Width, size.Height * .55), [selected], LabelWidth: gutter);
             var height = size.Height * .41 / others.Length;
-            return [top, .. others.Select((metric, i) => new ChartPanel(new(0, size.Height * .59 + i * height, size.Width, height), [metric], true))];
+            return [top, .. others.Select((metric, i) => new ChartPanel(new(0, size.Height * .59 + i * height, size.Width, height), [metric], true, gutter))];
         }
         var laneHeight = size.Height / metrics.Length;
-        return metrics.Select((metric, i) => new ChartPanel(new(0, i * laneHeight, size.Width, laneHeight), [metric], true)).ToArray();
+        return metrics.Select((metric, i) => new ChartPanel(new(0, i * laneHeight, size.Width, laneHeight), [metric], true, gutter)).ToArray();
     }
-    public static Rect Plot(ChartPanel panel) => panel.SideLabel
-        ? new(panel.Bounds.X + 92, panel.Bounds.Y + 3, Math.Max(0, panel.Bounds.Width - 92), Math.Max(0, panel.Bounds.Height - 6))
-        : panel.Bounds;
+    public static Rect Plot(ChartPanel panel)
+    {
+        var inset = panel.SideLabel ? 3 : 8;
+        return new(panel.Bounds.X + panel.LabelWidth, panel.Bounds.Y + inset,
+            Math.Max(0, panel.Bounds.Width - panel.LabelWidth - 2), Math.Max(0, panel.Bounds.Height - inset * 2));
+    }
 }
