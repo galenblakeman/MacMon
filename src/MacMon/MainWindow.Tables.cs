@@ -1,5 +1,7 @@
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
+using Avalonia.VisualTree;
 using Avalonia.Interactivity;
 using WinMon.Monitoring;
 
@@ -16,6 +18,13 @@ public sealed partial class MainWindow
     private static int SelectedLimit(ComboBox box) => (box.SelectedItem as RowLimit)?.Count ?? 0;
     private void InitializeTables()
     {
+        DataTabs.Loaded += (_, _) =>
+        {
+            // Fluent sets a local clip on this wrapper. Let header backgrounds bleed
+            // horizontally; each table's ScrollViewer still clips its own contents.
+            if (DataTabs.GetVisualDescendants().OfType<ContentPresenter>().FirstOrDefault(p => p.Name == "PART_SelectedContentHost")?.GetVisualParent() is { } contentPanel)
+                contentPanel.ClipToBounds = false;
+        };
         ProcessLimitBox.ItemsSource = TablePresentation.Limits.Select(n => new RowLimit(n)).ToArray();
         UsageLimitBox.ItemsSource = TablePresentation.Limits.Select(n => new RowLimit(n)).ToArray();
         ProcessSortBox.SelectionChanged += (_, _) =>

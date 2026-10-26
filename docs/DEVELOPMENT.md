@@ -1150,3 +1150,35 @@ ZIP integrity and checksum checks pass; native stderr is empty. MacMon is left
 open on Settings → Appearance with saved preferences preserved.
 Artifact: `MacMon-0.13.6-osx-arm64-dev.zip`, SHA-256:
 `5b655b228e37185eb5a3c062fef3c88c8385ba9755f24d99167801d85002eba5`.
+
+
+## Full-width headers and collapsed actions — 0.13.7/build 30
+
+Chart and tab-toolbar background bands extend to both window edges, preserving
+the existing control insets. Settings dropdowns are left-aligned and limited to
+half the settings content panel width as the window resizes; the shortcut field
+keeps a natural width beside its Default action within the same limit. Palette
+labels now flex and trim beside their color swatches instead of reserving 145px.
+
+Collapsed process/job/usage action bars hide secondary details and shrink to a
+single 32px identity row with a small icon and the expand control. Expanding
+restores the details and responsive action layout. Hidden action panels no
+longer retain a second layout row. Rendered regressions measure edge-to-edge
+header bounds, collapsed/expanded heights and dropdown limits at narrow/wide
+sizes and in English/Spanish.
+
+The Fluent tab template and Jobs UserControl normally clip their content. The
+selected-content wrapper is un-clipped after loading, alongside DataTabs and the
+Jobs wrapper; individual table scroll viewers retain their clipping. Regression
+frames explicitly sample both window-edge pixels, catching cases where header
+bounds are full width but an ancestor still prevents background painting.
+
+Validation: all 191 Mac tests and three release-workflow tests pass, with zero
+build warnings/errors and native collector/launchd smoke checks. Native checks
+cover the final full-width chart/tab bands, half-panel Appearance selectors,
+Processes/Jobs collapsed bars and a selected Usage app with its 16px icon.
+Strict signing, ZIP integrity and checksum checks pass; native stderr is empty.
+MacMon is open on Jobs with its action bar collapsed for review. Saved appearance
+and the process-bar preference are preserved.
+Artifact: `MacMon-0.13.7-osx-arm64-dev.zip`, SHA-256:
+`1c3f1b9b110e382e66621cee700e6ef5f99fd76f747237c32838c324b5f5859d`.

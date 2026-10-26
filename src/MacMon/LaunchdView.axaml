@@ -1,4 +1,4 @@
-<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:MacMon" x:Class="MacMon.LaunchdView">
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:MacMon" x:Class="MacMon.LaunchdView" ClipToBounds="False">
   <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="4">
     <Border Classes="sectionHeader"><local:TableToolbarLayout>
       <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,8,4"><TextBlock Text="{local:Loc &quot;Top&quot;}" Classes="toolbarLabel" /><ComboBox x:Name="JobLimit" Width="54" Classes="rankingChoice" AutomationProperties.Name="{local:Loc &quot;Job row limit&quot;}" /><TextBlock Text="{local:Loc &quot;jobs by&quot;}" Classes="toolbarLabel" /><ComboBox x:Name="JobSort" Width="96" Classes="rankingChoice" SelectedIndex="0" AutomationProperties.Name="{local:Loc &quot;Sort jobs&quot;}"><ComboBoxItem Content="{local:Loc &quot;Label&quot;}" /><ComboBoxItem Content="{local:Loc &quot;Running first&quot;}" /><ComboBoxItem Content="{local:Loc &quot;PID&quot;}" /><ComboBoxItem Content="{local:Loc &quot;CPU&quot;}" /><ComboBoxItem Content="{local:Loc &quot;Memory&quot;}" /><ComboBoxItem Content="{local:Loc &quot;Disk I/O&quot;}" /></ComboBox></StackPanel>
@@ -19,10 +19,10 @@
       </ListBox>
       <TextBlock x:Name="JobEmpty" Text="{local:Loc &quot;Choose Refresh to read loaded jobs.&quot;}" Classes="label" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" TextWrapping="Wrap" />
     </Grid>
-<Border Grid.Row="3" Classes="actionBar"><Grid ColumnDefinitions="4,*,Auto">
+<Border Grid.Row="3" Classes="actionBar" Classes.collapsed="{Binding !IsChecked, ElementName=ShowJobActions}"><Grid ColumnDefinitions="4,*,Auto">
                 <Border Background="{DynamicResource CpuStroke}" CornerRadius="3,0,0,3" />
                 <local:ActionBarLayout Grid.Column="1" Margin="14,6,6,6">
-                  <StackPanel Spacing="2" VerticalAlignment="Center" Margin="0,0,12,0"><TextBlock x:Name="JobSelectionName" Text="{local:Loc &quot;Select a job&quot;}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="JobScope" Text="{local:Loc &quot;Current bootstrap context · read only&quot;}" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" /></StackPanel>
+                  <StackPanel Spacing="2" VerticalAlignment="Center" Margin="0,0,12,0"><TextBlock x:Name="JobSelectionName" Text="{local:Loc &quot;Select a job&quot;}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="JobScope" IsVisible="{Binding IsChecked, ElementName=ShowJobActions}" Text="{local:Loc &quot;Current bootstrap context · read only&quot;}" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" /></StackPanel>
                   <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" IsVisible="{Binding IsChecked, ElementName=ShowJobActions}"><Button x:Name="JobDetails" local:ButtonIcon.Kind="Info" Content="{local:Loc &quot;Properties&quot;}" IsEnabled="False" /><Button x:Name="CopyJob" local:ButtonIcon.Kind="Copy" Content="{local:Loc &quot;Copy details&quot;}" IsEnabled="False" /><Border Classes="actionDivider" /><Button x:Name="RefreshJobs" local:ButtonIcon.Kind="Live" Content="{local:Loc &quot;Refresh&quot;}" /></WrapPanel>
                 </local:ActionBarLayout>
                 <ToggleButton Grid.Column="2" x:Name="ShowJobActions" local:ButtonIcon.Kind="ChevronDown" IsChecked="True" Classes="actionCollapse" AutomationProperties.Name="{local:Loc &quot;Show or hide actions&quot;}" ToolTip.Tip="{local:Loc &quot;Show or hide actions&quot;}" />

@@ -27,7 +27,7 @@
           <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="12,0,0,0"><local:ResourceGauge x:Name="NetworkGauge" Title="Network" Fill="{DynamicResource NetworkStroke}" TextAccent="{DynamicResource NetworkText}" /></Border>
           <Border Padding="8,0"><local:ResourceGauge x:Name="GpuGauge" Title="GPU" Fill="{DynamicResource GpuStroke}" TextAccent="{DynamicResource GpuText}" /></Border>
         </UniformGrid>
-        <Border Grid.Row="1" Classes="sectionHeader" Padding="0,5">
+        <Border Grid.Row="1" Classes="sectionHeader" Padding="20,5">
           <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="8">
             <StackPanel Orientation="Horizontal" Spacing="8">
               <TextBlock Text="{local:Loc &quot;System&quot;}" Classes="toolbarLabel" />
@@ -58,7 +58,7 @@
       </Grid>
       <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" Focusable="True" Background="{DynamicResource MacGridBrush}" AutomationProperties.Name="{local:Loc &quot;Resize dashboard and data panes&quot;}" />
       <Grid Grid.Row="3">
-        <TabControl x:Name="DataTabs">
+        <TabControl x:Name="DataTabs" ClipToBounds="False">
           <TabItem Header="{local:Loc &quot;Processes&quot;}">
             <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="4">
               <Border Classes="sectionHeader">
@@ -100,12 +100,12 @@
                 </ListBox>
                 <TextBlock x:Name="EmptyProcessLabel" Text="{local:Loc &quot;Waiting for process readings…&quot;}" Classes="label" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
               </Grid>
-<Border Grid.Row="3" Classes="actionBar"><Grid ColumnDefinitions="4,*,Auto">
+<Border Grid.Row="3" Classes="actionBar" Classes.collapsed="{Binding !IsChecked, ElementName=ShowProcessActions}"><Grid ColumnDefinitions="4,*,Auto">
                 <Border Background="{DynamicResource CpuStroke}" CornerRadius="3,0,0,3" />
                 <local:ActionBarLayout Grid.Column="1" Margin="14,6,6,6">
                   <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" VerticalAlignment="Center" Margin="0,0,12,0">
                     <Image x:Name="SelectionIcon" Width="28" Height="28" IsVisible="False" />
-                    <StackPanel Grid.Column="1" Spacing="2"><TextBlock x:Name="ProcessSelectionName" Text="{local:Loc &quot;Select a process&quot;}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="SelectionLabel" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" /></StackPanel>
+                    <StackPanel Grid.Column="1" Spacing="2"><TextBlock x:Name="ProcessSelectionName" Text="{local:Loc &quot;Select a process&quot;}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="SelectionLabel" IsVisible="{Binding IsChecked, ElementName=ShowProcessActions}" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" /></StackPanel>
                   </Grid>
                   <WrapPanel Grid.Column="1" x:Name="ProcessActionsPanel" HorizontalAlignment="Right" VerticalAlignment="Center" IsVisible="False">
                     <Button x:Name="ShowProperties" local:ButtonIcon.Kind="Info" Content="{local:Loc &quot;Properties&quot;}" /><Button x:Name="CopyProcessDetails" local:ButtonIcon.Kind="Copy" Content="{local:Loc &quot;Copy details&quot;}" />
@@ -137,10 +137,10 @@
                   <TextBlock Grid.Column="1" Text="{Binding Cpu}" Classes="cpuMetric" VerticalAlignment="Center" HorizontalAlignment="Right" /><TextBlock Grid.Column="2" Text="{Binding Share}" VerticalAlignment="Center" HorizontalAlignment="Right" /><TextBlock Grid.Column="3" Text="{Binding DiskIo}" VerticalAlignment="Center" HorizontalAlignment="Right" /><TextBlock Grid.Column="4" Text="{Binding Processes}" VerticalAlignment="Center" HorizontalAlignment="Right" /><TextBlock Grid.Column="5" Text="{Binding LastActive}" VerticalAlignment="Center" HorizontalAlignment="Right" />
                 </Grid></Border></DataTemplate></ListBox.ItemTemplate>
               </ListBox>
-<Border Grid.Row="3" Classes="actionBar"><Grid ColumnDefinitions="4,*,Auto">
+<Border Grid.Row="3" Classes="actionBar" Classes.collapsed="{Binding !IsChecked, ElementName=ShowUsageActions}"><Grid ColumnDefinitions="4,*,Auto">
                 <Border Background="{DynamicResource CpuStroke}" CornerRadius="3,0,0,3" />
                 <local:ActionBarLayout Grid.Column="1" Margin="14,6,6,6">
-                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" VerticalAlignment="Center" Margin="0,0,12,0"><Image x:Name="UsageSelectionIcon" Width="28" Height="28" IsVisible="False" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock x:Name="UsageSelectionName" Text="{local:Loc &quot;Select an app&quot;}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="UsageSelection" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" /></StackPanel></Grid>
+                  <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" VerticalAlignment="Center" Margin="0,0,12,0"><Image x:Name="UsageSelectionIcon" Width="28" Height="28" IsVisible="False" /><StackPanel Grid.Column="1" Spacing="2"><TextBlock x:Name="UsageSelectionName" Text="{local:Loc &quot;Select an app&quot;}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="UsageSelection" IsVisible="{Binding IsChecked, ElementName=ShowUsageActions}" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" /></StackPanel></Grid>
                   <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" IsVisible="{Binding IsChecked, ElementName=ShowUsageActions}"><Button x:Name="UsageProperties" local:ButtonIcon.Kind="Info" Content="{local:Loc &quot;Properties&quot;}" IsEnabled="False" /><Button x:Name="CopyUsageApp" local:ButtonIcon.Kind="Copy" Content="{local:Loc &quot;Copy details&quot;}" IsEnabled="False" /><Button x:Name="RevealUsageApp" local:ButtonIcon.Kind="Folder" Content="{local:Loc &quot;Reveal in Finder&quot;}" IsEnabled="False" /></WrapPanel>
                 </local:ActionBarLayout>
                 <ToggleButton Grid.Column="2" x:Name="ShowUsageActions" local:ButtonIcon.Kind="ChevronDown" IsChecked="True" Classes="actionCollapse" AutomationProperties.Name="{local:Loc &quot;Show or hide actions&quot;}" ToolTip.Tip="{local:Loc &quot;Show or hide actions&quot;}" />

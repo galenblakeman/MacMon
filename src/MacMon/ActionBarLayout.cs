@@ -17,7 +17,7 @@ public sealed class ActionBarLayout : Grid
         {
             var actions = Children[1];
             actions.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-            var wide = availableSize.Width >= actions.DesiredSize.Width + 240;
+            var wide = !actions.IsVisible || availableSize.Width >= actions.DesiredSize.Width + 240;
             if (_wide != wide)
             {
                 _wide = wide;

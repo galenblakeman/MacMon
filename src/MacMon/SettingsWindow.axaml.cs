@@ -12,6 +12,7 @@ namespace MacMon;
 
 public sealed partial class SettingsWindow : Window
 {
+    public static Avalonia.Data.Converters.FuncValueConverter<double, double> HalfPanelWidth { get; } = new(width => width / 2);
     private readonly Func<SettingsValues, Task<string?>> _save;
     private bool _saving;
     public int Section => Sections.SelectedIndex;
@@ -123,8 +124,8 @@ public sealed partial class SettingsWindow : Window
     }
     private static Control PalettePreview(string palette, string theme, bool dark)
     {
-        var row = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 10 };
-        var label = UiText.Label(Appearance.PaletteLabel(palette)); label.Width = 145; label.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
+        var row = new Grid { ColumnDefinitions = new("*,Auto"), ColumnSpacing = 10 };
+        var label = UiText.Label(Appearance.PaletteLabel(palette)); label.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
         ToolTip.SetTip(label, UiText.Get(Appearance.PaletteLabel(palette)));
         label.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center; row.Children.Add(label);
         var colors = Appearance.Colors(palette, dark, true, theme).All;
@@ -134,7 +135,7 @@ public sealed partial class SettingsWindow : Window
             var swatch = new Border { Width = 12, Height = 12, CornerRadius = new(2), Background = new Avalonia.Media.SolidColorBrush(colors[i]) };
             ToolTip.SetTip(swatch, ResourceCharts.Names[i]); swatches.Children.Add(swatch);
         }
-        row.Children.Add(swatches); return row;
+        Grid.SetColumn(swatches, 1); row.Children.Add(swatches); return row;
     }
 
     private async Task Save()
