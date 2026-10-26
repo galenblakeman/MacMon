@@ -20,15 +20,34 @@ public sealed partial class LaunchdView : UserControl
     private LaunchdJobId? _selected;
     private MonitorSample? _live;
     private long _liveAt;
+    private readonly LaunchdHistory _jobHistory = new();
+    private MonitorSample? _inspection;
+    private MonitorSample[] _inspectionTrail = [];
+    private bool _historical;
+    private LaunchdSnapshot? DisplaySnapshot => _historical ? _jobHistory.At(_inspection?.MonotonicTimestamp ?? 0) : Inventory.LastSuccess;
+    private MonitorSample? DisplaySample => _historical ? _inspection : _live;
+    private bool DisplayFresh => _historical ? DisplaySnapshot is not null : Fresh && !Inventory.IsStale;
+    public void SetInspection(MonitorSample? sample, bool historical)
+    {
+        if (_historical == historical && _inspection?.MonotonicTimestamp == sample?.MonotonicTimestamp && _inspection?.Timestamp == sample?.Timestamp) return;
+        _historical = historical; _inspection = sample;
+        _inspectionTrail = historical ? _history.Where(s => s.MonotonicTimestamp <= (sample?.MonotonicTimestamp ?? 0)).ToArray() : [];
+        RefreshJobs.IsEnabled = !historical && !_monitor.IsRefreshing; Rebuild();
+    }
     private readonly Queue<MonitorSample> _history = new();
     public event Action<string>? SummaryChanged;
     private string _scope = "Current bootstrap context";
     public string SummaryDetails => _scope + "\n" + JobStatus.Text;
 
-    public LaunchdView()
+    private static Func<CancellationToken, Task<LaunchdSnapshot>> NativeReader()
     {
         var reader = new MacLaunchdReader();
-        _monitor = new(ct => Task.Run(() => reader.Read(ct), ct));
+        return ct => Task.Run(() => reader.Read(ct), ct);
+    }
+    public LaunchdView() : this(NativeReader()) { }
+    public LaunchdView(Func<CancellationToken, Task<LaunchdSnapshot>> read)
+    {
+        _monitor = new(read);
         InitializeComponent();
         _heartbeat.Tick += (_, _) =>
         {
@@ -51,10 +70,12 @@ public sealed partial class LaunchdView : UserControl
             if (_updating) return;
             _selected = (JobList.SelectedItem as LaunchdRow)?.Job.Id;
             JobDetails.IsEnabled = CopyJob.IsEnabled = JobList.SelectedItem is LaunchdRow;
+            ShowWorkers.IsEnabled = JobList.SelectedItem is LaunchdRow { Process: not null };
             JobSelectionName.Text = (JobList.SelectedItem as LaunchdRow)?.Name ?? UiText.Get("Select a job");
             ToolTip.SetTip(JobSelectionName, (JobList.SelectedItem as LaunchdRow)?.Label);
-            JobScope.Text = JobList.SelectedItem is LaunchdRow selected ? $"{selected.State} · {selected.ProcessDescription} · read only" : "Current bootstrap context · read only";
+            JobScope.Text = JobList.SelectedItem is LaunchdRow selected ? $"{selected.State} · {selected.ProcessDescription} · read only" : _historical ? UiText.Get("Captured launchd inventory") : "Current bootstrap context · read only";
         };
+        ShowWorkers.Click += async (_, _) => await ShowWorkerTree();
         JobDetails.Click += async (_, _) =>
         {
             if (Details() is { } text && TopLevel.GetTopLevel(this) is Window window)
@@ -101,14 +122,16 @@ public sealed partial class LaunchdView : UserControl
     private async Task Read()
     {
         RefreshJobs.IsEnabled = false;
-        JobStatus.Text = "Reading loaded jobs in the current bootstrap context…";
+        if (!_historical) JobStatus.Text = "Reading loaded jobs in the current bootstrap context…";
         try
         {
             await _monitor.Refresh();
             if (_stopped) return;
+            if (Fresh && !Inventory.IsStale && Inventory.LastSuccess is { } snapshot && _live is not null)
+                _jobHistory.Record(snapshot, _live.MonotonicTimestamp + Stopwatch.GetTimestamp() - _liveAt);
             Rebuild();
         }
-        finally { if (!_stopped) RefreshJobs.IsEnabled = true; }
+        finally { if (!_stopped) RefreshJobs.IsEnabled = !_historical; }
     }
 
     private bool Fresh => _liveAt > 0 && Stopwatch.GetElapsedTime(_liveAt).TotalSeconds <= 5;
@@ -116,9 +139,9 @@ public sealed partial class LaunchdView : UserControl
     {
         if (JobList is null || _stopped) return;
         UpdateHeaders();
-        var snapshot = Inventory.LastSuccess;
-        var rows = LaunchdPresentation.Rows(snapshot, _live, Fresh && !Inventory.IsStale,
-            JobSearch.Text, JobFilter.SelectedIndex, JobSort.SelectedIndex, RowLimit, _history.ToArray(), _ascending);
+        var snapshot = DisplaySnapshot;
+        var rows = LaunchdPresentation.Rows(snapshot, DisplaySample, DisplayFresh,
+            JobSearch.Text, JobFilter.SelectedIndex, JobSort.SelectedIndex, RowLimit, _historical ? _inspectionTrail : _history.ToArray(), _ascending);
         var scroller = JobList.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
         var offset = scroller?.Offset;
         _updating = true;
@@ -130,6 +153,7 @@ public sealed partial class LaunchdView : UserControl
         finally { _updating = false; }
         if (scroller is not null && offset is { } position) scroller.Offset = position;
         JobDetails.IsEnabled = CopyJob.IsEnabled = JobList.SelectedItem is LaunchdRow;
+        ShowWorkers.IsEnabled = JobList.SelectedItem is LaunchdRow { Process: not null };
         JobSelectionName.Text = (JobList.SelectedItem as LaunchdRow)?.Name ?? UiText.Get("Select a job");
         ToolTip.SetTip(JobSelectionName, (JobList.SelectedItem as LaunchdRow)?.Label);
         JobEmpty.IsVisible = rows.Count == 0;
@@ -140,16 +164,36 @@ public sealed partial class LaunchdView : UserControl
         JobStatus.Text = Inventory.Error is { } error
             ? $"Unavailable: {error}" + (snapshot is null ? "" : $" · STALE rows from {snapshot.ObservedAt:HH:mm:ss zzz}.")
             : snapshot is null ? "Waiting for discovery · refreshes automatically while visible."
-            : $"{(Inventory.IsStale ? "STALE · " : "")}{rows.Count} shown / {snapshot.Jobs.Count} loaded · {snapshot.Jobs.Count(job => job.ReportedPid is not null)} running at {snapshot.ObservedAt:HH:mm:ss zzz}. Not running ≠ disabled. Refreshes every 5s while visible; separate from Capture.";
+            : $"{(Inventory.IsStale ? "STALE · " : "")}{rows.Count} shown / {snapshot.Jobs.Count} loaded · {snapshot.Jobs.Count(job => job.ReportedPid is not null)} running at {snapshot.ObservedAt:HH:mm:ss zzz}. Not running ≠ disabled. Refreshes every 5s while visible; captures use bounded session inventory.";
         SummaryChanged?.Invoke(snapshot is null ? Inventory.Error ?? "Waiting for discovery" :
             $"{(Inventory.IsStale ? "STALE · " : "")}{rows.Count} shown · {snapshot.Jobs.Count} jobs · {snapshot.Jobs.Count(job => job.ReportedPid is not null)} running");
-        JobScope.Text = JobList.SelectedItem is LaunchdRow selected ? $"{selected.State} · {selected.ProcessDescription} · read only" : "Current bootstrap context · read only";
+        JobScope.Text = JobList.SelectedItem is LaunchdRow selected ? $"{selected.State} · {selected.ProcessDescription} · read only" : _historical ? UiText.Get("Captured launchd inventory") : "Current bootstrap context · read only";
+        if (_historical)
+        {
+            _scope = UiText.Get("Captured launchd inventory") + (snapshot?.Context is { } context ? " · " + context.Display : "");
+            JobStatus.Text = snapshot is null ? UiText.Get("No retained job inventory for this capture. Return to Live to observe jobs.")
+                : $"{UiText.Get("Captured")} {_inspection?.Timestamp:yyyy-MM-dd HH:mm:ss zzz} · inventory {snapshot.ObservedAt:HH:mm:ss zzz} · {rows.Count} / {snapshot.Jobs.Count} jobs · read only";
+            if (snapshot is null) JobEmpty.Text = JobStatus.Text;
+            SummaryChanged?.Invoke(snapshot is null ? UiText.Get("Captured jobs unavailable") : $"{rows.Count} shown · {snapshot.Jobs.Count} captured jobs");
+        }
+        RefreshJobs.IsEnabled = !_historical && !_monitor.IsRefreshing;
         ToolTip.SetTip(JobScope, SummaryDetails);
 
     }
 
-    private string? Details() => JobList.SelectedItem is LaunchdRow row && Inventory.LastSuccess is { } snapshot
-        ? LaunchdPresentation.Details(row.Job, snapshot.ObservedAt, _live, Fresh, Inventory.IsStale) : null;
+    private string? Details() => JobList.SelectedItem is LaunchdRow row && DisplaySnapshot is { } snapshot
+        ? UiText.Get(_historical ? "Captured launchd inventory" : "Live") + "\n" +
+          LaunchdPresentation.Details(row.Job, snapshot.ObservedAt, DisplaySample, DisplayFresh, !_historical && Inventory.IsStale) +
+          "\n" + LaunchdWorkers.Build(row.Job, snapshot, DisplaySample, DisplayFresh).Text() : null;
+
+    private async Task ShowWorkerTree()
+    {
+        if (JobList.SelectedItem is not LaunchdRow row || DisplaySnapshot is not { } snapshot ||
+            TopLevel.GetTopLevel(this) is not Window window) return;
+        var tree = LaunchdWorkers.Build(row.Job, snapshot, DisplaySample, DisplayFresh);
+        if (tree.Root is null) return;
+        await new JobWorkersWindow(row.Label, DisplaySample?.Timestamp ?? snapshot.ObservedAt, tree, _historical).ShowDialog(window);
+    }
 
     public async Task Stop()
     {

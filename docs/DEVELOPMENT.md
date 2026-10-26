@@ -1312,3 +1312,27 @@ and report reloads pass 15 focused tests after the ordering/report refinements
 (213 tests total). Synthetic peak reports retain their exact disk metric and
 sample key after saving and reloading. Existing native disk baselines cover
 source changes and missing operation counters.
+
+## Parity slice 8: Usage attribution and Jobs depth — 0.13.15/build 38
+
+Usage has an explicit Not attributed CPU time/share footer, aligned with the
+table columns but outside selectable/ranked apps. Search, app-only and row-limit
+filters do not hide this machine-wide session total. Copy Usage includes it;
+I/O and process count remain unavailable for the unattributed row.
+
+Jobs retains session-only inventory observations, bounded to 120 snapshots and
+100,000 job references, collected only during ordinary visible-tab polling.
+Capture resolves the last inventory at or before the selected monotonic sample
+within 15 seconds; missing, expired or pre-session observations stay unavailable.
+Captured process metrics join only that captured sample's exact lifetime. Live
+sampling/polling can continue without changing the displayed capture; Refresh is
+disabled in Capture mode. No inventory is persisted or reconstructed by PID.
+
+Workers opens a read-only tree with per-process CPU, memory and I/O. Native
+parent/child lifetime tokens must share the Unix domain and be ordered by start
+time; reused parent PIDs, unknown domains, cycles and other loaded job roots are
+excluded. Limits are 512 nodes / 16 levels below the root. Reparented workers cannot reliably be
+attributed and are explicitly excluded. Job table totals remain direct-process
+only. Properties/Copy details include this bounded tree. History, identity,
+re-arm/filter behavior, and English/Spanish minimum-size dialog rendering have
+focused regressions; screenshots confirm aligned cells and readable notes.

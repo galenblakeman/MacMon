@@ -41,9 +41,9 @@ public sealed partial class LaunchdView
             if (current is not null)
             { JobList.SelectedItem = current; button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); }
             return Task.CompletedTask;
-        });
+        }, button.IsEnabled);
         var menu = new ContextMenu { ItemsSource = new[] { Item("Properties", "Info", JobDetails),
-            Item("Copy details", "Copy", CopyJob), TableInteractions.Item("Refresh", "Live", Refresh) } };
+            Item("Copy details", "Copy", CopyJob), Item("Workers", "Process", ShowWorkers), TableInteractions.Item("Refresh", "Live", Refresh, !_historical) } };
         target.ContextMenu = menu; menu.Open(target); args.Handled = true;
     }
 }

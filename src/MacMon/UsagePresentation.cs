@@ -10,7 +10,7 @@ public sealed record UsageRow(AppUsage App, long MachineBusyTicks)
     public Avalonia.Media.IImage Icon => ApplicationIcons.For(App.ImagePath);
     public DateTimeOffset? LatestObservation { get; init; }
     public string Name => App.Name;
-    public string Cpu => $"{(long)TimeSpan.FromTicks(App.CpuTicks).TotalHours}:{TimeSpan.FromTicks(App.CpuTicks).Minutes:00}:{TimeSpan.FromTicks(App.CpuTicks).Seconds:00}";
+    public string Cpu => UsageAttribution.Duration(App.CpuTicks);
     public string Share => MachineBusyTicks > 0 ? $"{100d * App.CpuTicks / MachineBusyTicks:F1}%" : "—";
     public string DiskIo => TableUnits.IoTotal(App.IoBytes);
     public string Processes => $"{App.Lifetimes} ({App.Running})";
@@ -28,14 +28,25 @@ public sealed record UsageRow(AppUsage App, long MachineBusyTicks)
     public override string ToString() => $"{Name}, CPU {Cpu}, I/O {DiskIo}, running/seen {Processes}";
 }
 
+public sealed record UsageAttribution(long CpuTicks, long MachineBusyTicks)
+{
+    public string Cpu => Duration(CpuTicks);
+    public string Share => MachineBusyTicks > 0 ? $"{100d * CpuTicks / MachineBusyTicks:F1}%" : "—";
+    public static string Duration(long ticks)
+    {
+        var span = TimeSpan.FromTicks(Math.Max(0, ticks));
+        return $"{(long)span.TotalHours}:{span.Minutes:00}:{span.Seconds:00}";
+    }
+}
+
 public static class UsagePresentation
 {
-    public static string Report(IEnumerable<UsageRow> rows, DateTimeOffset since)
+    public static string Report(IEnumerable<UsageRow> rows, DateTimeOffset since, UsageAttribution? attribution = null)
     {
         static string Cell(string value) => value.Replace('\t', ' ').Replace('\r', ' ').Replace('\n', ' ');
         return $"MacMon session usage since {since:O}\n" +
             "App\tCPU time\tBusy share\tI/O\tSeen (running)\tLast active\tExecutable\n" +
-            string.Join("\n", rows.Select(r => string.Join('\t', new[] { r.Name, r.Cpu, r.Share, r.DiskIo, r.Processes, r.LastActive, r.Path }.Select(Cell))));
+            string.Join("\n", rows.Select(r => string.Join('\t', new[] { r.Name, r.Cpu, r.Share, r.DiskIo, r.Processes, r.LastActive, r.Path }.Select(Cell)))) + (attribution is null ? "" : $"\n{UiText.Get("Not attributed")}\t{attribution.Cpu}\t{attribution.Share}\t—\t—\t—\t—");
     }
     public static UsageRow[] Rows(UsageLedger ledger, string search, UsageSort sort, int limit = 0, bool appsOnly = false, bool ascending = false, DateTimeOffset? latest = null)
     {

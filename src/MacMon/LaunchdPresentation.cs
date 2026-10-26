@@ -14,7 +14,7 @@ public sealed record LaunchdRow(LaunchdJob Job, string Label, string State, stri
     public string Resident => Process?.WorkingSetBytes is { } value ? TableUnits.Memory(value) : "—";
     public string Io => Process?.IoBytesPerSecond is { } value ? TableUnits.IoRate(value) : "—";
     public string ProcessDescription => $"{(Name == Label ? ProcessName : Label)} · PID {Pid}";
-    public string Description => $"{Label}\n{State} · PID {Pid} · last {ExitStatus}\nResource readings describe only a fresh, verified direct process; child workers are excluded.";
+    public string Description => $"{Label}\n{State} · PID {Pid} · last {ExitStatus}\nResource readings describe only the verified direct process at this observation; child workers are excluded from totals.";
     public override string ToString() => $"{Label}, {State}, PID {Pid}, last {ExitStatus}, observed process {ProcessName}";
 }
 public sealed class LaunchdInventory(TimeProvider? clock = null)
@@ -90,7 +90,7 @@ public static class LaunchdPresentation
             .AppendLine(job.ReportedPid is null ? "State: Not running (no PID reported)" : $"State: Running at observation · PID {job.ReportedPid}")
             .AppendLine($"Last termination: {ExitText(job.LastExitStatus)}")
             .AppendLine("The last exit status is not current health. Not running does not mean disabled.")
-            .AppendLine("Loaded jobs in this context only; disabled state, other domains and child workers are not inventoried.");
+            .AppendLine("Loaded jobs in this context only; disabled state and other domains are not inventoried. Worker trees show observed descendants only.");
         var process = Match(job, live, fresh && !stale);
         if (process is null) text.AppendLine("\nProcess details unavailable: no fresh matching lifetime. No PID-only association is used.");
         else

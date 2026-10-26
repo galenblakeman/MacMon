@@ -1,0 +1,18 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:MacMon"
+ x:Class="MacMon.JobWorkersWindow" Title="{local:Loc &quot;Observed workers · read only&quot;}" Width="780" Height="560" MinWidth="620" MinHeight="400" WindowStartupLocation="CenterOwner" Background="{DynamicResource MacWindowBrush}">
+ <Window.Styles><Style Selector="TreeViewItem"><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="IsExpanded" Value="True" /></Style></Window.Styles>
+ <Grid Margin="20" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="10">
+  <StackPanel><TextBlock x:Name="JobTitle" FontSize="20" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock x:Name="Observation" Classes="label" TextWrapping="Wrap" /></StackPanel>
+  <Grid Grid.Row="1" ColumnDefinitions="*,80,95,95" Margin="38,0,2,0"><TextBlock Text="{local:Loc &quot;Process&quot;}" Classes="columnLabel" /><TextBlock x:Name="WorkerCpuHeader" Grid.Column="1" Text="CPU" Classes="columnLabel" HorizontalAlignment="Right" /><TextBlock x:Name="WorkerMemoryHeader" Grid.Column="2" Text="{local:Loc &quot;Memory&quot;}" Classes="columnLabel" HorizontalAlignment="Right" /><TextBlock x:Name="WorkerIoHeader" Grid.Column="3" Text="{local:Loc &quot;I/O&quot;}" Classes="columnLabel" HorizontalAlignment="Right" /></Grid>
+  <TreeView Grid.Row="2" x:Name="WorkerTree" Background="Transparent" AutomationProperties.Name="{local:Loc &quot;Observed process tree&quot;}">
+   <TreeView.ItemTemplate><TreeDataTemplate DataType="local:JobWorkerNode" x:DataType="local:JobWorkerNode" ItemsSource="{Binding Children}">
+    <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,0,1" Padding="0,6"><Grid ColumnDefinitions="*,80,95,95" ToolTip.Tip="{Binding Identity}">
+     <StackPanel><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Pid}" Classes="label" FontSize="10" /></StackPanel>
+     <TextBlock Grid.Column="1" Text="{Binding Cpu}" HorizontalAlignment="Right" VerticalAlignment="Center" /><TextBlock Grid.Column="2" Text="{Binding Memory}" HorizontalAlignment="Right" VerticalAlignment="Center" /><TextBlock Grid.Column="3" Text="{Binding Io}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+    </Grid></Border>
+   </TreeDataTemplate></TreeView.ItemTemplate>
+  </TreeView>
+  <TextBlock Grid.Row="3" x:Name="TreeNote" Classes="label" TextWrapping="Wrap" Text="{local:Loc &quot;Only observed parent-child lifetimes are shown. Reparented workers and other loaded jobs are excluded. Job table readings remain direct-process only.&quot;}" />
+  <Button Grid.Row="4" x:Name="CloseWorkers" local:ButtonIcon.Kind="Cancel" Content="{local:Loc &quot;Close&quot;}" HorizontalAlignment="Right" />
+ </Grid>
+</Window>

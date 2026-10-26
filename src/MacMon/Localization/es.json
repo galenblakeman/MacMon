@@ -327,5 +327,16 @@
   "Click to sort; click again to reverse. Unavailable values remain last.": "Haz clic para ordenar; otra vez para invertir. Los valores no disponibles quedan al final.",
   "Estimated I/O activity; requires readable operation timing counters": "Actividad de E/S estimada; requiere contadores de tiempo legibles",
   "Estimated I/O activity; select a second disk under Monitoring": "Actividad de E/S estimada; selecciona un segundo disco en Monitorización",
-  "Disk rules use estimated I/O activity, not Windows active time. Disk 2 requires a selected second disk. Missing counters and source changes restart the duration.": "Las reglas de disco usan actividad de E/S estimada, no el tiempo activo de Windows. Disco 2 requiere un segundo disco seleccionado. Los contadores no disponibles y los cambios de origen reinician la duración."
+  "Disk rules use estimated I/O activity, not Windows active time. Disk 2 requires a selected second disk. Missing counters and source changes restart the duration.": "Las reglas de disco usan actividad de E/S estimada, no el tiempo activo de Windows. Disco 2 requiere un segundo disco seleccionado. Los contadores no disponibles y los cambios de origen reinician la duración.",
+  "Not attributed": "Sin atribuir",
+  "Machine busy CPU time not assigned to observed apps. This session total is unaffected by table filters; missing intervals are excluded.": "Tiempo de CPU ocupada no asignado a las aplicaciones observadas. Este total de sesión no depende de los filtros; excluye los intervalos sin datos.",
+  "Workers": "Procesos secundarios",
+  "Observed workers · read only": "Procesos secundarios observados · solo lectura",
+  "Observed process tree": "Árbol de procesos observado",
+  "Only observed parent-child lifetimes are shown. Reparented workers and other loaded jobs are excluded. Job table readings remain direct-process only.": "Solo se muestran relaciones padre-hijo observadas con identidad verificada. Se excluyen procesos reasignados y otras tareas cargadas. La tabla solo mide el proceso directo.",
+  "Tree truncated at the node/depth limit.": "Árbol limitado por el máximo de nodos o profundidad.",
+  "Captured launchd inventory": "Inventario de launchd capturado",
+  "Captured jobs unavailable": "Tareas capturadas no disponibles",
+  "No retained job inventory for this capture. Return to Live to observe jobs.": "No hay inventario de tareas conservado para esta captura. Vuelve a En vivo para observar tareas.",
+  "Captured": "Capturado"
 }

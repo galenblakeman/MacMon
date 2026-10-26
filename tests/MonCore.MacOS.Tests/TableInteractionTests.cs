@@ -25,7 +25,11 @@ public sealed class TableInteractionTests
             Assert.That(clear.IsVisible, Is.False);
             search.Text = "path:/Applications/Editor.app/Contents/MacOS/Editor"; Dispatcher.UIThread.RunJobs();
             Assert.That(clear.IsVisible, Is.True);
-            Assert.That(AutomationProperties.GetName(clear), Is.EqualTo(UiText.Get("Clear search")));
+            foreach (var language in new[] { "es", "en" })
+            {
+                UiText.Apply(language); Dispatcher.UIThread.RunJobs();
+                Assert.That(AutomationProperties.GetName(clear), Is.EqualTo(UiText.Get("Clear search")));
+            }
             clear.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Dispatcher.UIThread.RunJobs();
             Assert.That(search.Text, Is.Empty); Assert.That(clear.IsVisible, Is.False); Assert.That(search.IsFocused, Is.True);
         }
@@ -48,7 +52,7 @@ public sealed class TableInteractionTests
             border.RaiseEvent(new ContextRequestedEventArgs()); Dispatcher.UIThread.RunJobs();
             Assert.That(list.SelectedItem, Is.EqualTo(row)); Assert.That(border.ContextMenu!.IsOpen, Is.True);
             Assert.That(border.ContextMenu.Items.OfType<MenuItem>().Select(i => i.Header),
-                Is.EqualTo(new[] { UiText.Get("Properties"), UiText.Get("Copy details"), UiText.Get("Refresh") }));
+                Is.EqualTo(new[] { UiText.Get("Properties"), UiText.Get("Copy details"), UiText.Get("Workers"), UiText.Get("Refresh") }));
             border.ContextMenu.Close();
         }
         finally { window.Close(); }

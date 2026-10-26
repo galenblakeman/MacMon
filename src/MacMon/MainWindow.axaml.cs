@@ -193,6 +193,7 @@ public sealed partial class MainWindow : Window
         UpdateResourceGauges(sample);
         var display = TrailHistory();
         var captured = display.LastOrDefault();
+        JobsView.SetInspection(_inspection.IsHistorical ? captured : null, _inspection.IsHistorical);
         Chart.SelectedTimestamp = _inspection.IsHistorical ? captured?.MonotonicTimestamp : null;
 
         Chart.Update(_session.History.Samples);
@@ -366,7 +367,9 @@ public sealed partial class MainWindow : Window
         }
         finally { _refreshingUsage = false; }
         UpdateUsageSelection();
-        UsageStatus.Text = $"{rows.Length} shown · live totals since {_session.Usage.Since:HH:mm:ss zzz} · un-attributed CPU {TimeSpan.FromTicks(_session.Usage.NotAttributedCpuTicks).TotalSeconds:F1} s";
+        var attribution = new UsageAttribution(_session.Usage.NotAttributedCpuTicks, _session.Usage.MachineBusyTicks);
+        UnattributedCpu.Text = attribution.Cpu; UnattributedShare.Text = attribution.Share;
+        UsageStatus.Text = $"{rows.Length} shown · live totals since {_session.Usage.Since:HH:mm:ss zzz}";
         ToolTip.SetTip(UsageStatus, "Includes exited apps. Busy share uses observed machine CPU time. Missing intervals are excluded; disk I/O excludes network. Capture/chart range does not change these totals.");
     }
 

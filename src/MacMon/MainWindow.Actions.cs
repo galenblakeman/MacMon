@@ -99,7 +99,7 @@ public sealed partial class MainWindow
     {
         if (Clipboard is not { } clipboard) return;
         var rows = (UsageList.ItemsSource as IEnumerable<UsageRow> ?? []).ToArray();
-        var text = UsagePresentation.Report(rows, _session.Usage.Since);
+        var text = UsagePresentation.Report(rows, _session.Usage.Since, new(_session.Usage.NotAttributedCpuTicks, _session.Usage.MachineBusyTicks));
         await clipboard.SetTextAsync(text); _operationStatus = $"Copied {rows.Length} usage rows"; Update();
     }
 }

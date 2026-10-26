@@ -13,8 +13,8 @@ public static class TableInteractions
             VerticalAlignment = VerticalAlignment.Center };
         ButtonIcon.SetKind(clear, "Cancel");
         clear.ContentTemplate = null; clear.Content = ButtonIcon.Create("Cancel", clear);
-        AutomationProperties.SetName(clear, UiText.Get("Clear search"));
-        ToolTip.SetTip(clear, UiText.Get("Clear search"));
+        clear.Bind(AutomationProperties.NameProperty, UiText.Bind("Clear search"));
+        clear.Bind(ToolTip.TipProperty, UiText.Bind("Clear search"));
         void Refresh() => clear.IsVisible = !string.IsNullOrEmpty(search.Text);
         clear.Click += (_, _) => { search.Text = ""; search.Focus(); };
         search.TextChanged += (_, _) => Refresh();
