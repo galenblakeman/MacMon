@@ -31,7 +31,7 @@ public sealed class MacFrameSource : IFrameSource
     public static ProcessIdentityPolicy IdentityPolicy => ProcessIdentityPolicy.ExactPaths;
 
     public CollectorCapabilities Capabilities { get; } = new(
-        SystemMetricCapabilities.Cpu | SystemMetricCapabilities.Memory | SystemMetricCapabilities.Disk | SystemMetricCapabilities.Network,
+        SystemMetricCapabilities.Cpu | SystemMetricCapabilities.Memory | SystemMetricCapabilities.Disk | SystemMetricCapabilities.Network | SystemMetricCapabilities.Gpu,
         ProcessMetricCapabilities.Cpu | ProcessMetricCapabilities.ResidentMemory |
         ProcessMetricCapabilities.Threads | ProcessMetricCapabilities.ExecutablePath | ProcessMetricCapabilities.Io, ProcessActionCapabilities.Terminate);
 
@@ -115,6 +115,8 @@ public sealed class MacFrameSource : IFrameSource
                 seconds * TimeSpan.TicksPerSecond * current.LogicalProcessors)),
             Resources = new ResourceSample
             {
+                GpuPercent = current.Gpu.Percent, GpuId = current.Gpu.Id, GpuName = current.Gpu.Name,
+                GpuEngine = "Device", GpuSharedMemoryUsedBytes = current.Gpu.UsedBytes,
                 CpuKernelPercent = kernel,
                 CpuClockMhz = intervalValid ? current.CpuClockMhz : null,
                 TotalMemoryBytes = current.TotalMemoryBytes,
@@ -171,6 +173,7 @@ internal sealed record SystemObservation(
     DateTimeOffset Timestamp, long MonotonicTimestamp, CpuCounters? Cpu, int LogicalProcessors,
     ulong? TotalMemoryBytes, string VolumePath, ulong? VolumeFreeBytes, ulong? VolumeTotalBytes)
 {
+    public MacGpuSnapshot Gpu { get; init; } = MacGpuSnapshot.Empty;
     public double? CpuClockMhz { get; init; }
     public MacActivitySnapshot Activity { get; init; } = MacActivitySnapshot.Empty;
     public MacMemorySnapshot Memory { get; init; } = new(null, null, null, "Unavailable");

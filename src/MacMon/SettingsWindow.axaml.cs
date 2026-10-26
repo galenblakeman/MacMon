@@ -57,6 +57,7 @@ public sealed partial class SettingsWindow : Window
                 ReceiveBytesPerSecond = 4.2 * 1048576 - 100000 + Math.Sin((index - 24) * 0.4) * 1000000, SendBytesPerSecond = 100000,
                 SecondaryDiskReadBytesPerSecond = 18 * 1048576 - 1000000 + (index % 7 - 3) * 3000000, SecondaryDiskWriteBytesPerSecond = 1000000 }
         }).ToArray();
+        PreviewGpu.Update(new(32, 67, 100, "32.0%", "0–100%"), "Device utilization");
         PreviewCpu.Update(new(24, 67, 100, "24.0%", "0–100%"), "Speed unavailable");
         PreviewMemory.Update(new(62, 72, 100, "62.0%", "0–100%"), "9.9 / 16.0 GiB");
         PreviewNetwork.Update(new(4.2 * 1048576, 8 * 1048576, 16 * 1048576, ResourceGaugeHistory.NetworkRate(4.2 * 1048576), "0–" + ResourceGaugeHistory.NetworkRate(16 * 1048576)), "↑ 800.0 Kbps");

@@ -19,7 +19,7 @@ public sealed class ShellLayoutTests
         var main = new MainWindow();
         var mode = main.FindControl<ComboBox>("ChartModeBox")!;
         var chart = main.FindControl<CpuChart>("Chart")!;
-        foreach (var name in new[] { "CpuGauge", "MemoryGauge", "NetworkGauge", "StorageGauge" })
+        foreach (var name in new[] { "CpuGauge", "MemoryGauge", "NetworkGauge", "StorageGauge", "GpuGauge" })
             main.FindControl<ResourceGauge>(name)!.SeriesToggle.IsChecked = false;
         Assert.That(chart.VisibleMetrics, Is.Zero);
         mode.SelectedIndex = 6; // Combined Focus · Network choice.
@@ -77,7 +77,7 @@ public sealed class ShellLayoutTests
     }
 
     [AvaloniaTest]
-    public void FullShellKeepsFourCardsAndDataPaneAtSupportedSizes()
+    public void FullShellKeepsFiveCardsAndDataPaneAtSupportedSizes()
     {
         var app = (App)Application.Current!;
         var output = Environment.GetEnvironmentVariable("MACMON_RENDER_OUTPUT");
@@ -104,8 +104,8 @@ public sealed class ShellLayoutTests
             window.Show();
             Dispatcher.UIThread.RunJobs();
             var gauges = window.GetVisualDescendants().OfType<ResourceGauge>().Where(g => !g.IsCompact).ToArray();
-            Assert.That(gauges, Has.Length.EqualTo(4));
-            Assert.That(gauges.Select(g => g.TranslatePoint(default, window)!.Value.Y).Distinct().Count(), Is.EqualTo(1));
+            Assert.That(gauges, Has.Length.EqualTo(5));
+            Assert.That(gauges.Select(g => g.TranslatePoint(default, window)!.Value.Y).Distinct().Count(), Is.EqualTo(1), string.Join("; ", gauges.Select(g => $"{g.Title}: {g.TranslatePoint(default, window)} {g.Bounds}")));
             var tabs = window.GetVisualDescendants().OfType<TabControl>().Single();
             Assert.That(tabs.Bounds.Height, Is.GreaterThanOrEqualTo(276));
             foreach (var chart in window.GetVisualDescendants().OfType<CpuChart>())

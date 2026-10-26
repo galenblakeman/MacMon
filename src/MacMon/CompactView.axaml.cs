@@ -15,7 +15,7 @@ public sealed partial class CompactView : UserControl
     public CompactView()
     {
         InitializeComponent();
-        Gauges = [Cpu, Memory, Network, Storage];
+        Gauges = [Cpu, Memory, Network, Storage, Gpu];
         CompactInfo.Click += (_, _) => InfoRequested?.Invoke();
         CompactResourcesCsv.Click += (_, _) => { CompactExport.Flyout?.Hide(); ExportRequested?.Invoke(WinMon.Monitoring.CsvExportKind.ResourceHistory); };
         CompactProcessesCsv.Click += (_, _) => { CompactExport.Flyout?.Hide(); ExportRequested?.Invoke(WinMon.Monitoring.CsvExportKind.ProcessSamples); };

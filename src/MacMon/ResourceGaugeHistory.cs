@@ -14,8 +14,9 @@ public sealed class ResourceGaugeHistory
     private readonly Queue<(long Time, double?[] Values)> _samples = new();
     private string? _networkId;
     private string? _storageId;
+    private string? _gpuId;
     private long _last;
-    public GaugeReading[] Readings { get; private set; } = Enumerable.Repeat(GaugeReading.Empty, 4).ToArray();
+    public GaugeReading[] Readings { get; private set; } = Enumerable.Repeat(GaugeReading.Empty, ResourceCharts.Names.Length).ToArray();
     public void Observe(MonitorSample sample)
     {
         var r = sample.Resources;
@@ -23,24 +24,26 @@ public sealed class ResourceGaugeHistory
         if (now <= _last || (now - _last) / (double)Stopwatch.Frequency > 2.5) _samples.Clear();
         _last = now;
         var values = new[] { Valid(sample.TotalCpuPercent, 100), Valid(r.MemoryPercent, 100),
-            Valid(r.ReceiveBytesPerSecond), Total(r.SecondaryDiskReadBytesPerSecond, r.SecondaryDiskWriteBytesPerSecond) };
+            Valid(r.ReceiveBytesPerSecond), Total(r.SecondaryDiskReadBytesPerSecond, r.SecondaryDiskWriteBytesPerSecond), Valid(r.GpuPercent, 100) };
         // A baseline or source change starts a new activity interval, without retaining another device's peak.
         foreach (var old in _samples)
         {
+            if (_gpuId != r.GpuId || values[4] is null) old.Values[4] = null;
             if (_networkId != r.NetworkId || values[2] is null) old.Values[2] = null;
             if (_storageId != r.SecondaryDiskName || values[3] is null) old.Values[3] = null;
         }
+        _gpuId = r.GpuId;
         _networkId = r.NetworkId; _storageId = r.SecondaryDiskName;
         _samples.Enqueue((now, values));
         while (_samples.Count > 256 || _samples.TryPeek(out var first) && (now - first.Time) / (double)Stopwatch.Frequency > 120)
             _samples.Dequeue();
-        Readings = Enumerable.Range(0, 4).Select(index =>
+        Readings = Enumerable.Range(0, ResourceCharts.Names.Length).Select(index =>
         {
             if (values[index] is not { } value) return GaugeReading.Empty;
             var peak = _samples.Max(entry => entry.Values[index]) ?? value;
-            var maximum = index < 2 ? 100 : RateMaximum(peak);
-            return new GaugeReading(value, peak, maximum, index < 2 ? $"{value:F1}%" : index == 2 ? NetworkRate(value) : Rate(value),
-                index < 2 ? "0–100%" : $"0–{(index == 2 ? NetworkRate(maximum) : Rate(maximum))}");
+            var maximum = ResourceCharts.IsPercent(index) ? 100 : RateMaximum(peak);
+            return new GaugeReading(value, peak, maximum, ResourceCharts.IsPercent(index) ? $"{value:F1}%" : index == 2 ? NetworkRate(value) : Rate(value),
+                ResourceCharts.IsPercent(index) ? "0–100%" : $"0–{(index == 2 ? NetworkRate(maximum) : Rate(maximum))}");
         }).ToArray();
     }
     private static double? Valid(double? value, double maximum = double.MaxValue) =>

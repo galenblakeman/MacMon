@@ -3,7 +3,7 @@ using WinMon.Monitoring;
 
 namespace MacMon;
 
-public enum ResourceMetric { Cpu, Memory, Network, Storage }
+public enum ResourceMetric { Cpu, Memory, Network, Storage, Gpu }
 public sealed record ResourceDetailRow(string Label, string Value);
 public sealed record ResourceDetailSnapshot(string Title, string Status, string Definition, IReadOnlyList<ResourceDetailRow> Rows);
 
@@ -45,6 +45,11 @@ public static class ResourceDetails
                     new("Interface", Text(r?.NetworkName)), new("Interface ID", Text(r?.NetworkId)),
                     new("Receive", Rate(r?.ReceiveBytesPerSecond)), new("Send", Rate(r?.SendBytesPerSecond))]);
                 break;
+            case ResourceMetric.Gpu:
+                definition = "Device-wide utilization reported by the selected IOAccelerator. The first adapter by registry identity is monitored; renderer/tiler and per-process GPU utilization are not substituted. Shared memory is driver-reported and has no dedicated VRAM capacity on unified-memory hardware.";
+                rows.AddRange([new("GPU", Text(r?.GpuName)), new("Registry identity", Text(r?.GpuId)),
+                    new("Shared memory in use", Bytes(r?.GpuSharedMemoryUsedBytes))]);
+                break;
             case ResourceMetric.Storage:
                 definition = "Activity is read + write across all readable block-storage drivers, in bytes per second. Data-volume capacity is a separate filesystem reading; it is not the activity gauge's utilization.";
                 rows.AddRange([
@@ -55,10 +60,10 @@ public static class ResourceDetails
                 break;
             default: throw new ArgumentOutOfRangeException(nameof(metric));
         }
-        rows.Add(new("Peak · last 2 minutes", reading.Value is null ? "—" : metric is ResourceMetric.Cpu or ResourceMetric.Memory
+        rows.Add(new("Peak · last 2 minutes", reading.Value is null ? "—" : metric is ResourceMetric.Cpu or ResourceMetric.Memory or ResourceMetric.Gpu
             ? Percent(reading.Peak) : metric == ResourceMetric.Network ? ResourceGaugeHistory.NetworkRate(reading.Peak) : Rate(reading.Peak)));
         rows.Add(new("Gauge scale", reading.Value is null ? "—" : reading.Scale));
-        return new(metric == ResourceMetric.Cpu ? "CPU details" : metric == ResourceMetric.Storage ? "Disk details" : $"{metric} details",
+        return new(metric == ResourceMetric.Cpu ? "CPU details" : metric == ResourceMetric.Gpu ? "GPU details" : metric == ResourceMetric.Storage ? "Disk details" : $"{metric} details",
             sample is null ? "Waiting for live readings…" : $"Live · updated {sample.Timestamp:HH:mm:ss zzz}", definition, rows);
     }
     private static string Text(string? value) => string.IsNullOrWhiteSpace(value) ? "—" : value;

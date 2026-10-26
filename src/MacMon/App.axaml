@@ -71,6 +71,7 @@
       <Setter Property="CpuBrush" Value="{DynamicResource CpuStroke}" />
       <Setter Property="MemoryBrush" Value="{DynamicResource MemoryStroke}" />
       <Setter Property="NetworkBrush" Value="{DynamicResource NetworkStroke}" />
+      <Setter Property="GpuBrush" Value="{DynamicResource GpuStroke}" />
       <Setter Property="StorageBrush" Value="{DynamicResource StorageStroke}" />
       <Setter Property="GridBrush" Value="{DynamicResource MacGridBrush}" />
       <Setter Property="MarkerBrush" Value="{DynamicResource MacMarkerBrush}" />

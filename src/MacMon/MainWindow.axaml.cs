@@ -78,7 +78,7 @@ public sealed partial class MainWindow : Window
             RefreshCaptures();
         }));
         _session.LiveSampleRecorded += _gaugeHistory.Observe;
-        ResourceCards.SizeChanged += (_, _) => ResourceCards.Columns = ResourceCards.Bounds.Width < 700 ? 2 : 4;
+        ResourceCards.Columns = 5;
         _session.LiveSampleRecorded += ObserveCaptures;
         _session.LiveSampleRecorded += JobsView.ObserveLiveSample;
         JobsView.SummaryChanged += summary => { JobSummary.Text = summary; ToolTip.SetTip(JobSummary, JobsView.SummaryDetails); };
@@ -212,7 +212,7 @@ public sealed partial class MainWindow : Window
         StatusLabel.IsVisible = _session.Error is not null || _operationStatus.Length > 0;
     }
 
-    private ResourceGauge[] VisibleGauges => CompactMode ? CompactPanel.Gauges : [CpuGauge, MemoryGauge, NetworkGauge, StorageGauge];
+    private ResourceGauge[] VisibleGauges => CompactMode ? CompactPanel.Gauges : [CpuGauge, MemoryGauge, NetworkGauge, StorageGauge, GpuGauge];
     private void UpdateResourceGauges(MonitorSample sample)
     {
         var r = sample.Resources;
@@ -220,7 +220,8 @@ public sealed partial class MainWindow : Window
             r.CpuClockMhz is > 0 ? $"{r.CpuClockMhz.Value / 1000:F2} GHz est." : "Speed unavailable",
             $"{GiB(r.UsedMemoryBytes)} / {GiB(r.TotalMemoryBytes)}\nPressure: {_source.Memory.Pressure} · compressed {GiB(_source.Memory.CompressedBytes)}",
             $"{r.NetworkName} · download\n↑ {ResourceGaugeHistory.NetworkRate(r.SendBytesPerSecond)}",
-            $"All block drivers · read + write\n{Rate(r.SecondaryDiskReadBytesPerSecond + r.SecondaryDiskWriteBytesPerSecond)} combined"];
+            $"All block drivers · read + write\n{Rate(r.SecondaryDiskReadBytesPerSecond + r.SecondaryDiskWriteBytesPerSecond)} combined",
+            r.GpuName.Length > 0 ? r.GpuName : "Device utilization unavailable"];
         var gauges = VisibleGauges;
         for (var index = 0; index < gauges.Length; index++) gauges[index].Update(_gaugeHistory.Readings[index], descriptions[index]);
     }

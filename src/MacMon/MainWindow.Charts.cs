@@ -10,14 +10,14 @@ public sealed partial class MainWindow
     private CheckBox MemoryVisible => MemoryGauge.SeriesToggle;
     private CheckBox NetworkVisible => NetworkGauge.SeriesToggle;
     private CheckBox StorageVisible => StorageGauge.SeriesToggle;
-    private CheckBox[] MetricSwitches => [CpuVisible, MemoryVisible, NetworkVisible, StorageVisible];
+    private CheckBox[] MetricSwitches => [CpuVisible, MemoryVisible, NetworkVisible, StorageVisible, GpuGauge.SeriesToggle];
     private RadioButton[] RangeChips => [Range2, Range10, Range30, Range60];
     private sealed record ChartChoice(string Label, ResourceChartMode Mode, int Focus = 0)
     { public override string ToString() => Label; }
     private static readonly ChartChoice[] ChartChoices = [new("Overlay", ResourceChartMode.Overlay),
         new("Small multiples", ResourceChartMode.SmallMultiples), new("Heatmap", ResourceChartMode.Heatmap),
         new("Focus · CPU", ResourceChartMode.Focus), new("Focus · Memory", ResourceChartMode.Focus, 1),
-        new("Focus · Disk", ResourceChartMode.Focus, 3), new("Focus · Network", ResourceChartMode.Focus, 2)];
+        new("Focus · Disk", ResourceChartMode.Focus, 3), new("Focus · Network", ResourceChartMode.Focus, 2), new("Focus · GPU", ResourceChartMode.Focus, 4)];
     private void InitializeCharts()
     {
         Chart.SampleHovered += _ => UpdateChartReadout();
@@ -44,7 +44,7 @@ public sealed partial class MainWindow
         {
             ChartModeBox.SelectedIndex = Array.FindIndex(ChartChoices, c => c.Mode == _preferences.ChartMode &&
                 (c.Mode != ResourceChartMode.Focus || c.Focus == _preferences.FocusMetric));
-            for (var i = 0; i < 4; i++) MetricSwitches[i].IsChecked = (_preferences.VisibleMetrics & (1 << i)) != 0;
+            for (var i = 0; i < MetricSwitches.Length; i++) MetricSwitches[i].IsChecked = (_preferences.VisibleMetrics & (1 << i)) != 0;
         }
         finally { _restoringCharts = false; }
         ApplyChartChoices(false);

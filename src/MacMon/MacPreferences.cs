@@ -25,7 +25,7 @@ public sealed record MacPreferences
     public int JobSort { get; init; }
     public int JobFilter { get; init; }
     public ResourceChartMode ChartMode { get; init; }
-    public int VisibleMetrics { get; init; } = 15;
+    public int VisibleMetrics { get; init; } = 31;
     public int FocusMetric { get; init; }
     public int HistoryRange { get; init; }
     public string? NetworkId { get; init; }
@@ -47,7 +47,7 @@ public sealed record MacPreferences
         BootId = bootId, Theme = Appearance.NormalizeTheme(Theme), Palette = Appearance.NormalizePalette(Palette),
         GaugeStyle = ResourceGauge.NormalizeStyle(GaugeStyle),
         ChartMode = Enum.IsDefined(ChartMode) ? ChartMode : ResourceChartMode.Overlay,
-        VisibleMetrics = VisibleMetrics & 15, FocusMetric = ResourceCharts.Focus(VisibleMetrics & 15, FocusMetric),
+        VisibleMetrics = VisibleMetrics & 31, FocusMetric = ResourceCharts.Focus(VisibleMetrics & 31, FocusMetric),
         ProcessSort = Math.Clamp(ProcessSort, 0, 5), UsageSort = Math.Clamp(UsageSort, 0, 5),
         JobLimit = TablePresentation.NormalizeLimit(JobLimit), TabOrderVersion = 1,
         ProcessLimit = TablePresentation.NormalizeLimit(ProcessLimit), UsageLimit = TablePresentation.NormalizeLimit(UsageLimit),

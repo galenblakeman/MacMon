@@ -9,8 +9,9 @@ public sealed record ChartPanel(Rect Bounds, int[] Metrics, bool SideLabel = fal
 /// <summary>Shared chart semantics: rates never become utilization percentages.</summary>
 public static class ResourceCharts
 {
-    public static readonly string[] Names = ["CPU", "Memory", "Network", "Disk"];
-    public static int[] Metrics(int mask) => new[] { 0, 1, 3, 2 }.Where(i => (mask & (1 << i)) != 0).ToArray();
+    public static readonly string[] Names = ["CPU", "Memory", "Network", "Disk", "GPU"];
+    public static bool IsPercent(int metric) => metric is 0 or 1 or 4;
+    public static int[] Metrics(int mask) => new[] { 0, 4, 1, 3, 2 }.Where(i => (mask & (1 << i)) != 0).ToArray();
     public static int Focus(int mask, int focus) => Metrics(mask).Contains(focus) ? focus : Metrics(mask).FirstOrDefault();
     public static double? Value(MonitorSample sample, int metric)
     {
@@ -21,17 +22,17 @@ public static class ResourceCharts
             0 => sample.TotalCpuPercent, 1 => r.MemoryPercent,
             2 => r.ReceiveBytesPerSecond,
             3 => r.SecondaryDiskReadBytesPerSecond + r.SecondaryDiskWriteBytesPerSecond,
-            _ => null
+            4 => r.GpuPercent, _ => null
         };
-        return value is { } n && double.IsFinite(n) && n >= 0 ? Math.Min(n, metric < 2 ? 100 : double.MaxValue) : null;
+        return value is { } n && double.IsFinite(n) && n >= 0 ? Math.Min(n, IsPercent(metric) ? 100 : double.MaxValue) : null;
     }
-    public static double Maximum(IReadOnlyList<MonitorSample> samples, int rangeSeconds, int metric) => metric < 2 ? 100 :
+    public static double Maximum(IReadOnlyList<MonitorSample> samples, int rangeSeconds, int metric) => IsPercent(metric) ? 100 :
         ResourceGaugeHistory.RateMaximum(HistoryInspection.VisibleSamples(samples, rangeSeconds).Select(s => Value(s, metric) ?? 0).DefaultIfEmpty().Max());
     public static string Reading(MonitorSample sample, int metric) => Value(sample, metric) is not { } value ? "—" :
-        metric < 2 ? $"{value:F1}%" : metric == 2 ? ResourceGaugeHistory.NetworkRate(value) : ResourceGaugeHistory.Rate(value);
+        IsPercent(metric) ? $"{value:F1}%" : metric == 2 ? ResourceGaugeHistory.NetworkRate(value) : ResourceGaugeHistory.Rate(value);
     public static string Describe(MonitorSample sample) => $"{sample.Timestamp:HH:mm:ss zzz} · " +
-        string.Join(" · ", Enumerable.Range(0, 4).Select(i => $"{Names[i]} {Reading(sample, i)}")) + (sample.IsGap ? " · interval gap" : "");
-    public static string Scale(int metric, double maximum) => metric < 2 ? "0–100%" : $"0–{(metric == 2 ? ResourceGaugeHistory.NetworkRate(maximum) : ResourceGaugeHistory.Rate(maximum))}";
+        string.Join(" · ", Enumerable.Range(0, Names.Length).Select(i => $"{Names[i]} {Reading(sample, i)}")) + (sample.IsGap ? " · interval gap" : "");
+    public static string Scale(int metric, double maximum) => IsPercent(metric) ? "0–100%" : $"0–{(metric == 2 ? ResourceGaugeHistory.NetworkRate(maximum) : ResourceGaugeHistory.Rate(maximum))}";
     public static ChartPanel[] Panels(Size size, int mask, ResourceChartMode mode, int focus)
     {
         var metrics = Metrics(mask);

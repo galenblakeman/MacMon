@@ -56,7 +56,7 @@ public sealed class AppearanceTests
             var strokes = Appearance.Colors(palette, dark);
             Assert.That(text.All.All(color => Appearance.Contrast(color, Appearance.Card(dark)) >= 4.5), Is.True, palette);
             Assert.That(strokes.All.All(color => Appearance.Contrast(color, Appearance.Card(dark)) >= 3), Is.True, palette);
-            Assert.That(strokes.All.Distinct().Count(), Is.EqualTo(4), palette);
+            Assert.That(strokes.All.Distinct().Count(), Is.EqualTo(5), palette);
         }
     }
 }

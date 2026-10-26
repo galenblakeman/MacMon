@@ -9,8 +9,9 @@
       <Button Grid.Column="5" x:Name="ExpandView" Content="{local:TitleButtonContent Full, Full view}" AutomationProperties.Name="Full view" Classes="titleAction" ToolTip.Tip="Full view (⌘⇧M or Escape)" />
       <ToggleButton Grid.Column="6" x:Name="CompactOnTop" Content="{local:TitleButtonContent Pin, Always on top}" AutomationProperties.Name="Always on top" Classes="titleAction" />
     </Grid>
-    <UniformGrid Grid.Row="1" Columns="4">
+    <UniformGrid Grid.Row="1" Columns="5">
       <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="8"><local:ResourceGauge x:Name="Cpu" Title="CPU" IsCompact="True" Fill="{DynamicResource CpuText}" /></Border>
+      <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="8,0"><local:ResourceGauge x:Name="Gpu" Title="GPU" Fill="{DynamicResource GpuStroke}" IsCompact="True" /></Border>
       <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="8"><local:ResourceGauge x:Name="Memory" Title="Memory" IsCompact="True" Fill="{DynamicResource MemoryText}" /></Border>
       <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="8"><local:ResourceGauge x:Name="Storage" Title="Disk" IsCompact="True" Fill="{DynamicResource StorageText}" /></Border>
       <Border Padding="8"><local:ResourceGauge x:Name="Network" Title="Network" IsCompact="True" Fill="{DynamicResource NetworkText}" /></Border>

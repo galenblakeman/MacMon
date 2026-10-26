@@ -587,3 +587,26 @@ native resource and launchd smoke passed. The M2 Pro returned varying estimates
 of 1.407, 1.674 and 1.607 GHz after the initial baseline. Tests cover weighting,
 channel reordering, unknown/missing/duplicate cores, layout mismatch, no activity,
 counter rollback, invalid units and malformed/nonmonotonic frequency tables.
+
+## Hardware monitoring slice 2 — GPU
+
+Added device-wide IOAccelerator utilization, GPU identity/name and driver-reported
+shared memory in use. The first adapter by registry identity is selected stably;
+multiple adapters are not summed and tiler/renderer counters are not substituted
+for missing device utilization. Unknown, nonfinite or out-of-range readings stay
+unavailable; no dedicated VRAM capacity or per-process GPU attribution is inferred.
+The implementation reads only the relevant native properties and releases handles.
+
+GPU now has a gauge, visibility checkbox, Focus choice, 0–100% chart series,
+source-aware two-minute peak and live details in full and compact views. Existing
+series bits retain their meanings, and prior visibility selections remain intact.
+New preferences enable all five metrics. ResourceSample already supports these
+fields, so CSV and restart history use the existing portable schema. Palette
+contrast checks cover the new fifth color. The preview includes the GPU style.
+
+Validation: 148 Mac tests and three release-workflow tests pass, zero build
+warnings, native resource/launchd smoke and themed renders. The M2 Pro reported
+4%, 2%, 19%, 7% device utilization alongside changing CPU clock estimates. Tests
+cover missing/invalid/known-zero utilization, adapter changes, unavailable recovery,
+percent scaling and five-card alignment at supported sizes. An obsolete four-column
+resize rule was removed after the alignment regression test caught row wrapping.

@@ -52,7 +52,7 @@ public sealed class ResourceChartTests
         Assert.That(updated.FocusMetric, Is.EqualTo(3));
         var roundTrip = System.Text.Json.JsonSerializer.Deserialize<MacPreferences>(System.Text.Json.JsonSerializer.Serialize(updated))!.Normalized(null);
         Assert.That(System.Text.Json.JsonSerializer.Serialize(roundTrip), Is.EqualTo(System.Text.Json.JsonSerializer.Serialize(updated)));
-        var invalid = new MacPreferences { VisibleMetrics = 18, ChartMode = (ResourceChartMode)99, FocusMetric = -1 }.Normalized(null);
+        var invalid = new MacPreferences { VisibleMetrics = 66, ChartMode = (ResourceChartMode)99, FocusMetric = -1 }.Normalized(null);
         Assert.That(invalid.VisibleMetrics, Is.EqualTo(2));
         Assert.That(invalid.FocusMetric, Is.EqualTo(1));
         Assert.That(invalid.ChartMode, Is.EqualTo(ResourceChartMode.Overlay));
@@ -77,7 +77,7 @@ public sealed class ResourceChartTests
         foreach (var mode in Enum.GetValues<ResourceChartMode>())
         {
             var samples = Samples();
-            var chart = new CpuChart { Mode = mode, FocusMetric = 2 };
+            var chart = new CpuChart { VisibleMetrics = 15, Mode = mode, FocusMetric = 2 };
             chart.Update(samples);
             MonitorSample? selected = null;
             var live = 0;
@@ -137,7 +137,7 @@ public sealed class ResourceChartTests
     {
         var samples = Samples();
         var record = new MacCaptureRecord(Guid.NewGuid(), SampleKey.Of(samples[60]), CaptureMetric.Network, "network", "unused");
-        var chart = new CpuChart { Mode = ResourceChartMode.SmallMultiples, Captures = [record] };
+        var chart = new CpuChart { VisibleMetrics = 15, Mode = ResourceChartMode.SmallMultiples, Captures = [record] };
         chart.Update(samples);
         var captures = 0; var selections = 0;
         chart.CaptureSelected += capture => { Assert.That(capture, Is.SameAs(record)); captures++; };

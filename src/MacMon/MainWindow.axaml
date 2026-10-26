@@ -26,8 +26,9 @@
         <ToggleButton Grid.Column="6" x:Name="AlwaysOnTop" Content="{local:TitleButtonContent Pin, Always on top}" AutomationProperties.Name="Always on top" Classes="titleAction" ToolTip.Tip="Keep MacMon above other windows" />
       </Grid>
       <Grid Grid.Row="1" RowDefinitions="98,Auto,*" RowSpacing="8">
-        <UniformGrid x:Name="ResourceCards" Columns="4">
+        <UniformGrid x:Name="ResourceCards" Columns="5">
           <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="0,0,12,0"><local:ResourceGauge x:Name="CpuGauge" Title="CPU" Fill="{DynamicResource CpuStroke}" TextAccent="{DynamicResource CpuText}" /></Border>
+          <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="8,0"><local:ResourceGauge x:Name="GpuGauge" Title="GPU" Fill="{DynamicResource GpuStroke}" TextAccent="{DynamicResource GpuText}" /></Border>
           <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="12,0"><local:ResourceGauge x:Name="MemoryGauge" Title="Memory" Fill="{DynamicResource MemoryStroke}" TextAccent="{DynamicResource MemoryText}" /></Border>
           <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="12,0"><local:ResourceGauge x:Name="StorageGauge" Title="Disk" Fill="{DynamicResource StorageStroke}" TextAccent="{DynamicResource StorageText}" /></Border>
           <Border Padding="12,0,0,0"><local:ResourceGauge x:Name="NetworkGauge" Title="Network" Fill="{DynamicResource NetworkStroke}" TextAccent="{DynamicResource NetworkText}" /></Border>

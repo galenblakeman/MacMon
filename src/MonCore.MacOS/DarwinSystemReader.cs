@@ -49,7 +49,7 @@ internal sealed unsafe partial class DarwinSystemReader : IMacSystemReader
         }
 
         return new SystemObservation(timestamp, instant, cpu, _logicalProcessors,
-            memory, volumePath, free, total) { Memory = ReadMemory(memory), Activity = _activity.Read(networkId), CpuClockMhz = _frequency.Read(true, _logicalProcessors) };
+            memory, volumePath, free, total) { Memory = ReadMemory(memory), Activity = _activity.Read(networkId), CpuClockMhz = _frequency.Read(true, _logicalProcessors), Gpu = DarwinGpuReader.Read() };
     }
 
     private MacMemorySnapshot ReadMemory(ulong? total)

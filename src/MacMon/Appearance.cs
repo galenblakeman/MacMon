@@ -4,9 +4,9 @@ using Avalonia.Styling;
 
 namespace MacMon;
 
-public sealed record PaletteColors(Color Cpu, Color Memory, Color Network, Color Storage)
+public sealed record PaletteColors(Color Cpu, Color Memory, Color Network, Color Storage, Color Gpu)
 {
-    public Color[] All => [Cpu, Memory, Network, Storage];
+    public Color[] All => [Cpu, Memory, Network, Storage, Gpu];
 }
 
 public static class Appearance
@@ -23,15 +23,15 @@ public static class Appearance
     {
         var hues = NormalizePalette(palette) switch
         {
-            "Ocean" => new[] { "#64D8EB", "#AAB4FF", "#79C7FF", "#7DE2B2" },
-            "Colorblind" => new[] { "#56B4E9", "#E69F00", "#CC79A7", "#009E73" },
-            "High contrast" => new[] { "#00FFFF", "#FFFF00", "#FF80FF", "#FFFFFF" },
-            _ => new[] { "#6DE3CB", "#BD9AFF", "#73BFFF", "#F6C85F" }
+            "Ocean" => new[] { "#64D8EB", "#AAB4FF", "#79C7FF", "#7DE2B2", "#FFAC84" },
+            "Colorblind" => new[] { "#56B4E9", "#E69F00", "#CC79A7", "#009E73", "#F0E442" },
+            "High contrast" => new[] { "#00FFFF", "#FFFF00", "#FF80FF", "#FFFFFF", "#80FF80" },
+            _ => new[] { "#6DE3CB", "#BD9AFF", "#73BFFF", "#F6C85F", "#FF9F87" }
         };
         // Light high-contrast needs distinct hues rather than four darkened near-black colors.
-        if (!dark && palette == "High contrast") hues = ["#005A9C", "#7A2500", "#6A0080", "#006039"];
+        if (!dark && palette == "High contrast") hues = ["#005A9C", "#7A2500", "#6A0080", "#006039", "#805000"];
         var colors = hues.Select(hue => EnsureContrast(Color.Parse(hue), Card(dark), text ? 4.5 : 3, dark)).ToArray();
-        return new(colors[0], colors[1], colors[2], colors[3]);
+        return new(colors[0], colors[1], colors[2], colors[3], colors[4]);
     }
 
     public static double Contrast(Color left, Color right)
@@ -62,7 +62,7 @@ public static class Appearance
     {
         var strokes = Colors(palette, dark).All;
         var labels = Colors(palette, dark, true).All;
-        var names = new[] { "Cpu", "Memory", "Network", "Storage" };
+        var names = new[] { "Cpu", "Memory", "Network", "Storage", "Gpu" };
         for (var i = 0; i < names.Length; i++)
         {
             resources[names[i] + "Stroke"] = new SolidColorBrush(strokes[i]);
