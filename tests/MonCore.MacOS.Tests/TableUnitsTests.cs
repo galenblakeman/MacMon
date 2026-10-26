@@ -10,11 +10,11 @@ public sealed class TableUnitsTests
 {
     [TestCase(0, "0.0 B", "0.0 B/s")]
     [TestCase(512, "512.0 B", "512.0 B/s")]
-    [TestCase(1024, "1.0 KiB", "1.0 KiB/s")]
-    [TestCase(1536, "1.5 KiB", "1.5 KiB/s")]
-    [TestCase(1048576, "1.0 MiB", "1.0 MiB/s")]
-    [TestCase(1073741824, "1.0 GiB", "1.0 GiB/s")]
-    [TestCase(1099511627776, "1.0 TiB", "1.0 TiB/s")]
+    [TestCase(1024, "1.0 KiB", "1.0 KB/s")]
+    [TestCase(1536, "1.5 KiB", "1.5 KB/s")]
+    [TestCase(1048576, "1.0 MiB", "1.0 MB/s")]
+    [TestCase(1073741824, "1.0 GiB", "1.1 GB/s")]
+    [TestCase(1099511627776, "1.0 TiB", "1.1 TB/s")]
     public void SelectsUnitsFromEachValuesMagnitude(double value, string memory, string rate)
     {
         using var culture = new CultureScope("en-US");
@@ -28,7 +28,9 @@ public sealed class TableUnitsTests
     {
         using var culture = new CultureScope("en-US");
         Assert.That(TableUnits.Memory(1048575), Is.EqualTo("1.0 MiB"));
-        Assert.That(TableUnits.IoRate(1048575), Is.EqualTo("1.0 MiB/s"));
+        Assert.That(TableUnits.IoRate(999999), Is.EqualTo("1.0 MB/s"));
+        Assert.That(TableUnits.IoTotal(1000000000), Is.EqualTo("1.0 GB"));
+        Assert.That(ResourceGaugeHistory.Rate(1000000), Is.EqualTo("1.0 MB/s"));
         foreach (var value in new double?[] { null, -1, double.NaN, double.PositiveInfinity })
         {
             Assert.That(TableUnits.Memory(value), Is.EqualTo("—"));
@@ -37,7 +39,7 @@ public sealed class TableUnitsTests
         }
         using var spanish = new CultureScope("es-ES");
         Assert.That(TableUnits.Memory(1536), Is.EqualTo("1,5 KiB"));
-        Assert.That(TableUnits.IoRate(1536), Is.EqualTo("1,5 KiB/s"));
+        Assert.That(TableUnits.IoRate(1536), Is.EqualTo("1,5 KB/s"));
     }
 
     [Test]

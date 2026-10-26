@@ -30,7 +30,7 @@ public sealed class ResourceChartTests
         }
         foreach (var metric in new[] { 3, 5 })
         {
-            Assert.That(ResourceCharts.AxisLabels(metric, 4 * 1048576).First(), Is.EqualTo("4.0 MiB/s"));
+            Assert.That(ResourceCharts.AxisLabels(metric, 4 * 1048576).First(), Is.EqualTo("4.2 MB/s"));
             Assert.That(ResourceCharts.AxisLabels(metric, 4 * 1048576).All(label => !label.Contains('%')), Is.True);
         }
     }

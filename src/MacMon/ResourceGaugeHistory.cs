@@ -71,8 +71,7 @@ public sealed class ResourceGaugeHistory
         var bits = maximum * 8;
         return bits >= 1e9 ? $"{bits / 1e9:F1}G" : $"{bits / 1e6:F1}M";
     }
-    public static string Rate(double? value) => value is not { } bytes ? "—" : bytes >= 1073741824 ? $"{bytes / 1073741824:F1} GiB/s" :
-        bytes >= 1048576 ? $"{bytes / 1048576:F1} MiB/s" : $"{bytes / 1024:F1} KiB/s";
+    public static string Rate(double? value) => TableUnits.IoRate(value);
     public static string NetworkRate(double? value) => value is not { } bytes || !double.IsFinite(bytes) || bytes < 0 ? "—" :
         bytes >= 125000000 ? $"{bytes / 125000000:F1} Gbps" : bytes >= 125000 ? $"{bytes / 125000:F1} Mbps" : $"{bytes / 125:F1} Kbps";
 }

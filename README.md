@@ -56,3 +56,5 @@ Select a process for Properties, Copy details, Reveal in Finder and a confirmed 
 GPU reports device-wide IOAccelerator utilization for one stable adapter where the driver exposes it. Shared memory is labeled separately; per-process GPU and dedicated VRAM capacity are unavailable. IOReport frequency and IOAccelerator statistics are optional, undocumented interfaces; native validation currently covers the M2 Pro. Unsupported hardware and missing readings remain unavailable. See [development notes](docs/DEVELOPMENT.md) for contracts, verification and remaining work.
 
 Table searches include clear buttons. Right-click rows for their actions; Jobs stays read-only. Usage’s **Show processes** returns to Live and filters by the exact executable path (`path:…`). Click Jobs column headings to sort or reverse direction.
+
+Memory uses adaptive binary units (KiB/MiB/GiB); I/O rates and totals use decimal units (KB/MB/GB), with one decimal throughout. I/O columns describe disk reads and writes, excluding network traffic.

@@ -1261,3 +1261,19 @@ pass (206 tests total), alongside three release checks and collector/launchd
 smoke. Native 0.13.11 search clearing restores the inventory and keyboard focus;
 Jobs exposes sortable headers. Actual headless popup geometry confirms the
 read-only context menu opens for the requested row. Package signing passes.
+
+## Parity slice 5: units and headings — 0.13.12/build 35
+
+Memory retains binary KiB/MiB/GiB units. I/O rates and totals use adaptive decimal
+KB/MB/GB units, consistently across Processes, Jobs, Usage, disk gauges, chart
+labels and resource details. Values remain one decimal, including zero; missing
+or invalid readings remain unavailable. Rate headers and ranking choices read
+I/O, while disk resource names remain Disk / Disk 2. Usage details no longer
+append a second, fixed unit after an already formatted value. CSV raw-byte
+contracts remain stable. Tests cover boundaries, rounding promotion, Spanish
+formatting, row totals/rates and unchanged binary memory.
+
+Validation: all 206 tests, three release checks and collector/launchd smoke pass;
+the Release build has zero warnings/errors. Unit assertions distinguish decimal
+I/O from unchanged binary memory at matching byte values and verify invalid
+readings, rounding and localized one-decimal output.

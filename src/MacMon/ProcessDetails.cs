@@ -15,7 +15,7 @@ public static class ProcessDetails
             $"Lifetime: {p.LifetimeDomain} · {p.CreationTicks}\n" +
             $"CPU: {Number(p.ObservedCpuPercent)}% of machine capacity (five-second average)\n" +
             $"Resident{(grouped ? " sum" : "")}: {p.WorkingSetBytes?.ToString(CultureInfo.InvariantCulture) ?? "—"} bytes\n" +
-            $"Disk I/O: {Number(p.IoBytesPerSecond)} B/s (five-second average; excludes network)\n" +
+            $"Disk I/O: {TableUnits.IoRate(p.IoBytesPerSecond)} (five-second average; excludes network)\n" +
             $"Threads: {p.ThreadCount?.ToString(CultureInfo.InvariantCulture) ?? "—"}\n" +
             (grouped ? $"Observed members: {string.Join(", ", p.MemberIds)}\nResident sums may count shared pages repeatedly.\n" : "") +
             $"Executable: {(p.ImagePath.Length == 0 ? "Unavailable" : p.ImagePath)}\n— means unavailable.";

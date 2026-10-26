@@ -22,7 +22,7 @@ public sealed partial class LaunchdView
     private void UpdateHeaders()
     {
         foreach (var (button, title) in new[] { (JobNameHeader, "Job / process"), (JobStateHeader, "Status"),
-            (JobCpuHeader, "CPU"), (JobMemoryHeader, "Memory"), (JobIoHeader, "Disk") })
+            (JobCpuHeader, "CPU"), (JobMemoryHeader, "Memory"), (JobIoHeader, "I/O") })
         {
             var selected = button.Tag?.ToString() == JobSort.SelectedIndex.ToString();
             button.Content = UiText.Get(title) + (selected ? _ascending ? " ↑" : " ↓" : "");

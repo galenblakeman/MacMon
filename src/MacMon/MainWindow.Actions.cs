@@ -81,7 +81,7 @@ public sealed partial class MainWindow
             { _operationStatus = $"Could not reveal executable: {ex.Message}"; }
         };
     }
-    private static string UsageDetails(UsageRow row) => $"{row.Name}\nCPU time: {row.Cpu}\nBusy share: {row.Share}\nDisk I/O: {row.DiskIo} MiB\n" +
+    private static string UsageDetails(UsageRow row) => $"{row.Name}\nCPU time: {row.Cpu}\nBusy share: {row.Share}\nI/O: {row.DiskIo}\n" +
         $"Seen (running): {row.Processes}\nLast active: {row.LastActive}\nExecutable: {row.Path}";
     private void UpdateUsageSelection()
     {

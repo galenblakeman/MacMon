@@ -98,7 +98,7 @@ public sealed partial class MainWindow
     {
         (Button Button, string Label)[] headers = [(ProcessNameHeader, "Process"), (ProcessPidHeader, Grouped ? "Members" : "PID"),
             (ProcessCpuHeader, "CPU"), (ResidentHeader, Grouped ? "Memory Σ" : "Memory"),
-            (ProcessThreadsHeader, "Threads"), (ProcessIoHeader, "Disk")];
+            (ProcessThreadsHeader, "Threads"), (ProcessIoHeader, "I/O")];
         if (ProcessSortBox.Items[5] is ComboBoxItem pidChoice) pidChoice.Content = Grouped ? "Member count" : "PID";
         foreach (var (button, label) in headers) Header(button, label, ProcessSortBox.SelectedIndex, _processAscending, "processes");
     }

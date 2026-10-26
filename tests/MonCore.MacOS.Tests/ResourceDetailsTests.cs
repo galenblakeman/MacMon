@@ -81,7 +81,7 @@ public sealed class ResourceDetailsTests
     {
         var partial = Sample() with { Resources = Sample().Resources with { ReceiveBytesPerSecond = 0, SendBytesPerSecond = null } };
         var model = Snapshot(ResourceMetric.Network, partial);
-        Assert.That(Row(model, "Receive"), Is.EqualTo("0.0 KiB/s"));
+        Assert.That(Row(model, "Receive"), Is.EqualTo("0.0 B/s"));
         Assert.That(Row(model, "Send"), Is.EqualTo("—"));
         Assert.That(Row(model, "Current"), Is.EqualTo("0.0 Kbps"));
         Assert.That(Row(model, "Peak · last 2 minutes"), Is.EqualTo("0.0 Kbps"));
@@ -94,7 +94,7 @@ public sealed class ResourceDetailsTests
     {
         var model = Snapshot(ResourceMetric.Storage);
         Assert.That(Row(model, "Current"), Is.EqualTo("—"));
-        Assert.That(Row(model, "Write"), Is.EqualTo("0.0 KiB/s"));
+        Assert.That(Row(model, "Write"), Is.EqualTo("0.0 B/s"));
         Assert.That(Row(model, "Capacity volume"), Is.EqualTo("/System/Volumes/Data"));
         Assert.That(Row(model, "Available capacity"), Is.EqualTo("30.0 GiB"));
         Assert.That(model.Definition, Does.Contain("separate filesystem reading"));
