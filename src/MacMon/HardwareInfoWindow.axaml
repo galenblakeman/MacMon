@@ -16,7 +16,7 @@
     </ScrollViewer>
     <Grid Grid.Row="2" RowDefinitions="Auto,Auto" RowSpacing="10">
       <TextBlock Text="{local:Loc &quot;Snapshot taken when opened or refreshed.&quot;}" Classes="label" />
-      <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8"><Button x:Name="RefreshInfo" Content="{local:Loc &quot;Refresh&quot;}" /><Button x:Name="CopyDetails" Content="{local:Loc &quot;Copy details&quot;}" /><Button x:Name="CancelAction" Content="{local:Loc &quot;Close&quot;}" IsCancel="True" /></StackPanel>
+      <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8"><Button x:Name="RefreshInfo" local:ButtonIcon.Kind="Live" Content="{local:Loc &quot;Refresh&quot;}" /><Button x:Name="CopyDetails" local:ButtonIcon.Kind="Copy" Content="{local:Loc &quot;Copy details&quot;}" /><Button x:Name="CancelAction" local:ButtonIcon.Kind="Cancel" Content="{local:Loc &quot;Close&quot;}" IsCancel="True" /></StackPanel>
     </Grid>
   </Grid>
 </Window>

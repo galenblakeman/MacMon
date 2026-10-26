@@ -1028,3 +1028,35 @@ ad-hoc signing, ZIP integrity and SHA-256 checks pass; captured native stderr
 is empty. MacMon is left open in full Processes view with Midnight/Neon retained.
 Artifact: `MacMon-0.13.1-osx-arm64-dev.zip`, SHA-256:
 `505699e5a2869f081efd85facc48e81abe0125bc031fecc8e0a6a5db0fc748a5`.
+
+
+## Matching WinMon button icons — 0.13.2/build 25
+
+`ButtonIcon` adapts all 20 vectors from WinMon's ButtonIcon catalog at
+`b5c60e43b5cdc06b89855c0010c40f35de69d896`, plus its three Settings navigation
+shapes. Source provenance and the retained MIT license are documented under
+`dependencies/winmon-ui`. Explicit attached icon kinds in XAML replace control-
+name guessing and the generic fallback icon. Shared 16px icon boxes, rounded
+caps/joins, 1.5px strokes and 6px caption gaps follow WinMon; row pins use its
+1.3px stroke and separate outline/filled vectors. The catalog caches geometries.
+
+Full/compact title actions now use Download, Compact/Expand and AlwaysOnTop.
+Capture combines the exact frame with the filled 3px center dot; Live uses Start.
+More uses an ellipsis; End process uses Cancel. Export's dialog uses Save.
+Refresh/default/reset use WinMon's circular Live arrow, and Properties/Copy/
+Folder/Save/Cancel use the shared shapes. Action-bar chevrons bind vector data to
+expanded state instead of rendering font glyphs. Settings navigation matches
+WinMon's slider, monitor, heartbeat and inverted-triangle icons.
+
+Auto, all time chips and Individual/Grouped retain text-only templates. Sort
+headers show their direction marker without an extra permanent two-way icon.
+Actual rendered-shell tests assert semantic mappings, geometry identity, rounded
+strokes, icon sizes, Capture's filled dot, text-only exclusions and changing
+chevrons. A pin regression verifies the filled/outline shapes on content changes.
+
+Validation: full `tools/verify.sh --smoke`, release-workflow tests, packaged
+collector/launchd smoke, native full/compact/dialog/settings visual checks,
+strict signing, ZIP integrity and checksum checks pass. The app is left open in
+full Processes view with saved appearance preserved; native stderr is empty.
+Artifact: `MacMon-0.13.2-osx-arm64-dev.zip`, SHA-256:
+`363ef200ec239bdef1fb7b91830dd475629d8e8cbacfc001e7a556ad3c5c0338`.

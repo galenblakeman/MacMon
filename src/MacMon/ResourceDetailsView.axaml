@@ -22,6 +22,6 @@
         <TextBlock Text="{local:Loc &quot;— means unavailable. Readings stay live while the chart is in Capture mode.&quot;}" Classes="label" FontSize="11" TextWrapping="Wrap" />
       </StackPanel>
     </ScrollViewer>
-    <Button Grid.Row="2" x:Name="CloseDetails" Content="{local:Loc &quot;Close&quot;}" HorizontalAlignment="Right" />
+    <Button Grid.Row="2" x:Name="CloseDetails" local:ButtonIcon.Kind="Cancel" Content="{local:Loc &quot;Close&quot;}" HorizontalAlignment="Right" />
   </Grid>
 </UserControl>

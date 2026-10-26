@@ -13,6 +13,65 @@ namespace MonCore.MacOS.Tests;
 public sealed class ButtonLayoutTests
 {
     [AvaloniaTest]
+    public void ActualShellUsesWinMonMappingsAndKeepsExcludedControlsTextOnly()
+    {
+        var main = new MainWindow();
+        main.FindControl<Grid>("MainLayout")!.IsVisible = true;
+        main.FindControl<CompactView>("CompactPanel")!.IsVisible = false;
+        main.FindControl<WrapPanel>("ProcessActionsPanel")!.IsVisible = true;
+        var shell = main.Content; main.Content = null;
+        var window = new Window { Width = 1000, Height = 900, Content = shell };
+        try
+        {
+            window.Show(); Dispatcher.UIThread.RunJobs();
+            foreach (var (name, kind) in new[] { ("OpenExport", "Download"), ("AlwaysOnTop", "AlwaysOnTop"),
+                ("EnterCompactView", "Compact"), ("LiveMode", "Start"), ("CaptureMode", "CaptureFrame"),
+                ("MoreProcessActions", "More"), ("EndProcess", "Cancel") })
+            {
+                var button = main.FindControl<Button>(name)!;
+                var icon = button.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().Single(p => p.Data is not null);
+                Assert.That(icon.Data, Is.SameAs(ButtonIcon.GeometryFor(kind)), name);
+                Assert.That(icon.Width, Is.EqualTo(16), name);
+                Assert.That(icon.StrokeLineCap, Is.EqualTo(Avalonia.Media.PenLineCap.Round));
+                Assert.That(icon.StrokeJoin, Is.EqualTo(Avalonia.Media.PenLineJoin.Round));
+            }
+            var capture = main.FindControl<Button>("CaptureMode")!;
+            var dot = capture.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>().Single();
+            Assert.That(dot.Width, Is.EqualTo(3)); Assert.That(dot.Fill, Is.Not.Null);
+            foreach (var name in new[] { "AutomaticCaptures", "Range2", "Range10", "Range30", "Range60", "IndividualProcesses", "GroupProcesses", "ProcessCpuHeader" })
+                Assert.That(main.FindControl<Button>(name)!.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().Any(), Is.False, name);
+            var collapse = main.FindControl<ToggleButton>("ShowProcessActions")!;
+            collapse.IsChecked = false; Dispatcher.UIThread.RunJobs();
+            Assert.That(ButtonIcon.GetData(collapse), Is.SameAs(ButtonIcon.GeometryFor("ChevronUp")));
+            collapse.IsChecked = true; Dispatcher.UIThread.RunJobs();
+            Assert.That(ButtonIcon.GetData(collapse), Is.SameAs(ButtonIcon.GeometryFor("ChevronDown")));
+            var export = new ExportDialog();
+            Assert.That(ButtonIcon.GetKind(export.FindControl<Button>("ExportCsv")!), Is.EqualTo("Save"));
+            export.Close();
+        }
+        finally { window.Close(); }
+    }
+
+    [AvaloniaTest]
+    public void RowPinsUseWinMonOutlineAndFilledShapesWhenContentChanges()
+    {
+        var pin = new Button { Content = "★", Classes = { "rowPin" } };
+        var window = new Window { Content = pin, Width = 200, Height = 100 };
+        try
+        {
+            window.Show(); Dispatcher.UIThread.RunJobs();
+            var filled = pin.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().Single();
+            Assert.That(filled.Data, Is.SameAs(ButtonIcon.GeometryFor("PinFilled")));
+            Assert.That(filled.Fill, Is.Not.Null);
+            pin.Content = "☆"; Dispatcher.UIThread.RunJobs();
+            var outline = pin.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().Single();
+            Assert.That(outline.Data, Is.SameAs(ButtonIcon.GeometryFor("Pin")));
+            Assert.That(outline.Fill, Is.Null);
+        }
+        finally { window.Close(); }
+    }
+
+    [AvaloniaTest]
     public void IconsAndCaptionsStayCenteredAcrossActionsChipsAndLanguageChanges()
     {
         var save = new Button { Name = "SaveSettings", Height = 44, [!Button.ContentProperty] = UiText.Bind("Save") };
@@ -22,6 +81,7 @@ public sealed class ButtonLayoutTests
         var disabled = new Button { Name = "CopyDetails", Content = "Copy details", IsEnabled = false, Height = 40 };
         var title = new Button { Name = "OpenInfo", Height = 38,
             Content = new TitleButtonContentExtension("Info", "Info").ProvideValue(null!) };
+        ButtonIcon.SetKind(save, "Save"); ButtonIcon.SetKind(toggle, "More"); ButtonIcon.SetKind(disabled, "Copy");
         var window = new Window { Width = 500, Height = 300,
             Content = new StackPanel { Children = { save, chip, group, toggle, disabled, title } } };
         try

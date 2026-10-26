@@ -60,7 +60,7 @@ public sealed partial class MainWindow : Window
         OpenExport.Click += async (_, _) => await ShowExportDialog();
         PinSelection.Click += (_, _) => MoreProcessActions.Flyout?.Hide();
         RevealExecutable.Click += (_, _) => MoreProcessActions.Flyout?.Hide();
-        ShowUsageActions.IsCheckedChanged += (_, _) => ShowUsageActions.Content = ShowUsageActions.IsChecked == true ? "⌄" : "⌃";
+        ShowUsageActions.IsCheckedChanged += (_, _) => ButtonIcon.SetKind(ShowUsageActions, ShowUsageActions.IsChecked == true ? "ChevronDown" : "ChevronUp");
         MacDesktopIntegration.Activated += ShowFromShortcut;
         _session = new MonitorSession(() => _source,
             () => new SamplingOptions(Retain: _retain),
@@ -289,7 +289,7 @@ public sealed partial class MainWindow : Window
         ToolTip.SetTip(ProcessSelectionName, selected?.Usage.Name);
         SelectionIcon.IsVisible = selected is not null;
         SelectionIcon.Source = selected is null ? null : ApplicationIcons.For(selected.Usage.ImagePath);
-        ShowProcessActions.Content = ShowProcessActions.IsChecked == true ? "⌄" : "⌃";
+        ButtonIcon.SetKind(ShowProcessActions, ShowProcessActions.IsChecked == true ? "ChevronDown" : "ChevronUp");
         RevealExecutable.IsEnabled = selected is not null && selected.Usage.ImagePath.Length > 0;
         EndProcess.Content = Grouped ? "End group…" : "End process…";
         EndProcess.IsEnabled = !_processActionPending && !_inspection.IsHistorical && selected?.State == PinnedProcessState.Present &&

@@ -5,9 +5,9 @@
     <TextBox x:Name="Details" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
              AutomationProperties.Name="{local:Loc &quot;Process details&quot;}" FontFamily="Menlo" FontSize="13" />
     <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12">
-      <Button x:Name="CopyDetails" Content="{local:Loc &quot;Copy details&quot;}" />
-      <Button x:Name="CancelAction" Content="{local:Loc &quot;Close&quot;}" />
-      <Button x:Name="ConfirmAction" Content="{local:Loc &quot;Request termination&quot;}" IsVisible="False" />
+      <Button x:Name="CopyDetails" local:ButtonIcon.Kind="Copy" Content="{local:Loc &quot;Copy details&quot;}" />
+      <Button x:Name="CancelAction" local:ButtonIcon.Kind="Cancel" Content="{local:Loc &quot;Close&quot;}" />
+      <Button x:Name="ConfirmAction" local:ButtonIcon.Kind="Cancel" Content="{local:Loc &quot;Request termination&quot;}" IsVisible="False" />
     </StackPanel>
   </Grid>
 </Window>

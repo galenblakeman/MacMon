@@ -6,7 +6,7 @@
     <Grid Grid.Row="1" ColumnDefinitions="175,*" ColumnSpacing="24">
       <ListBox x:Name="Sections" SelectedIndex="0" AutomationProperties.Name="{local:Loc &quot;Settings section&quot;}" Background="Transparent" BorderThickness="0">
         <ListBoxItem Content="{local:TitleButtonContent Settings, General}" AutomationProperties.Name="{local:Loc &quot;General&quot;}" /><ListBoxItem Content="{local:TitleButtonContent Appearance, Appearance}" AutomationProperties.Name="{local:Loc &quot;Appearance&quot;}" />
-        <ListBoxItem Content="{local:TitleButtonContent Monitoring, Monitoring}" AutomationProperties.Name="{local:Loc &quot;Monitoring&quot;}" /><ListBoxItem Content="{local:TitleButtonContent Capture, 'Automatic captures'}" AutomationProperties.Name="{local:Loc &quot;Automatic captures&quot;}" />
+        <ListBoxItem Content="{local:TitleButtonContent Monitoring, Monitoring}" AutomationProperties.Name="{local:Loc &quot;Monitoring&quot;}" /><ListBoxItem Content="{local:TitleButtonContent AutomaticCapture, 'Automatic captures'}" AutomationProperties.Name="{local:Loc &quot;Automatic captures&quot;}" />
       </ListBox>
       <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <Grid Margin="0,0,8,0">
@@ -15,10 +15,10 @@
             <Grid ColumnDefinitions="150,*" ColumnSpacing="12"><TextBlock Text="{local:Loc &quot;Language&quot;}" Classes="label" VerticalAlignment="Center" /><ComboBox Grid.Column="1" x:Name="LanguageChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Language&quot;}" /></Grid>
             <TextBlock Text="{local:Loc &quot;Startup&quot;}" FontWeight="SemiBold" />
             <CheckBox x:Name="OpenAtLogin" Content="{local:Loc &quot;Open at login&quot;}" />
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBlock x:Name="StartupStatus" Classes="label" TextWrapping="Wrap" /><Button Grid.Column="1" x:Name="LoginItems" Content="{local:Loc &quot;Login Items…&quot;}" /></Grid>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBlock x:Name="StartupStatus" Classes="label" TextWrapping="Wrap" /><Button Grid.Column="1" x:Name="LoginItems" local:ButtonIcon.Kind="Settings" Content="{local:Loc &quot;Login Items…&quot;}" /></Grid>
             <Grid ColumnDefinitions="150,*" ColumnSpacing="12"><TextBlock Text="{local:Loc &quot;Startup view&quot;}" Classes="label" VerticalAlignment="Center" /><ComboBox Grid.Column="1" x:Name="StartupViewChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Startup view&quot;}" /></Grid>
             <Grid ColumnDefinitions="150,*" ColumnSpacing="12"><TextBlock Text="{local:Loc &quot;Keyboard shortcut&quot;}" Classes="label" VerticalAlignment="Center" />
-            <Grid Grid.Column="1" ColumnDefinitions="*,Auto" ColumnSpacing="8"><ComboBox x:Name="ShortcutChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Show MacMon&quot;}" /><Button Grid.Column="1" x:Name="DefaultShortcut" Content="{local:Loc &quot;Default&quot;}" /></Grid></Grid>
+            <Grid Grid.Column="1" ColumnDefinitions="*,Auto" ColumnSpacing="8"><ComboBox x:Name="ShortcutChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Show MacMon&quot;}" /><Button Grid.Column="1" x:Name="DefaultShortcut" local:ButtonIcon.Kind="Live" Content="{local:Loc &quot;Default&quot;}" /></Grid></Grid>
             <TextBlock Classes="label" TextWrapping="Wrap" Text="{local:Loc &quot;Show MacMon from another app. ⌘, opens Settings; ⌘⇧M switches compact view.&quot;}" />
             <CheckBox x:Name="TopmostSetting" Content="{local:Loc &quot;Always on top&quot;}" />
 
@@ -29,7 +29,7 @@
             <Grid ColumnDefinitions="150,*" ColumnSpacing="12"><TextBlock Text="{local:Loc &quot;Chart palette&quot;}" Classes="label" VerticalAlignment="Top" Margin="0,5,0,0" />
             <Grid Grid.Column="1" RowDefinitions="Auto,Auto" RowSpacing="6">
               <ComboBox x:Name="PaletteChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Chart palette&quot;}" />
-              <Button Grid.Row="1" HorizontalAlignment="Left" x:Name="DefaultPalette" Content="{local:Loc &quot;Use theme palette&quot;}" />
+              <Button Grid.Row="1" HorizontalAlignment="Left" x:Name="DefaultPalette" local:ButtonIcon.Kind="Live" Content="{local:Loc &quot;Use theme palette&quot;}" />
             </Grid></Grid>
             <Grid ColumnDefinitions="150,*" ColumnSpacing="12"><TextBlock Text="{local:Loc &quot;Resource gauges&quot;}" Classes="label" VerticalAlignment="Center" /><ComboBox Grid.Column="1" x:Name="GaugeChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Resource gauge style&quot;}" /></Grid>
             <ThemeVariantScope x:Name="PreviewScope">
@@ -79,8 +79,8 @@
     </Grid>
     <TextBlock Grid.Row="2" x:Name="SettingsStatus" Classes="label" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
     <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12">
-      <Button x:Name="CancelSettings" Content="{local:Loc &quot;Cancel&quot;}" IsCancel="True" />
-      <Button x:Name="SaveSettings" Content="{local:Loc &quot;Save&quot;}" />
+      <Button x:Name="CancelSettings" local:ButtonIcon.Kind="Cancel" Content="{local:Loc &quot;Cancel&quot;}" IsCancel="True" />
+      <Button x:Name="SaveSettings" local:ButtonIcon.Kind="Save" Content="{local:Loc &quot;Save&quot;}" />
     </StackPanel>
   </Grid>
 </Window>

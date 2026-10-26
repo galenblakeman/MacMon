@@ -44,3 +44,13 @@ SHA-256 values: `0a34ef7a34eb56836c5c1d513204538b06210febd27e956a00e02afafe101a6
 and `0fa78cf87cdd97b5ca4350ad053f753b78911c349cdded585e9c36686cf628b5`,
 respectively. macOS disks retain throughput labels because active-time utilization
 is unavailable; network scale rounding uses MacMon's visible download readings.
+
+
+MacMon 0.13.2 adapts the exact button vectors from WinMon
+`b5c60e43b5cdc06b89855c0010c40f35de69d896` (`Controls/ButtonIcon.cs`,
+verified against the pushed main branch through GitHub). The clean sibling copy
+contains the same 20 vector definitions. Source SHA-256: `a178b36d36c6ac18f7a52badbe720001b3b3d8d298a5bd155bab4ad39a7733d6`.
+Settings navigation shapes additionally use `Preferences/SettingsWindow.cs`
+from that revision. Avalonia adaptation: `src/MacMon/ButtonIcon.cs`. Capture
+combines the shared frame with WinMon's filled 3px center dot. The existing MIT
+license is retained and packaged.

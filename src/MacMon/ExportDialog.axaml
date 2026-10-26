@@ -14,8 +14,8 @@
     </StackPanel>
     <TextBlock x:Name="DataNote" Classes="label" TextWrapping="Wrap" />
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-      <Button x:Name="CancelAction" Content="{local:Loc &quot;Cancel&quot;}" IsCancel="True" />
-      <Button x:Name="ExportCsv" Content="{local:Loc &quot;Export…&quot;}" />
+      <Button x:Name="CancelAction" local:ButtonIcon.Kind="Cancel" Content="{local:Loc &quot;Cancel&quot;}" IsCancel="True" />
+      <Button x:Name="ExportCsv" local:ButtonIcon.Kind="Save" Content="{local:Loc &quot;Export…&quot;}" />
     </StackPanel>
   </StackPanel>
 </Window>

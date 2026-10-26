@@ -37,7 +37,7 @@ public sealed partial class LaunchdView : UserControl
             else if (Inventory.IsStale) Rebuild();
         };
         _heartbeat.Start();
-        ShowJobActions.IsCheckedChanged += (_, _) => ShowJobActions.Content = ShowJobActions.IsChecked == true ? "⌄" : "⌃";
+        ShowJobActions.IsCheckedChanged += (_, _) => ButtonIcon.SetKind(ShowJobActions, ShowJobActions.IsChecked == true ? "ChevronDown" : "ChevronUp");
         RefreshJobs.Click += async (_, _) => await Refresh();
         JobSearch.TextChanged += (_, _) => Rebuild();
         JobFilter.SelectionChanged += (_, _) => Rebuild();
