@@ -317,5 +317,8 @@
   "Sapphire": "Zafiro",
   "Processes: {0} · Threads: {1}": "Procesos: {0} · Hilos: {1}",
   "Show or hide actions": "Mostrar u ocultar acciones",
-  "More…": "Más…"
+  "More…": "Más…",
+  "Auto {0}": "Auto {0}",
+  "Automatic captures enabled · Captures in history: {0}": "Capturas automáticas activadas · Capturas en el historial: {0}",
+  "Automatic captures disabled · Captures in history: {0}": "Capturas automáticas desactivadas · Capturas en el historial: {0}"
 }

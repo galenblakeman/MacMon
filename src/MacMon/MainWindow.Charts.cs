@@ -68,6 +68,7 @@ public sealed partial class MainWindow
     private void ApplyChartChoices(bool choseLayout)
     {
         if (_restoringCharts || ChartModeBox.SelectedItem is not ChartChoice choice) return;
+        ToolTip.SetTip(ChartModeBox, choice.ToString());
         if (choseLayout && choice.Mode == ResourceChartMode.Focus)
         {
             _restoringCharts = true;

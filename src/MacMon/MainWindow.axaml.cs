@@ -399,6 +399,7 @@ public sealed partial class MainWindow : Window
         _refreshingCaptures = false;
         OpenCaptureReport.IsEnabled = CapturesList.SelectedItem is MacCaptureRecord { State: "Saved" };
         Chart.Captures = _captures.ToArray();
+        CaptureToolbar.Update(AutomaticCaptures, _captureOptions.Enabled, _captures.Count);
     }
 
     private void SelectCapture(MacCaptureRecord record)
@@ -539,6 +540,7 @@ public sealed partial class MainWindow : Window
             }
         }
         UiText.Apply(snapshot.Language);
+        CaptureToolbar.Update(AutomaticCaptures, _captureOptions.Enabled, _captures.Count);
         (Application.Current as App)?.ApplyAppearance(snapshot.Theme, snapshot.Palette, snapshot.GaugeStyle);
         _operationStatus = UiText.Get(MacDesktopIntegration.LoginStatus == 2 ? "Settings saved · approve Open at login in Login Items." : "Settings saved");
         Update();
@@ -575,6 +577,7 @@ public sealed partial class MainWindow : Window
         _session.History.Resize(RangeSeconds);
         _source.NetworkInterfaceId = _preferences.NetworkId;
         _captureOptions = _preferences.Captures;
+        CaptureToolbar.Update(AutomaticCaptures, _captureOptions.Enabled, _captures.Count);
         _captureRules = new(_captureOptions.Rules, TimeSpan.FromSeconds(_captureOptions.CooldownSeconds), Environment.ProcessorCount);
         UpdateRetention();
         _viewState = new(_preferences with { Width = Width, Height = Height, CompactMode = _preferences.StartupView switch { "Full" => false, "Compact" => true, _ => _preferences.CompactMode } });

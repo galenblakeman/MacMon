@@ -1182,3 +1182,20 @@ MacMon is open on Jobs with its action bar collapsed for review. Saved appearanc
 and the process-bar preference are preserved.
 Artifact: `MacMon-0.13.7-osx-arm64-dev.zip`, SHA-256:
 `1c3f1b9b110e382e66621cee700e6ef5f99fd76f747237c32838c324b5f5859d`.
+
+
+## Parity slice 1: chart toolbar — 0.13.8/build 31
+
+Auto sits 6px after the 120px chart selector. Live/Capture stay centered and range
+chips remain right-aligned. Auto remains text-only and always accessible as the
+capture-settings entry point. Its caption includes the available capture count;
+its tooltip and accessible name include enabled/disabled status and the count.
+Status refreshes after loading reports, adding captures, report writes, settings
+and language changes. The chart selector tooltip retains its full choice label.
+English/Spanish rendered tests cover counts 0, 2 and 200 at 800/1000px, enabled
+and disabled, alongside the actual flyout input regression.
+
+Validation: all 192 Mac tests, three release-workflow tests and collector/launchd
+smoke checks pass with no build warnings/errors. The packaged native app shows
+Auto 1 beside the selector and exposes enabled status/count through accessibility.
+Strict signing and ZIP integrity pass; native stderr is empty.
