@@ -73,13 +73,13 @@ public static class Appearance
 
 /// <summary>Only fields edited in Settings are merged; live view, window and pin state stay current.</summary>
 public sealed record SettingsValues(string Theme, string Palette, bool AlwaysOnTop, bool KeepHistory,
-    int HistoryRange, string? NetworkId, MacCaptureOptions Captures)
+    int HistoryRange, string? NetworkId, MacCaptureOptions Captures, string GaugeStyle = "Bowl")
 {
     public static SettingsValues From(MacPreferences preferences) => new(preferences.Theme, preferences.Palette,
-        preferences.AlwaysOnTop, preferences.KeepHistory, preferences.HistoryRange, preferences.NetworkId, preferences.Captures);
+        preferences.AlwaysOnTop, preferences.KeepHistory, preferences.HistoryRange, preferences.NetworkId, preferences.Captures, preferences.GaugeStyle);
     public MacPreferences ApplyTo(MacPreferences current, string? bootId) => (current with
     {
-        Theme = Theme, Palette = Palette, AlwaysOnTop = AlwaysOnTop, KeepHistory = KeepHistory,
+        Theme = Theme, Palette = Palette, GaugeStyle = GaugeStyle, AlwaysOnTop = AlwaysOnTop, KeepHistory = KeepHistory,
         HistoryRange = HistoryRange, NetworkId = NetworkId, Captures = Captures
     }).Normalized(bootId);
 }

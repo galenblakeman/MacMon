@@ -2,6 +2,8 @@
 
 macOS resource monitor built with C# and Avalonia, using WinMon's portable MonCore library.
 
+Resource cards use MicroGauge for CPU, memory, network and storage, with Bowl, Needle, Bar or None in Settings → Appearance. Contrasting markers show live two-minute peaks; activity scales are labeled in bytes/second. [Dependency details](dependencies/microgauge/README.md).
+
 MacMon provides live system CPU usage, a two-minute CPU/memory chart, estimated physical-memory usage, live memory pressure and available space on the data volume. The process list shows CPU averaged over five seconds, resident memory and thread counts. Switch between individual processes and executable groups, pin rows, filter to pins, and follow 30-second trends for the selected CPU/memory/thread metric. Grouped memory shows a resident sum that can count shared pages more than once. Search by name or PID, sort by CPU/memory/threads/disk I/O, and select a row to inspect its start time and executable path. Individual selection and pins follow a process lifetime, so a reused PID cannot inherit them. Group pins follow the exact executable path; pins and view preferences are saved on clean exit. Individual pins restore only within the same boot; group pins can follow later instances.
 
 Network throughput follows the chosen interface (Automatic prefers an active Ethernet/Wi-Fi interface). Storage read/write rates aggregate all readable block-storage drivers, separately from the data volume’s free space. A second history plot shows network and storage total throughput on an automatic bytes-per-second scale. Process Disk I/O measures disk reads/writes only.
@@ -24,6 +26,7 @@ Requires macOS, Python 3 for local-package normalization, and the .NET 10 SDK (v
 
 ```sh
 bash tools/bootstrap-moncore.sh
+bash tools/bootstrap-microgauge.sh
 bash tools/verify.sh --smoke
 dotnet run --project src/MacMon -c Release --no-build
 ```

@@ -70,6 +70,8 @@ public sealed partial class MainWindow : Window
             if (error is not null) _operationStatus = $"Capture report failed: {error}";
             RefreshCaptures();
         }));
+        _session.LiveSampleRecorded += _gaugeHistory.Observe;
+        ResourceCards.SizeChanged += (_, _) => ResourceCards.Columns = ResourceCards.Bounds.Width < 840 ? 2 : 4;
         _session.LiveSampleRecorded += ObserveCaptures;
         _session.LiveSampleRecorded += JobsView.ObserveLiveSample;
         OpenSettings.Click += async (_, _) => await ShowSettings();
@@ -151,16 +153,17 @@ public sealed partial class MainWindow : Window
         Closing += OnClosing;
     }
 
+    private readonly ResourceGaugeHistory _gaugeHistory = new();
+
     private void Update()
     {
         if (_session is null || !IsVisible || WindowState == WindowState.Minimized) return;
         var sample = _session.Latest;
         if (sample is null)
         {
-            CpuValue.Text = MemoryValue.Text = DiskValue.Text = "—";
-            KernelValue.Text = "Waiting for a fresh CPU interval…";
+            ClearGauges();
+            DiskValue.Text = "—";
             DiskTotal.Text = "Capacity unavailable";
-            MemoryDetails.Text = "Memory readings unavailable";
             StatusLabel.Text = "Readings unavailable · retrying…";
             _refreshingRows = true;
             ProcessList.ItemsSource = Array.Empty<ProcessRow>();
@@ -171,12 +174,11 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        CpuValue.Text = sample.TotalCpuPercent is { } cpu ? $"{cpu:F1}%" : "—";
-        KernelValue.Text = sample.Resources.CpuKernelPercent is { } kernel
-            ? $"{kernel:F1}% system CPU" : "Waiting for a fresh CPU interval…";
-        MemoryValue.Text = sample.Resources.MemoryPercent is { } percent ? $"{percent:F1}%" : "—";
-        MemoryDetails.Text = sample.Resources.TotalMemoryBytes is null ? "Memory readings unavailable" : $"{GiB(sample.Resources.UsedMemoryBytes)} used / {GiB(sample.Resources.TotalMemoryBytes)} installed\n" +
-            $"Pressure: {_source.Memory.Pressure} · compressed {GiB(_source.Memory.CompressedBytes)}";
+        var readings = _gaugeHistory.Readings;
+        CpuGauge.Update(readings[0], sample.Resources.CpuKernelPercent is { } kernel ? $"Machine capacity · {kernel:F1}% system" : "Machine capacity · baseline pending");
+        MemoryGauge.Update(readings[1], $"{GiB(sample.Resources.UsedMemoryBytes)} / {GiB(sample.Resources.TotalMemoryBytes)} physical\nPressure: {_source.Memory.Pressure} · compressed {GiB(_source.Memory.CompressedBytes)}");
+        NetworkGauge.Update(readings[2], $"{sample.Resources.NetworkName} · receive + send\n↓ {Rate(sample.Resources.ReceiveBytesPerSecond)} · ↑ {Rate(sample.Resources.SendBytesPerSecond)}");
+        StorageGauge.Update(readings[3], $"All block drivers · read + write\nR {Rate(sample.Resources.SecondaryDiskReadBytesPerSecond)} · W {Rate(sample.Resources.SecondaryDiskWriteBytesPerSecond)}");
         DiskValue.Text = GiB(sample.Resources.DiskFreeBytes);
         DiskTotal.Text = $"of {GiB(sample.Resources.DiskTotalBytes)}";
         UpdateActivity(sample);
@@ -197,20 +199,21 @@ public sealed partial class MainWindow : Window
             : "Some readings are unavailable · retrying…";
         if (!_session.HasLiveSample)
         {
-            CpuValue.Text = MemoryValue.Text = DiskValue.Text = "—";
-            KernelValue.Text = "Waiting for a live CPU interval…";
-            MemoryDetails.Text = "Waiting for live memory readings…";
-            NetworkValue.Text = StorageValue.Text = "Waiting for live activity readings…";
+            ClearGauges();
+            DiskValue.Text = "—";
             StatusLabel.Text = "Restored history · waiting for live readings…";
         }
         if (_operationStatus.Length > 0) StatusLabel.Text += $" · {_operationStatus}";
     }
 
+    private void ClearGauges()
+    {
+        foreach (var gauge in new[] { CpuGauge, MemoryGauge, NetworkGauge, StorageGauge })
+            gauge.Update(GaugeReading.Empty, "Waiting for live readings…");
+    }
+
     private void UpdateActivity(MonitorSample sample)
     {
-        var resource = sample.Resources;
-        NetworkValue.Text = $"{resource.NetworkName} · ↓ {Rate(resource.ReceiveBytesPerSecond)} · ↑ {Rate(resource.SendBytesPerSecond)}";
-        StorageValue.Text = $"Read {Rate(resource.SecondaryDiskReadBytesPerSecond)} · write {Rate(resource.SecondaryDiskWriteBytesPerSecond)}";
         var interfaces = _source.NetworkInterfaces;
         var key = string.Join("\n", interfaces.Select(adapter => adapter.Id + adapter.Name));
         if (_networkChoicesKey == key) return;
@@ -493,7 +496,7 @@ public sealed partial class MainWindow : Window
             _captureOptions = snapshot.Captures;
             _captureRules = new(_captureOptions.Rules, TimeSpan.FromSeconds(_captureOptions.CooldownSeconds), Environment.ProcessorCount);
         }
-        (Application.Current as App)?.ApplyAppearance(snapshot.Theme, snapshot.Palette);
+        (Application.Current as App)?.ApplyAppearance(snapshot.Theme, snapshot.Palette, snapshot.GaugeStyle);
         _operationStatus = "Settings saved";
         Update();
         return null;
@@ -503,7 +506,7 @@ public sealed partial class MainWindow : Window
     {
         var loaded = MacPreferenceStore.Load(_preferencesPath, _bootId);
         _preferences = loaded.Preferences; _preferencesWritable = loaded.CanSave;
-        (Application.Current as App)?.ApplyAppearance(_preferences.Theme, _preferences.Palette);
+        (Application.Current as App)?.ApplyAppearance(_preferences.Theme, _preferences.Palette, _preferences.GaugeStyle);
         if (loaded.Error is not null) _operationStatus = loaded.Error;
         Width = _preferences.Width; Height = _preferences.Height;
         if (Screens.Primary is { } screen)
@@ -586,6 +589,7 @@ public sealed partial class MainWindow : Window
         IsEnabled = false;
         _session.Close();
         _session.Recorded -= Update;
+        _session.LiveSampleRecorded -= _gaugeHistory.Observe;
         _session.LiveSampleRecorded -= ObserveCaptures;
         _session.LiveSampleRecorded -= JobsView.ObserveLiveSample;
         await JobsView.Stop();

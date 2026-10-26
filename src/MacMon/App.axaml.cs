@@ -14,9 +14,10 @@ public sealed partial class App : Application
         ActualThemeVariantChanged += (_, _) => RefreshPalette();
         ApplyAppearance("Dark", "Classic");
     }
-    public void ApplyAppearance(string theme, string palette)
+    public void ApplyAppearance(string theme, string palette, string gaugeStyle = "Bowl")
     {
         _palette = Appearance.NormalizePalette(palette);
+        Resources["ResourceGaugeStyle"] = ResourceGauge.NormalizeStyle(gaugeStyle);
         RequestedThemeVariant = Appearance.Variant(theme);
         RefreshPalette();
     }

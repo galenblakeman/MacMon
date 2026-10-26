@@ -40,6 +40,12 @@
       <Setter Property="CornerRadius" Value="12" />
       <Setter Property="Padding" Value="20" />
     </Style>
+    <Style Selector="local|ResourceGauge">
+      <Setter Property="Foreground" Value="{DynamicResource MacTextBrush}" />
+      <Setter Property="GaugeStyle" Value="{DynamicResource ResourceGaugeStyle}" />
+      <Setter Property="Track" Value="{DynamicResource MacGridBrush}" />
+      <Setter Property="Marker" Value="{DynamicResource MacMarkerBrush}" />
+    </Style>
     <Style Selector="local|CpuChart">
       <Setter Property="CpuBrush" Value="{DynamicResource CpuStroke}" />
       <Setter Property="MemoryBrush" Value="{DynamicResource MemoryStroke}" />

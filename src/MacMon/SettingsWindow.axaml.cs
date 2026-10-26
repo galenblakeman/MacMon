@@ -25,12 +25,14 @@ public sealed partial class SettingsWindow : Window
         RangeChoice.SelectedIndex = preferences.HistoryRange;
         ThemeChoice.ItemsSource = Appearance.Themes; ThemeChoice.SelectedItem = preferences.Theme;
         PaletteChoice.ItemsSource = Appearance.Palettes; PaletteChoice.SelectedItem = preferences.Palette;
+        GaugeChoice.ItemsSource = ResourceGauge.GaugeStyles; GaugeChoice.SelectedItem = preferences.GaugeStyle;
         NetworkChoice.ItemsSource = networks;
         NetworkChoice.SelectedItem = networks.FirstOrDefault(network => network.Id == (preferences.NetworkId ?? ""));
         CaptureEditor.Load(preferences.Captures);
         Sections.SelectionChanged += (_, _) => ShowSection();
         ThemeChoice.SelectionChanged += (_, _) => UpdatePreview();
         PaletteChoice.SelectionChanged += (_, _) => UpdatePreview();
+        GaugeChoice.SelectionChanged += (_, _) => UpdatePreview();
         ActualThemeVariantChanged += (_, _) => UpdatePreview();
         if (this.GetPlatformSettings() is { } platform)
         {
@@ -53,6 +55,10 @@ public sealed partial class SettingsWindow : Window
                 ReceiveBytesPerSecond = 4.2 * 1048576 - 100000 + Math.Sin((index - 24) * 0.4) * 1000000, SendBytesPerSecond = 100000,
                 SecondaryDiskReadBytesPerSecond = 18 * 1048576 - 1000000 + (index % 7 - 3) * 3000000, SecondaryDiskWriteBytesPerSecond = 1000000 }
         }).ToArray();
+        PreviewCpu.Update(new(24, 67, 100, "24.0%", "0–100%"), "Machine capacity");
+        PreviewMemory.Update(new(62, 72, 100, "62.0%", "0–100%"), "Physical usage");
+        PreviewNetwork.Update(new(4.2 * 1048576, 8 * 1048576, 16 * 1048576, "4.2 MiB/s", "0–16 MiB/s"), "Receive + send");
+        PreviewStorage.Update(new(18 * 1048576, 32 * 1048576, 64 * 1048576, "18 MiB/s", "0–64 MiB/s"), "Read + write");
         PreviewChart.RangeSeconds = PreviewActivity.RangeSeconds = 24;
         PreviewChart.Update(samples); PreviewActivity.Update(samples);
         UpdatePreview();
@@ -74,6 +80,7 @@ public sealed partial class SettingsWindow : Window
         var dark = variant == ThemeVariant.Dark;
         var palette = PaletteChoice.SelectedItem as string ?? "Classic";
         Appearance.SetPaletteResources(PreviewScope.Resources, palette, dark);
+        PreviewScope.Resources["ResourceGaugeStyle"] = GaugeChoice.SelectedItem as string ?? "Bowl";
         PaletteDescription.Text = palette switch
         {
             "Ocean" => "Cool blues, violet and sea green.",
@@ -93,7 +100,7 @@ public sealed partial class SettingsWindow : Window
             var values = new SettingsValues(ThemeChoice.SelectedItem as string ?? "Dark",
                 PaletteChoice.SelectedItem as string ?? "Classic", TopmostSetting.IsChecked == true,
                 KeepHistorySetting.IsChecked == true, RangeChoice.SelectedIndex,
-                (NetworkChoice.SelectedItem as MacNetworkChoice)?.Id, CaptureEditor.Value);
+                (NetworkChoice.SelectedItem as MacNetworkChoice)?.Id, CaptureEditor.Value, GaugeChoice.SelectedItem as string ?? "Bowl");
             var error = await _save(values);
             if (error is not null) { SettingsStatus.Text = error; return; }
             _saving = false;

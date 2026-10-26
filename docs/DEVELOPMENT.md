@@ -8,6 +8,7 @@ MacMon consumes **MonCore 3.4.1-macos.1**, built from WinMon commit `395a1a29ec8
 
 ```sh
 bash tools/bootstrap-moncore.sh
+bash tools/bootstrap-microgauge.sh
 bash tools/verify.sh --smoke
 bash tools/package-app.sh
 open artifacts/osx-arm64/MacMon.app
@@ -190,3 +191,43 @@ MACMON_RENDER_OUTPUT="$PWD/artifacts/appearance-preview" bash tools/verify.sh --
 On October 26, 2026, the suite passed 100 Mac tests and three release-workflow tests, zero warnings, with resource and launchd native smoke. Generated light/dark appearance and capture-section layouts were visually inspected. Native automatic macOS theme switching and display-scaling checks remain separate from headless rendering.
 
 Native packaged checks also confirmed Command-comma entry, local Light/Ocean preview, Save applying the theme/palette to dashboard and charts, appearance restoration after a clean restart, and the automatic-capture shortcut entering the unified section. Dark/Classic was restored after testing. Selected process metric text uses theme foreground while selected, with a headless regression covering both themes, to avoid palette colors losing contrast on selection backgrounds.
+
+## UI parity slice 2: resource cards and MicroGauge
+
+Version 0.5.0/build 5 uses the actual MicroGauge Avalonia controls for CPU, memory,
+network and storage cards. Appearance offers Bowl, Needle, Bar and None with a local
+Settings preview. Gauge style saves with the other appearance settings; older
+preferences default to Bowl. Cards reserve the same height for unavailable readings
+and None, using four columns at dashboard widths of 840 DIPs and above and two below.
+Capacity remains a separate available/total Data volume reading.
+
+CPU is machine capacity and memory is physical usage, both scaled 0–100%. Network is
+receive + send for the selected interface; storage is aggregate read + write across
+block-storage drivers. Both activity cards explicitly label bytes/second and adapt
+their scale to binary powers covering the current two-minute peak. A contrasting mark
+shows the live peak. Numeric zero remains distinct from unavailable. Tooltips and
+accessible names include exact peak values, units, scope and details.
+
+`ResourceGaugeHistory` receives only `LiveSampleRecorded` events, independently of
+chart inspection, retention, captures or restored history. Peaks expire by monotonic
+age after 120 seconds, with a 256-entry safety bound. Clock resets and gaps over 2.5
+seconds reset the window; an interface switch or unavailable activity baseline clears
+that activity's previous peaks. No additional polling loop or per-process attribution
+is introduced. Rendering uses fixed 0–100 native gauge coordinates and maps measured
+values into them. Native ranges are replaced rather than mutating render-thread data.
+
+The [pinned MicroGauge dependency](../dependencies/microgauge/README.md) introduces
+SkiaSharp 4.150.1; real Skia pixel tests verify fills/needles and peak marks, including
+unavailable/None states. Packaged smoke checks exercise the native host and collectors.
+Compact view remains a separate subsequent slice.
+
+Validation for this slice: 106 MacMon tests, eight upstream Avalonia tests, and three
+Python release-workflow tests pass; the release build has no warnings. Real Skia
+rendering covers every style across both themes and all palettes, measured zero,
+unavailable values, peak expiry, source changes, draft-theme isolation and reattachment.
+Native arm64 packaging passes collector/launchd smoke and strict signature checks.
+The packaged UI was inspected at 1000 and 800 pixels; Bar persisted across a clean
+restart, then Bowl/Dark/Classic and the original width were restored. A 30-second
+visible Jobs/dashboard measurement averaged 0.523% of total machine CPU (1.635% peak),
+with 240.8 MiB peak resident memory; this is one host observation, not a comparative
+performance guarantee.

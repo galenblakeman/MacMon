@@ -19,6 +19,7 @@ public sealed record MacPreferences
     public string? NetworkId { get; init; }
     public bool AlwaysOnTop { get; init; }
     public string Theme { get; init; } = "Dark";
+    public string GaugeStyle { get; init; } = "Bowl";
     public string Palette { get; init; } = "Classic";
     public double Width { get; init; } = 1000;
     public double Height { get; init; } = 1000;
@@ -30,6 +31,7 @@ public sealed record MacPreferences
     public MacPreferences Normalized(string? bootId) => this with
     {
         BootId = bootId, Theme = Appearance.NormalizeTheme(Theme), Palette = Appearance.NormalizePalette(Palette),
+        GaugeStyle = ResourceGauge.NormalizeStyle(GaugeStyle),
         ProcessSort = Math.Clamp(ProcessSort, 0, 3), UsageSort = Math.Clamp(UsageSort, 0, 2),
         DataTab = Math.Clamp(DataTab, 0, 2), JobSort = Math.Clamp(JobSort, 0, 2), JobFilter = Math.Clamp(JobFilter, 0, 2), HistoryRange = Math.Clamp(HistoryRange, 0, 3),
         Width = double.IsFinite(Width) ? Math.Clamp(Width, 800, 2400) : 1000,

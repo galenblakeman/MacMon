@@ -18,9 +18,10 @@
           </StackPanel>
           <StackPanel x:Name="AppearancePage" Spacing="14" IsVisible="False">
             <TextBlock Text="Appearance" FontSize="21" FontWeight="SemiBold" />
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="16">
               <StackPanel Spacing="6"><TextBlock Text="Theme" Classes="label" /><ComboBox x:Name="ThemeChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Theme" /></StackPanel>
               <StackPanel Grid.Column="1" Spacing="6"><TextBlock Text="Chart palette" Classes="label" /><ComboBox x:Name="PaletteChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Chart palette" /></StackPanel>
+              <StackPanel Grid.Column="2" Spacing="6"><TextBlock Text="Resource gauges" Classes="label" /><ComboBox x:Name="GaugeChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Resource gauge style" /></StackPanel>
             </Grid>
             <TextBlock Classes="label" TextWrapping="Wrap" Text="System follows your Mac’s appearance. The chart palette stays independent when you change the theme." />
             <TextBlock x:Name="PaletteDescription" Classes="label" TextWrapping="Wrap" />
@@ -31,10 +32,10 @@
                   <StackPanel Spacing="8">
                     <TextBlock Text="Resource history · sample readings" Foreground="{DynamicResource MacTextBrush}" FontWeight="SemiBold" />
                     <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="8">
-                      <StackPanel><TextBlock Text="CPU" Foreground="{DynamicResource MacMutedBrush}" /><TextBlock Text="24.0%" Foreground="{DynamicResource CpuText}" FontSize="20" /></StackPanel>
-                      <StackPanel Grid.Column="1"><TextBlock Text="Memory" Foreground="{DynamicResource MacMutedBrush}" /><TextBlock Text="62.0%" Foreground="{DynamicResource MemoryText}" FontSize="20" /></StackPanel>
-                      <StackPanel Grid.Column="2"><TextBlock Text="Network" Foreground="{DynamicResource MacMutedBrush}" /><TextBlock Text="4.2 MiB/s" Foreground="{DynamicResource NetworkText}" FontSize="16" /></StackPanel>
-                      <StackPanel Grid.Column="3"><TextBlock Text="Storage" Foreground="{DynamicResource MacMutedBrush}" /><TextBlock Text="18 MiB/s" Foreground="{DynamicResource StorageText}" FontSize="16" /></StackPanel>
+                      <local:ResourceGauge x:Name="PreviewCpu" Title="CPU" ReadoutSize="16" Fill="{DynamicResource CpuText}" />
+                      <local:ResourceGauge Grid.Column="1" x:Name="PreviewMemory" Title="Memory" ReadoutSize="16" Fill="{DynamicResource MemoryText}" />
+                      <local:ResourceGauge Grid.Column="2" x:Name="PreviewNetwork" Title="Network" ReadoutSize="16" Fill="{DynamicResource NetworkText}" />
+                      <local:ResourceGauge Grid.Column="3" x:Name="PreviewStorage" Title="Storage" ReadoutSize="16" Fill="{DynamicResource StorageText}" />
                     </Grid>
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
                       <local:CpuChart x:Name="PreviewChart" Height="60" />
