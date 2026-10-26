@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Templates;
 using Avalonia.Styling;
 using Avalonia.Platform;
 using Avalonia.VisualTree;
@@ -25,6 +26,7 @@ public sealed partial class SettingsWindow : Window
         RangeChoice.SelectedIndex = preferences.HistoryRange;
         ThemeChoice.ItemsSource = Appearance.Themes; ThemeChoice.SelectedItem = preferences.Theme;
         PaletteChoice.ItemsSource = Appearance.Palettes; PaletteChoice.SelectedItem = preferences.Palette;
+        GaugeChoice.ItemTemplate = new FuncDataTemplate<string>((style, _) => new TextBlock { Text = ResourceGauge.StyleLabel(style) });
         GaugeChoice.ItemsSource = ResourceGauge.GaugeStyles; GaugeChoice.SelectedItem = preferences.GaugeStyle;
         NetworkChoice.ItemsSource = networks;
         NetworkChoice.SelectedItem = networks.FirstOrDefault(network => network.Id == (preferences.NetworkId ?? ""));

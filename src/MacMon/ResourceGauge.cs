@@ -1,158 +1,165 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Threading;
-using MicroGauge;
-using MicroGauge.Avalonia;
-using MicroGauge.Constant;
+using Avalonia.Interactivity;
+using Avalonia.Controls.Documents;
 
 namespace MacMon;
 
-/// <summary>MicroGauge renders the marks; Avalonia provides readable, accessible values and units.</summary>
+/// <summary>WinMon-sized readout with a chart toggle and live, on-demand resource tooltip.</summary>
 public sealed class ResourceGauge : UserControl
 {
-    public static readonly string[] GaugeStyles = ["Bowl", "Needle", "Bar", "None"];
-    public static string NormalizeStyle(string? style) => GaugeStyles.Contains(style) ? style! : "Bowl";
+    public static readonly string[] GaugeStyles = ["Bowl", "Needle", "SegmentedArc", "LeftBar", "BottomBar", "SegmentedBar", "None"];
+    public static string StyleLabel(string style) => style switch
+    { "SegmentedArc" => "Segmented arc", "LeftBar" => "Left bar", "BottomBar" => "Bottom bar", "SegmentedBar" => "Segmented bar", _ => style };
+    public static string NormalizeStyle(string? style) => style == "Bar" ? "BottomBar" : GaugeStyles.Contains(style) ? style! : "Bowl";
     public static readonly StyledProperty<string> GaugeStyleProperty = AvaloniaProperty.Register<ResourceGauge, string>(nameof(GaugeStyle), "Bowl");
     public string GaugeStyle { get => GetValue(GaugeStyleProperty); set => SetValue(GaugeStyleProperty, value); }
     public static readonly StyledProperty<IBrush> FillProperty = AvaloniaProperty.Register<ResourceGauge, IBrush>(nameof(Fill), Brushes.Teal);
     public IBrush Fill { get => GetValue(FillProperty); set => SetValue(FillProperty, value); }
+    public static readonly StyledProperty<IBrush?> TextAccentProperty = AvaloniaProperty.Register<ResourceGauge, IBrush?>(nameof(TextAccent));
+    public IBrush? TextAccent { get => GetValue(TextAccentProperty); set => SetValue(TextAccentProperty, value); }
     public static readonly StyledProperty<IBrush> TrackProperty = AvaloniaProperty.Register<ResourceGauge, IBrush>(nameof(Track), Brushes.Gray);
     public IBrush Track { get => GetValue(TrackProperty); set => SetValue(TrackProperty, value); }
     public static readonly StyledProperty<IBrush> MarkerProperty = AvaloniaProperty.Register<ResourceGauge, IBrush>(nameof(Marker), Brushes.White);
     public IBrush Marker { get => GetValue(MarkerProperty); set => SetValue(MarkerProperty, value); }
-    public static readonly StyledProperty<double> ReadoutSizeProperty = AvaloniaProperty.Register<ResourceGauge, double>(nameof(ReadoutSize), 25);
+    public static readonly StyledProperty<double> ReadoutSizeProperty = AvaloniaProperty.Register<ResourceGauge, double>(nameof(ReadoutSize), 27);
     public double ReadoutSize { get => GetValue(ReadoutSizeProperty); set => SetValue(ReadoutSizeProperty, value); }
     public static readonly StyledProperty<bool> IsCompactProperty = AvaloniaProperty.Register<ResourceGauge, bool>(nameof(IsCompact));
     public bool IsCompact { get => GetValue(IsCompactProperty); set => SetValue(IsCompactProperty, value); }
     public static readonly StyledProperty<string> TitleProperty = AvaloniaProperty.Register<ResourceGauge, string>(nameof(Title), "");
     public string Title { get => GetValue(TitleProperty); set => SetValue(TitleProperty, value); }
-    private readonly TextBlock _title = new() { FontWeight = FontWeight.SemiBold };
-    private readonly TextBlock _value = new() { FontSize = 25, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
-    private readonly TextBlock _scale = new() { Classes = { "label" }, FontSize = 11, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
-    private readonly TextBlock _details = new() { Classes = { "label" }, FontSize = 11, TextWrapping = TextWrapping.Wrap, MaxHeight = 32 };
-    private readonly Grid _marks = new() { Height = 62 };
-    private readonly Button _detailsButton = new() { Name = "ResourceDetailsButton", Content = "Details", FontSize = 11,
-        Padding = new Thickness(4, 0), MinHeight = 0, Height = 20, IsVisible = false };
+    public CheckBox SeriesToggle { get; } = new() { IsChecked = true, FontSize = 14, MinHeight = 20, Padding = new Thickness(0) };
+    private readonly TextBlock _name = new() { FontSize = 14 };
+    private readonly TextBlock _value = new() { FontWeight = FontWeight.SemiBold };
+    private readonly TextBlock _scale = new() { Classes = { "label" }, FontSize = 10, VerticalAlignment = VerticalAlignment.Center };
+    private readonly TextBlock _detail = new() { FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
+    private readonly ResourceGaugeMarks _marks = new() { IsHitTestVisible = false };
+    private readonly ResourceDetailsView _tip = new();
     private Func<ResourceDetailSnapshot>? _detailsProvider;
-    private ResourceDetailsWindow? _detailsWindow;
-    public event Action? DetailsOpening;
-    private AvaloniaGaugeBase? _gauge;
     private GaugeReading _reading = GaugeReading.Empty;
     private string _description = "";
+    public event Action? DetailsOpening;
     public ResourceGauge()
     {
-        Height = 116;
-        var heading = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 4 };
-        Grid.SetColumn(_detailsButton, 1);
-        heading.Children.Add(_title); heading.Children.Add(_detailsButton);
-        _detailsButton.Click += (_, _) => ShowDetails();
-        var panel = new StackPanel { Spacing = 3, Children = { heading, _marks, _value, _scale, _details } };
-        Content = panel;
+        Focusable = true;
+        Height = 98;
+        _tip.FindControl<Button>("CloseDetails")!.IsVisible = false;
+        ToolTip.SetShowDelay(this, 350);
+        ToolTip.SetPlacement(this, PlacementMode.Bottom);
+        SizeChanged += (_, _) => Refresh();
+        PropertyChanged += (_, change) =>
+        {
+            if (change.Property == ToolTip.IsOpenProperty && ToolTip.GetIsOpen(this)) RefreshTooltip();
+        };
         Refresh();
     }
-    public void EnableDetails(Func<ResourceDetailSnapshot> provider)
+    public void EnableDetails(Func<ResourceDetailSnapshot> provider) { _detailsProvider = provider; ToolTip.SetTip(this, _tip); }
+    public void HideDetails() => ToolTip.SetIsOpen(this, false);
+    private void RefreshTooltip()
     {
-        _detailsProvider = provider;
-        _detailsButton.IsVisible = true;
-        AutomationProperties.SetName(_detailsButton, $"{Title} details");
-        ToolTip.SetTip(_detailsButton, "Live resource details (Enter or Space)");
+        if (_detailsProvider is not null) _tip.Update(_detailsProvider());
     }
-    private void ShowDetails()
+    protected override void OnGotFocus(FocusChangedEventArgs e)
     {
-        if (_detailsProvider is null || TopLevel.GetTopLevel(this) is not Window owner) return;
-        if (_detailsWindow is not null) { _detailsWindow.Activate(); return; }
+        base.OnGotFocus(e);
+        if (_detailsProvider is null) return;
         DetailsOpening?.Invoke();
-        ToolTip.SetIsOpen(this, false);
-        var window = new ResourceDetailsWindow(_detailsProvider()) { Topmost = owner.Topmost };
-        _detailsWindow = window;
-        window.Closed += (_, _) =>
-        {
-            _detailsWindow = null;
-            Dispatcher.UIThread.Post(() =>
-            {
-                if (!_detailsButton.IsEffectivelyVisible || !owner.IsVisible || !owner.IsEnabled || owner.WindowState == WindowState.Minimized ||
-                    owner.OwnedWindows.OfType<ResourceDetailsWindow>().Any(other => other.IsVisible)) return;
-                owner.Activate();
-                _detailsButton.Focus();
-            }, DispatcherPriority.Background);
-        };
-        window.Show(owner);
+        RefreshTooltip(); ToolTip.SetIsOpen(this, true);
     }
-    public void HideDetails() => _detailsWindow?.Close();
-    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    protected override void OnLostFocus(FocusChangedEventArgs e) { base.OnLostFocus(e); HideDetails(); }
+    protected override void OnKeyDown(KeyEventArgs e)
     {
-        // A transient visual reparent is not a dismissal. Close only if the target stays detached.
-        Dispatcher.UIThread.Post(() => { if (TopLevel.GetTopLevel(this) is null) HideDetails(); });
-        base.OnDetachedFromVisualTree(e);
+        base.OnKeyDown(e);
+        if (e.Key == Key.Escape) { HideDetails(); e.Handled = true; }
     }
-    public void Update(GaugeReading reading, string description)
-    {
-        _reading = reading; _description = description; Refresh();
-    }
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e) { HideDetails(); base.OnDetachedFromVisualTree(e); }
+    public void Update(GaugeReading reading, string description) { _reading = reading; _description = description; Refresh(); }
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
         if (_marks is null) return;
-        if (change.Property == GaugeStyleProperty) { _marks.Children.Clear(); _gauge = null; }
         if (change.Property == GaugeStyleProperty || change.Property == FillProperty || change.Property == TrackProperty ||
-            change.Property == IsCompactProperty || change.Property == ReadoutSizeProperty || change.Property == MarkerProperty || change.Property == TitleProperty) Refresh();
+            change.Property == TextAccentProperty || change.Property == MarkerProperty || change.Property == IsCompactProperty || change.Property == ReadoutSizeProperty || change.Property == TitleProperty) Refresh();
     }
     private void Refresh()
     {
-        if (_detailsWindow is { IsVisible: true } details && _detailsProvider is not null)
-        {
-            details.DetailsView.Update(_detailsProvider());
-            details.Topmost = (TopLevel.GetTopLevel(this) as Window)?.Topmost == true;
-        }
-        Height = IsCompact ? 110 : 116;
-        _marks.Height = IsCompact ? 38 : 32;
-        _details.IsVisible = false; // Descriptions remain available through the tooltip and Details window.
-        _value.FontSize = IsCompact ? 20 : Math.Min(22, ReadoutSize);
-        _title.Text = Title; _value.Text = _reading.Text; _value.Foreground = Fill;
-        _scale.Text = _reading.Value is null ? "Unavailable" : $"{_reading.Scale} · peak 2m";
-        _details.Text = _description;
-        var peak = _reading.Peak is { } p ? (_reading.Maximum == 100 && _reading.Scale == "0–100%" ? $"{p:F1}%" : ResourceGaugeHistory.Rate(p)) : "—";
+        Height = 98;
+        _name.Text = Title; SeriesToggle.Content = Title; SeriesToggle.Foreground = _name.Foreground = _value.Foreground = TextAccent ?? Fill;
+        AutomationProperties.SetName(SeriesToggle, $"Show {Title} on chart");
+        var number = _reading.Text; var unit = "";
+        var space = number.LastIndexOf(' ');
+        if (space >= 0) { unit = number[(space + 1)..]; number = number[..space]; }
+        else if (number.EndsWith('%')) { unit = "%"; number = number[..^1]; }
+        var arc = NormalizeStyle(GaugeStyle) is "Bowl" or "Needle" or "SegmentedArc";
+        _value.FontSize = IsCompact ? 20 : Math.Min(ReadoutSize, arc || Bounds.Width < 145 ? 22 : 27);
+        _detail.FontSize = IsCompact ? 11 : arc ? 13 : 14;
+        _value.Inlines!.Clear(); _value.Inlines.Add(new Run(number)); _value.Inlines.Add(new Run(unit.Length > 0 ? " " + unit : "") { FontSize = 13 });
+        _scale.Text = _reading.Value is not null && _reading.Maximum != 100 ? _reading.Scale.Replace("0–", "") : "";
+        _detail.Text = (Title is "Memory" or "CPU" ? _description.Split('\n').FirstOrDefault() : _description.Split('\n').LastOrDefault()) ?? "";
+        if (Title == "CPU") _detail.Text = _detail.Text.Split(" · ").Last();
+        var peak = _reading.Peak is { } p ? (_reading.Scale == "0–100%" ? $"{p:F1}%" : ResourceGaugeHistory.Rate(p)) : "—";
         var accessible = $"{Title}: {_reading.Text}. {_description}. Scale {_reading.Scale}. Peak over the last two minutes: {peak}.";
-        AutomationProperties.SetName(this, accessible); ToolTip.SetTip(this, accessible);
+        AutomationProperties.SetName(this, accessible);
+        if (_detailsProvider is null) ToolTip.SetTip(this, accessible);
+        else if (ToolTip.GetIsOpen(this)) RefreshTooltip();
+        _marks.Kind = NormalizeStyle(GaugeStyle); _marks.Fill = Fill; _marks.Track = Track; _marks.Marker = Marker; _marks.Reading = _reading;
+        _marks.InvalidateVisual();
+        LayoutReadout();
+    }
+    private string _layout = "";
+    private void LayoutReadout()
+    {
+        _scale.MaxWidth = Math.Max(40, Bounds.Width * .48);
+        _scale.TextTrimming = TextTrimming.CharacterEllipsis;
         var style = NormalizeStyle(GaugeStyle);
-        _marks.IsVisible = true; // Reserve the same space for every style and unavailable reading.
-        if (style == "None" || _reading.Value is null)
+        var key = style + IsCompact;
+        if (_layout == key) return;
+        _layout = key;
+        static void Clear(Panel panel)
         {
-            if (_gauge is not null) _gauge.IsVisible = false;
-            return;
+            foreach (var child in panel.Children.OfType<Panel>().ToArray()) Clear(child);
+            panel.Children.Clear();
         }
-        if (_gauge is null)
+        if (Content is Panel previous) Clear(previous);
+        Content = null;
+        var heading = new Grid { ColumnDefinitions = new("*,Auto"), ColumnSpacing = 4 };
+        heading.Children.Add(IsCompact ? _name : SeriesToggle);
+        heading.Children.Add(_scale); Grid.SetColumn(_scale, 1);
+        _marks.Width = double.NaN; _marks.Height = double.NaN; _marks.Margin = default;
+        _value.Margin = default; _value.HorizontalAlignment = HorizontalAlignment.Left;
+        _value.VerticalAlignment = VerticalAlignment.Center;
+        var root = new Grid();
+        if (style is "Bowl" or "SegmentedArc" or "Needle")
         {
-            _gauge = style == "Bar" ? new AvaloniaGaugeLinear { Height = 12, ValueWidthExtent = 1, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center }
-                : new AvaloniaGaugeRadial { RadialStyle = GaugeRadialStyle.Half, ScaleStartAngle = 180, ScaleEndAngle = 0,
-                    NeedlePivotBrush = Brushes.Transparent, NeedlePivotOutlineBrush = Brushes.Transparent };
-            _gauge.BackingBrush = _gauge.BackingOutlineBrush = Brushes.Transparent;
-            _gauge.BackingStrokeWidth = 0;
-            _gauge.TickBrush = _gauge.MinorTickBrush = _gauge.LabelFontBrush = _gauge.ValueFontBrush = Brushes.Transparent;
-            _gauge.TickInterval = _gauge.MinorTickInterval = _gauge.LabelInterval = 0;
-            _gauge.NeedleAnimationDuration = 0;
-            _gauge.NeedleStartWidth = 3; _gauge.NeedleEndWidth = 2;
-            _gauge.SetNeedleStartWidth = _gauge.SetNeedleEndWidth = 2;
-            _gauge.SetNeedleStartExtent = style == "Bar" ? -.5f : .72f;
-            _gauge.SetNeedleEndExtent = style == "Bar" ? .5f : 1;
-            _gauge.NeedleEndExtent = .88f;
-            _marks.Children.Add(_gauge);
+            root.RowDefinitions = new("20,*,Auto"); root.RowSpacing = 3;
+            root.Children.Add(heading);
+            var bowl = new Grid { Margin = new Thickness(0, 4, 0, 0) };
+            bowl.Children.Add(_marks); Grid.SetRow(bowl, 1); root.Children.Add(bowl);
+            _value.HorizontalAlignment = HorizontalAlignment.Center; _value.VerticalAlignment = VerticalAlignment.Bottom;
+            if (style == "Needle") { root.Children.Add(_value); Grid.SetRow(_value, 2); }
+            else { bowl.Children.Add(_value); root.Children.Add(_detail); Grid.SetRow(_detail, 2); }
+            _detail.TextAlignment = TextAlignment.Center;
         }
-        _gauge.IsVisible = true;
-        var current = (float)Math.Clamp(_reading.Value.Value / _reading.Maximum * 100, 0, 100);
-        _gauge.Value = current;
-        _gauge.NeedleBrush = style == "Needle" ? Fill : Brushes.Transparent;
-        _gauge.SetNeedleBrush = Marker;
-        _gauge.SetNeedleValue = (float)Math.Clamp((_reading.Peak ?? _reading.Value.Value) / _reading.Maximum * 100, 0, 100);
-        if (_gauge is AvaloniaGaugeLinear bar) { bar.BackingBrush = Track; bar.ValueBarBrush = Fill; }
-        if (_gauge is AvaloniaGaugeRadial radial)
+        else
         {
-            GaugeRadialRange Range(float end, IBrush brush) => new() { StartValue = 0, EndValue = end,
-                InnerStartExtent = .78f, InnerEndExtent = .78f, OuterStartExtent = .94f, OuterEndExtent = .94f,
-                Brush = AvaloniaGaugeHelper.GetGaugeBrush(brush) };
-            radial.Ranges = style == "Bowl" ? [Range(100, Track), Range(current, Fill)] : [Range(100, Track)];
+            var labels = new StackPanel { Spacing = 3, Children = { heading, _value, _detail } };
+            _detail.TextAlignment = TextAlignment.Left;
+            if (style == "LeftBar")
+            {
+                root.ColumnDefinitions = new("22,*"); root.ColumnSpacing = 8;
+                _marks.Height = 76; root.Children.Add(_marks); root.Children.Add(labels); Grid.SetColumn(labels, 1);
+            }
+            else
+            {
+                root.RowDefinitions = new("*,8"); root.Children.Add(labels);
+                if (style != "None") { root.Children.Add(_marks); Grid.SetRow(_marks, 1); }
+            }
         }
+        Content = root;
     }
 }

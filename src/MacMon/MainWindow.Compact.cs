@@ -33,7 +33,7 @@ public sealed partial class MainWindow
             MainLayout.IsVisible = !CompactMode;
             CompactPanel.IsVisible = CompactMode;
             CompactPanel.AlwaysOnTop = Topmost;
-            JobsView.SetActive(!CompactMode && DataTabs.SelectedIndex == 2);
+            JobsView.SetActive(!CompactMode && DataTabs.SelectedIndex == 1);
             if (IsVisible) FitWindowToScreen();
         }
         finally { _switchingView = false; }

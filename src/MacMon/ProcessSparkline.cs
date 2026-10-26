@@ -18,7 +18,7 @@ public sealed class ProcessSparkline : Control
     {
         base.Render(context);
         if (Trail?.Values is not { Count: > 1 } values) return;
-        var maximum = Math.Max(1, values.Max() ?? 1);
+        var maximum = Trail.Maximum ?? Math.Max(1, values.Max() ?? 1);
         var pen = new Pen(Stroke, 1.5);
         Point? previous = null;
         for (var i = 0; i < values.Count; i++)

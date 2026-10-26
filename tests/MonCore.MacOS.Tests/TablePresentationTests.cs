@@ -108,6 +108,20 @@ public sealed class TablePresentationTests
         Assert.That(new MacPreferences { ProcessLimit = -1, UsageLimit = 999 }.Normalized(null).UsageLimit, Is.Zero);
     }
 
+    [Test]
+    public void UsageFormattingMatchesWinMonDurationAndSeenRunningConventions()
+    {
+        var ledger = new UsageLedger(DateTimeOffset.UnixEpoch, MacFrameSource.IdentityPolicy);
+        var sample = Sample(); ledger.Add(sample);
+        var row = UsagePresentation.Rows(ledger, "", UsageSort.Cpu, latest: sample.Timestamp).First();
+        Assert.That(row.Cpu, Does.Match(@"^\d+:\d{2}:\d{2}$"));
+        Assert.That(row.Processes, Is.EqualTo("1 (1)"));
+        Assert.That(row.LastActive, Is.EqualTo("now"));
+        var report = UsagePresentation.Report([row], ledger.Since);
+        Assert.That(report, Does.Contain("Seen (running)").And.Contain(row.Name).And.Contain("1 (1)"));
+        Assert.That(report.Split('\n'), Has.Length.EqualTo(3), "Copy contains only the displayed rows");
+    }
+
     [AvaloniaTest]
     public void HeaderActionsReverseDirectionAndKeepSortCombosSynchronized()
     {
@@ -144,13 +158,48 @@ public sealed class TablePresentationTests
     }
 
     [AvaloniaTest]
+    public void JobsMatchTableLayoutAndKeepUnavailableResourcesExplicit()
+    {
+        var output = Environment.GetEnvironmentVariable("MACMON_RENDER_OUTPUT");
+        if (output is not null) Directory.CreateDirectory(output);
+        foreach (var theme in new[] { "Light", "Dark" })
+        {
+            var main = new MainWindow();
+            ((App)Application.Current!).ApplyAppearance(theme, "Classic", "Bowl");
+            main.FindControl<Grid>("MainLayout")!.IsVisible = true;
+            main.FindControl<CompactView>("CompactPanel")!.IsVisible = false;
+            main.FindControl<TabControl>("DataTabs")!.SelectedIndex = 1;
+            var view = main.FindControl<LaunchdView>("JobsView")!;
+            view.SetActive(false); // This is a presentation fixture, not live launchctl discovery.
+            var sample = Sample();
+            var context = new LaunchdContext(Guid.Empty, 501, "Aqua");
+            var jobs = sample.Processes.Select(p => new LaunchdJob(new(context, "example." + p.ProcessId), p.ProcessId, 0, p.Identity)).ToArray();
+            var snapshot = new LaunchdSnapshot(sample.Timestamp, context, jobs);
+            var list = view.FindControl<ListBox>("JobList")!;
+            list.ItemsSource = LaunchdPresentation.Rows(snapshot, sample, true, "", 0, 3, history: [sample]);
+            view.FindControl<TextBlock>("JobEmpty")!.IsVisible = false;
+            main.FindControl<TextBlock>("JobSummary")!.Text = "20 shown · 20 jobs · 20 running";
+            var shell = main.Content; main.Content = null;
+            var window = new Window { Width = 800, Height = 760, Content = shell };
+            window.Show(); Dispatcher.UIThread.RunJobs();
+            var items = list.GetVisualDescendants().OfType<ListBoxItem>().ToArray();
+            Assert.That(items.Length, Is.GreaterThan(2));
+            Assert.That(items.All(item => item.Bounds.Height <= 44), Is.True);
+            Assert.That(view.FindControl<ComboBox>("JobLimit")!.SelectedItem?.ToString(), Is.EqualTo("All"));
+            using var frame = window.CaptureRenderedFrame(); Assert.That(frame, Is.Not.Null);
+            if (output is not null) frame!.Save(Path.Combine(output, $"table-jobs-800-{theme}.png"), PngBitmapEncoderOptions.Default);
+            window.Close();
+        }
+    }
+
+    [AvaloniaTest]
     public void DenseTablesRenderWithIconsAndRowsAtMinimumAndDefaultSizes()
     {
         var output = Environment.GetEnvironmentVariable("MACMON_RENDER_OUTPUT");
         if (output is not null) Directory.CreateDirectory(output);
         foreach (var size in new[] { new Size(800, 760), new Size(1000, 900) })
         foreach (var theme in new[] { "Light", "Dark" })
-        foreach (var tab in new[] { 0, 1 })
+        foreach (var tab in new[] { 0, 2 })
         {
             var main = new MainWindow();
             ((App)Application.Current!).ApplyAppearance(theme, "Classic", "Bowl");
@@ -174,7 +223,14 @@ public sealed class TablePresentationTests
             window.Show(); Dispatcher.UIThread.RunJobs();
             var items = list.GetVisualDescendants().OfType<ListBoxItem>().ToArray();
             Assert.That(items.Length, Is.GreaterThanOrEqualTo(3));
-            Assert.That(items.All(item => item.Bounds.Height <= 30), Is.True);
+            Assert.That(items.All(item => item.Bounds.Height <= 44), Is.True);
+            foreach (var item in items)
+                Assert.That(item.GetVisualDescendants().OfType<Border>().Any(b => b.Classes.Contains("dataRow") && b.BorderThickness.Bottom == 1), Is.True);
+            if (tab == 0)
+            {
+                var pin = items[0].GetVisualDescendants().OfType<Button>().Single(b => b.Classes.Contains("rowPin"));
+                Assert.That(pin.Bounds.Width, Is.LessThanOrEqualTo(28), "Pin action must stay inside its dedicated column");
+            }
             var limit = main.FindControl<ComboBox>(tab == 0 ? "ProcessLimitBox" : "UsageLimitBox")!;
             Assert.That(limit.TranslatePoint(default, window)!.Value.X + limit.Bounds.Width, Is.LessThanOrEqualTo(size.Width));
             using var frame = window.CaptureRenderedFrame(); Assert.That(frame, Is.Not.Null);

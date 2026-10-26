@@ -8,7 +8,6 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MacMon;
-using MicroGauge.Avalonia;
 using NUnit.Framework;
 using SkiaSharp;
 using WinMon.Monitoring;
@@ -81,10 +80,12 @@ public sealed class ResourceGaugeTests
         using var stream = new MemoryStream();
         frame!.Save(stream, PngBitmapEncoderOptions.Default);
         using var bitmap = SKBitmap.Decode(stream.ToArray());
-        // Only the mark area: exclude the separately rendered numeric readout.
+        var marks = window.GetVisualDescendants().OfType<ResourceGaugeMarks>().FirstOrDefault();
+        if (marks is null) return 0;
+        var origin = marks.TranslatePoint(default, window)!.Value;
         var count = 0;
-        for (var y = 25; y < 80; y++)
-        for (var x = 0; x < bitmap.Width; x++)
+        for (var y = Math.Max(0, (int)origin.Y); y < Math.Min(bitmap.Height, origin.Y + marks.Bounds.Height); y++)
+        for (var x = Math.Max(0, (int)origin.X); x < Math.Min(bitmap.Width, origin.X + marks.Bounds.Width); x++)
         {
             var pixel = bitmap.GetPixel(x, y);
             if (Math.Abs(pixel.Red - color.R) < 12 && Math.Abs(pixel.Green - color.G) < 12 && Math.Abs(pixel.Blue - color.B) < 12) count++;
@@ -93,24 +94,22 @@ public sealed class ResourceGaugeTests
     }
 
     [AvaloniaTest]
-    public void RealMicroGaugeMarksRenderAndUnavailableAndNoneReserveSpace()
+    public void EveryWinMonGaugeStyleRendersAndUnavailableDoesNotBecomeZero()
     {
         foreach (var style in ResourceGauge.GaugeStyles)
         {
-            var gauge = new ResourceGauge { Title = "CPU", GaugeStyle = style, Fill = Brushes.Red, Marker = Brushes.Lime, Track = Brushes.Gray };
-            gauge.Update(new(40, 80, 100, "40.0%", "0–100%"), "Machine capacity");
-            var window = new Window { Width = 220, Height = 190, Content = gauge };
+            var marks = new ResourceGaugeMarks { Kind = style, Fill = Brushes.Red, Marker = Brushes.Lime, Track = Brushes.Gray,
+                Reading = new(40, 80, 100, "40.0%", "0–100%") };
+            var window = new Window { Width = 160, Height = 76, Content = marks };
             window.Show();
             Assert.That(ColoredPixels(window, Colors.Red), style == "None" ? Is.Zero : Is.GreaterThan(10), style);
             Assert.That(ColoredPixels(window, Colors.Lime), style == "None" ? Is.Zero : Is.GreaterThan(2), style + " peak");
-            var height = gauge.Bounds.Height;
-            gauge.Update(new(0, 80, 100, "0.0%", "0–100%"), "Measured zero");
+            marks.Reading = new(0, 80, 100, "0.0%", "0–100%"); marks.InvalidateVisual();
             Assert.That(ColoredPixels(window, Colors.Lime), style == "None" ? Is.Zero : Is.GreaterThan(2), style + " zero retains peak");
-            if (style is "Bowl" or "Bar") Assert.That(ColoredPixels(window, Colors.Red), Is.Zero, style + " measured zero");
-            gauge.Update(GaugeReading.Empty, "Unavailable");
+            if (style != "Needle") Assert.That(ColoredPixels(window, Colors.Red), Is.Zero, style + " measured zero");
+            marks.Reading = GaugeReading.Empty; marks.InvalidateVisual();
             Assert.That(ColoredPixels(window, Colors.Red), Is.Zero);
             Assert.That(ColoredPixels(window, Colors.Lime), Is.Zero);
-            Assert.That(gauge.Bounds.Height, Is.EqualTo(height));
             window.Close();
         }
     }
@@ -149,16 +148,15 @@ public sealed class ResourceGaugeTests
         var window = new SettingsWindow();
         window.Show();
         window.FindControl<ListBox>("Sections")!.SelectedIndex = 1;
-        window.FindControl<ComboBox>("GaugeChoice")!.SelectedItem = "Bar";
+        window.FindControl<ComboBox>("GaugeChoice")!.SelectedItem = "BottomBar";
         window.FindControl<ComboBox>("ThemeChoice")!.SelectedItem = "Light";
         Dispatcher.UIThread.RunJobs();
-        Assert.That(window.FindControl<ResourceGauge>("PreviewCpu")!.GaugeStyle, Is.EqualTo("Bar"));
+        Assert.That(window.FindControl<ResourceGauge>("PreviewCpu")!.GaugeStyle, Is.EqualTo("BottomBar"));
         Assert.That(app.Resources["ResourceGaugeStyle"], Is.EqualTo("Bowl"));
         var preview = window.FindControl<ResourceGauge>("PreviewCpu")!;
-        var title = preview.GetVisualDescendants().OfType<TextBlock>().First(text => text.Text == "CPU");
-        Assert.That(((ISolidColorBrush)title.Foreground!).Color, Is.EqualTo(Color.Parse("#17222E")), "Preview title follows its local light theme");
-        var scale = preview.GetVisualDescendants().OfType<TextBlock>().First(text => text.Text?.Contains("peak 2m") == true);
-        Assert.That(((ISolidColorBrush)scale.Foreground!).Color, Is.EqualTo(Color.Parse("#4D5E70")));
+        Assert.That(((ISolidColorBrush)preview.SeriesToggle.Foreground!).Color, Is.EqualTo(Appearance.Colors("Classic", false, true).Cpu), "Preview chart toggle uses the local light palette");
+        Assert.That(preview.SeriesToggle.IsVisible, Is.True);
+        Assert.That(window.FindControl<ComboBox>("GaugeChoice")!.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text == "Bottom bar"), Is.True);
         window.Close();
     }
 }

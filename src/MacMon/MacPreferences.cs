@@ -19,6 +19,8 @@ public sealed record MacPreferences
     public bool ProcessAppsOnly { get; init; }
     public bool UsageAppsOnly { get; init; }
     public bool ProcessActionsHidden { get; init; }
+    public int TabOrderVersion { get; init; } = 1;
+    public int JobLimit { get; init; }
     public int DataTab { get; init; }
     public int JobSort { get; init; }
     public int JobFilter { get; init; }
@@ -35,7 +37,7 @@ public sealed record MacPreferences
     public string Palette { get; init; } = "Classic";
     public double Width { get; init; } = 1000;
     public double Height { get; init; } = 900;
-    public double DashboardRatio { get; init; } = 2;
+    public double DashboardRatio { get; init; } = 1.15;
     public bool KeepHistory { get; init; }
     public SavedProcessPin[] Pins { get; init; } = [];
     public MacCaptureOptions Captures { get; init; } = MacCaptureOptions.Default;
@@ -47,12 +49,13 @@ public sealed record MacPreferences
         ChartMode = Enum.IsDefined(ChartMode) ? ChartMode : ResourceChartMode.Overlay,
         VisibleMetrics = VisibleMetrics & 15, FocusMetric = ResourceCharts.Focus(VisibleMetrics & 15, FocusMetric),
         ProcessSort = Math.Clamp(ProcessSort, 0, 5), UsageSort = Math.Clamp(UsageSort, 0, 5),
+        JobLimit = TablePresentation.NormalizeLimit(JobLimit), TabOrderVersion = 1,
         ProcessLimit = TablePresentation.NormalizeLimit(ProcessLimit), UsageLimit = TablePresentation.NormalizeLimit(UsageLimit),
-        DataTab = Math.Clamp(DataTab, 0, 2), JobSort = Math.Clamp(JobSort, 0, 2), JobFilter = Math.Clamp(JobFilter, 0, 2), HistoryRange = Math.Clamp(HistoryRange, 0, 3),
+        DataTab = Math.Clamp(DataTab, 0, 2), JobSort = Math.Clamp(JobSort, 0, 5), JobFilter = Math.Clamp(JobFilter, 0, 2), HistoryRange = Math.Clamp(HistoryRange, 0, 3),
         CompactWidth = double.IsFinite(CompactWidth) ? Math.Clamp(CompactWidth, WindowViewState.CompactMinimumWidth, 2400) : 1000,
         Width = double.IsFinite(Width) ? Math.Clamp(Width, 800, 2400) : 1000,
         Height = double.IsFinite(Height) ? Math.Clamp(Height, 760, 1800) : 1000,
-        DashboardRatio = double.IsFinite(DashboardRatio) ? Math.Clamp(DashboardRatio, 0.25, 5) : 2,
+        DashboardRatio = double.IsFinite(DashboardRatio) ? Math.Clamp(DashboardRatio, 0.25, 5) : 1.15,
         NetworkId = string.IsNullOrWhiteSpace(NetworkId) || NetworkId.Length > 256 ? null : NetworkId,
         Pins = ProcessPins.Normalize((Pins ?? []).Where(pin => pin is not null &&
             (pin.Grouped || bootId is not null && BootId == bootId)).Take(512), MacFrameSource.IdentityPolicy),
@@ -70,7 +73,15 @@ public static class MacPreferenceStore
         try
         {
             if (new FileInfo(path).Length > 1_048_576) throw new JsonException("Settings file exceeds the size limit.");
-            var settings = JsonSerializer.Deserialize<MacPreferences>(File.ReadAllText(path)) ?? throw new JsonException("Empty settings.");
+            var json = File.ReadAllText(path);
+            var settings = JsonSerializer.Deserialize<MacPreferences>(json) ?? throw new JsonException("Empty settings.");
+            using var document = JsonDocument.Parse(json);
+            if (!document.RootElement.TryGetProperty(nameof(MacPreferences.TabOrderVersion), out _))
+                settings = settings with
+                {
+                    DataTab = settings.DataTab switch { 1 => 2, 2 => 1, _ => settings.DataTab },
+                    DashboardRatio = settings.DashboardRatio == 2 ? 1.15 : settings.DashboardRatio
+                };
             if (settings.Version != 1) return new(new MacPreferences().Normalized(bootId), "Settings use an unsupported version; the original file will be preserved.", false);
             return new(settings.Normalized(bootId));
         }

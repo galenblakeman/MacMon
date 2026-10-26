@@ -4,13 +4,13 @@ using WinMon.Monitoring;
 namespace MacMon;
 
 public enum ResourceChartMode { Overlay, SmallMultiples, Heatmap, Focus }
-public sealed record ChartPanel(Rect Bounds, int[] Metrics);
+public sealed record ChartPanel(Rect Bounds, int[] Metrics, bool SideLabel = false);
 
 /// <summary>Shared chart semantics: rates never become utilization percentages.</summary>
 public static class ResourceCharts
 {
     public static readonly string[] Names = ["CPU", "Memory", "Network", "Storage"];
-    public static int[] Metrics(int mask) => Enumerable.Range(0, 4).Where(i => (mask & (1 << i)) != 0).ToArray();
+    public static int[] Metrics(int mask) => new[] { 0, 1, 3, 2 }.Where(i => (mask & (1 << i)) != 0).ToArray();
     public static int Focus(int mask, int focus) => Metrics(mask).Contains(focus) ? focus : Metrics(mask).FirstOrDefault();
     public static double? Value(MonitorSample sample, int metric)
     {
@@ -37,14 +37,19 @@ public static class ResourceCharts
         var metrics = Metrics(mask);
         if (metrics.Length == 0 || size.Width <= 0 || size.Height <= 0) return [];
         if (mode == ResourceChartMode.Overlay) return [new(new(size), metrics)];
-        if (mode == ResourceChartMode.Focus) return [new(new(size), [Focus(mask, focus)])];
-        var columns = mode == ResourceChartMode.SmallMultiples && metrics.Length > 1 ? 2 : 1;
-        var rows = (int)Math.Ceiling(metrics.Length / (double)columns);
-        var width = Math.Max(0, (size.Width - (columns - 1) * 12) / columns);
-        var height = Math.Max(0, (size.Height - (rows - 1) * 8) / rows);
-        return metrics.Select((metric, i) => new ChartPanel(new((i % columns) * (width + 12),
-            (i / columns) * (height + 8), width, height), [metric])).ToArray();
+        if (mode == ResourceChartMode.Focus)
+        {
+            var selected = Focus(mask, focus);
+            var others = metrics.Where(i => i != selected).ToArray();
+            if (others.Length == 0) return [new(new(size), [selected])];
+            var top = new ChartPanel(new(0, 0, size.Width, size.Height * .55), [selected]);
+            var height = size.Height * .41 / others.Length;
+            return [top, .. others.Select((metric, i) => new ChartPanel(new(0, size.Height * .59 + i * height, size.Width, height), [metric], true))];
+        }
+        var laneHeight = size.Height / metrics.Length;
+        return metrics.Select((metric, i) => new ChartPanel(new(0, i * laneHeight, size.Width, laneHeight), [metric], true)).ToArray();
     }
-    public static Rect Plot(ChartPanel panel) => new(panel.Bounds.X, panel.Bounds.Y + 18,
-        panel.Bounds.Width, Math.Max(0, panel.Bounds.Height - 20));
+    public static Rect Plot(ChartPanel panel) => panel.SideLabel
+        ? new(panel.Bounds.X + 92, panel.Bounds.Y + 3, Math.Max(0, panel.Bounds.Width - 92), Math.Max(0, panel.Bounds.Height - 6))
+        : panel.Bounds;
 }

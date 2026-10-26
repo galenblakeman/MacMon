@@ -4,7 +4,7 @@ using WinMon.Monitoring;
 
 namespace MacMon;
 
-public sealed record ProcessTrail(IReadOnlyList<double?> Values);
+public sealed record ProcessTrail(IReadOnlyList<double?> Values, double? Maximum = null);
 
 /// <summary>Builds visible rows from one ranking and retained observations, with explicit missing trail values.</summary>
 public static class ProcessPresentation
@@ -16,7 +16,7 @@ public static class ProcessPresentation
 
     public static ProcessRow[] Rows(IReadOnlyList<MonitorSample> history, MonitorSample latest,
         bool grouped, ProcessSort sort, string search, ProcessPins pins, bool pinnedOnly, bool historical = false, int limit = 0, bool appsOnly = false,
-        bool ascending = false, ProcessTableOrder order = ProcessTableOrder.Metric)
+        bool ascending = false, ProcessTableOrder order = ProcessTableOrder.Metric, bool canPin = true)
     {
         var identities = new Dictionary<ProcessLifetimeIdentity, (string Path, Key Key)>();
         Key KeyOf(ProcessUsage process)
@@ -36,9 +36,9 @@ public static class ProcessPresentation
         if (grouped && sort == ProcessSort.Memory)
             live = live.OrderByDescending(process => process.WorkingSetBytes).ThenBy(process => process.ProcessId);
         var pinned = pins.Resolve(latest, ranking.Processes, grouped, historical);
-        var matching = pinned.Select(pin => new ProcessRow(pin.Usage, true, pin.State, grouped))
+        var matching = pinned.Select(pin => new ProcessRow(pin.Usage, true, pin.State, grouped) { CanPin = canPin })
             .Concat(pinnedOnly ? [] : live.Where(process => !pins.Contains(process, grouped))
-                .Select(process => new ProcessRow(process, false, PinnedProcessState.Present, grouped)))
+                .Select(process => new ProcessRow(process, false, PinnedProcessState.Present, grouped) { CanPin = canPin }))
             .Where(row => (!appsOnly || TablePresentation.ApplicationBundle(row.Process.ImagePath) is not null) &&
                 (string.IsNullOrWhiteSpace(search) || ProcessSearch.Filter([row.Process], search).Any()));
         var ordered = TablePresentation.Sort(matching, sort, order, ascending).ToArray();
@@ -82,7 +82,8 @@ public static class ProcessPresentation
                 observed[row] = true;
             }
         }
-        for (var i = 0; i < rows.Length; i++) rows[i] = rows[i] with { Trail = new(trails[i]) };
+        var maximumTrail = sort == ProcessSort.Cpu ? 100 : Math.Max(1, trails.SelectMany(values => values).Max() ?? 1);
+        for (var i = 0; i < rows.Length; i++) rows[i] = rows[i] with { Trail = new(trails[i], maximumTrail) };
         return rows;
     }
 }
@@ -92,12 +93,15 @@ public sealed record ProcessRow(ProcessUsage Process, bool Pinned = false,
 {
     public ProcessTrail Trail { get; init; } = new([]);
     public Avalonia.Media.IImage Icon => ApplicationIcons.For(Process.ImagePath);
+    public bool CanPin { get; init; } = true;
+    public string PinAction => Pinned ? "★" : "☆";
+    public string PinActionName => $"{(Pinned ? "Unpin" : "Pin")} {Process.Name}";
     public string Pin => Pinned ? "★" : "";
     public string Name => State == PinnedProcessState.Present ? Process.Name : $"{Process.Name} · {State}";
     public string Pid => Grouped ? $"{Process.MemberCount} procs" : Process.ProcessId.ToString();
     public string Cpu => State == PinnedProcessState.Present && Process.ObservedCpuPercent is { } value ? $"{value:F1}%" : "—";
     public string Resident => State == PinnedProcessState.Present && Process.WorkingSetBytes is { } bytes ? $"{bytes / 1048576d:F1} MiB" : "—";
-    public string Io => State == PinnedProcessState.Present && Process.IoBytesPerSecond is { } bytes ? $"{bytes / 1024:F1} KiB/s" : "—";
+    public string Io => State == PinnedProcessState.Present && Process.IoBytesPerSecond is { } bytes ? $"{bytes / 1048576:F2}" : "—";
     public string Threads => State == PinnedProcessState.Present ? Process.ThreadCount?.ToString() ?? "—" : "—";
     public string Path => (Process.ImagePath.Length > 0 ? Process.ImagePath : "Executable path unavailable") +
         (Grouped ? "\nResident sum may count shared pages more than once." : "") +

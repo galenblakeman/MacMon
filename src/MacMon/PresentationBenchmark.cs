@@ -26,10 +26,16 @@ internal static class PresentationBenchmark
             ProcessSort.Cpu, "", pins, false));
         Measure("Individual top 20 with 30s trails", () => ProcessPresentation.Rows(history, history[^1], false,
             ProcessSort.Cpu, "", pins, false, limit: 20));
+        var context = new LaunchdContext(Guid.Empty, 501, "Aqua");
+        var jobs = history[^1].Processes.Take(600).Select(p => new LaunchdJob(new(context, $"example.job{p.ProcessId}"),
+            p.ProcessId, 0, p.Identity)).ToArray();
+        var snapshot = new LaunchdSnapshot(DateTimeOffset.UnixEpoch, context, jobs);
+        var recent = history.TakeLast(31).ToArray();
+        Measure("600 jobs with verified process trails", () => LaunchdPresentation.Rows(snapshot, history[^1], true, "", 0, 3, history: recent).ToArray());
         return 0;
     }
 
-    private static void Measure(string label, Func<ProcessRow[]> operation)
+    private static void Measure<T>(string label, Func<T[]> operation)
     {
         for (var i = 0; i < 20; i++) operation();
         var times = new List<double>();

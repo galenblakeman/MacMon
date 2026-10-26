@@ -1,47 +1,28 @@
-<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="using:MacMon" x:Class="MacMon.LaunchdView">
-  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="8" Margin="0,8,0,0">
-    <Grid ColumnDefinitions="*,210,145,Auto" ColumnSpacing="10">
-      <TextBlock Text="launchd jobs · read only" FontSize="18" VerticalAlignment="Center" />
-      <TextBox Grid.Column="1" x:Name="JobSearch" PlaceholderText="Search label, PID or process" AutomationProperties.Name="Search jobs" />
-      <ComboBox Grid.Column="2" x:Name="JobFilter" SelectedIndex="0" HorizontalAlignment="Stretch" AutomationProperties.Name="Filter jobs">
-        <ComboBoxItem Content="All loaded" /><ComboBoxItem Content="Running" /><ComboBoxItem Content="Not running" />
-      </ComboBox>
-      <Button Grid.Column="3" x:Name="RefreshJobs" Content="Refresh" />
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:MacMon" x:Class="MacMon.LaunchdView">
+  <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="4">
+    <Border Classes="sectionHeader"><WrapPanel>
+      <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,8,4"><TextBlock Text="Top" Classes="toolbarLabel" /><ComboBox x:Name="JobLimit" Width="60" AutomationProperties.Name="Job row limit" /><TextBlock Text="jobs by" Classes="toolbarLabel" /><ComboBox x:Name="JobSort" Width="112" SelectedIndex="0" AutomationProperties.Name="Sort jobs"><ComboBoxItem Content="Label" /><ComboBoxItem Content="Running first" /><ComboBoxItem Content="PID" /><ComboBoxItem Content="CPU" /><ComboBoxItem Content="Memory" /><ComboBoxItem Content="Disk I/O" /></ComboBox></StackPanel>
+      <TextBox x:Name="JobSearch" Width="190" PlaceholderText="Search label, PID or process" AutomationProperties.Name="Search jobs" Margin="0,0,8,4" />
+      <ComboBox x:Name="JobFilter" Width="120" SelectedIndex="0" AutomationProperties.Name="Filter jobs" Margin="0,0,0,4"><ComboBoxItem Content="All loaded" /><ComboBoxItem Content="Running" /><ComboBoxItem Content="Not running" /></ComboBox>
+    </WrapPanel></Border>
+    <Grid Grid.Row="1" ColumnDefinitions="*,140,100,65,95,85" Margin="6,0,18,0">
+      <TextBlock Text="Job / process" Classes="columnLabel" /><TextBlock Grid.Column="1" Text="History" Classes="columnLabel" HorizontalAlignment="Center" /><TextBlock Grid.Column="2" Text="Status" Classes="columnLabel" /><TextBlock Grid.Column="3" Text="CPU" Classes="columnLabel" HorizontalAlignment="Right" /><TextBlock Grid.Column="4" Text="Memory" Classes="columnLabel" HorizontalAlignment="Right" /><TextBlock Grid.Column="5" Text="Disk MiB/s" Classes="columnLabel" HorizontalAlignment="Right" />
     </Grid>
-    <Grid Grid.Row="1" ColumnDefinitions="*,145,Auto,Auto" ColumnSpacing="10">
-      <TextBlock x:Name="JobScope" Text="Current bootstrap context · not yet read" Classes="label" TextWrapping="Wrap" FontSize="12" VerticalAlignment="Center" />
-      <ComboBox Grid.Column="1" x:Name="JobSort" SelectedIndex="0" HorizontalAlignment="Stretch" AutomationProperties.Name="Sort jobs">
-        <ComboBoxItem Content="Label" /><ComboBoxItem Content="Running first" /><ComboBoxItem Content="PID" />
-      </ComboBox>
-      <Button Grid.Column="2" x:Name="JobDetails" Content="Details" IsEnabled="False" />
-      <Button Grid.Column="3" x:Name="CopyJob" Content="Copy details" IsEnabled="False" />
-    </Grid>
-    <Grid Grid.Row="2" ColumnDefinitions="*,145,65,95,150" Margin="10,0">
-      <TextBlock Text="Label" Classes="label" />
-      <TextBlock Grid.Column="1" Text="Observed state" Classes="label" />
-      <TextBlock Grid.Column="2" Text="PID" Classes="label" />
-      <TextBlock Grid.Column="3" Text="Last exit" Classes="label" />
-      <TextBlock Grid.Column="4" Text="Observed process" Classes="label" />
-    </Grid>
-    <Grid Grid.Row="3">
-      <ListBox x:Name="JobList" AutoScrollToSelectedItem="False" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Loaded launchd jobs">
-        <ListBox.Styles><Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style></ListBox.Styles>
-        <ListBox.ItemTemplate>
-          <DataTemplate x:DataType="local:LaunchdRow">
-            <Grid ColumnDefinitions="*,145,65,95,150" Margin="0,3" ToolTip.Tip="{Binding Label}">
-              <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
-              <TextBlock Grid.Column="1" Text="{Binding State}" FontSize="12" VerticalAlignment="Center" />
-              <TextBlock Grid.Column="2" Text="{Binding Pid}" />
-              <TextBlock Grid.Column="3" Text="{Binding ExitStatus}" />
-              <TextBlock Grid.Column="4" Text="{Binding ProcessName}" TextTrimming="CharacterEllipsis" />
-            </Grid>
-          </DataTemplate>
-        </ListBox.ItemTemplate>
+    <Grid Grid.Row="2">
+      <ListBox x:Name="JobList" Classes="dataRows" AutoScrollToSelectedItem="False" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Loaded launchd jobs">
+        <ListBox.ItemTemplate><DataTemplate x:DataType="local:LaunchdRow"><Border Classes="dataRow"><Grid ColumnDefinitions="*,140,100,65,95,85" ToolTip.Tip="{Binding Description}">
+          <StackPanel VerticalAlignment="Center"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding ProcessDescription}" Classes="label" FontSize="10" TextTrimming="CharacterEllipsis" /></StackPanel>
+          <local:ProcessSparkline Grid.Column="1" Trail="{Binding Trail}" Height="24" Margin="6,0" />
+          <TextBlock Grid.Column="2" Text="{Binding State}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+          <TextBlock Grid.Column="3" Text="{Binding Cpu}" Classes="cpuMetric" VerticalAlignment="Center" HorizontalAlignment="Right" /><TextBlock Grid.Column="4" Text="{Binding Resident}" VerticalAlignment="Center" HorizontalAlignment="Right" /><TextBlock Grid.Column="5" Text="{Binding Io}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+        </Grid></Border></DataTemplate></ListBox.ItemTemplate>
       </ListBox>
       <TextBlock x:Name="JobEmpty" Text="Choose Refresh to read loaded jobs." Classes="label" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" TextWrapping="Wrap" />
     </Grid>
-    <TextBlock Grid.Row="4" x:Name="JobStatus" Text="Live job inventory is separate from chart Capture and history. Other domains and disabled state are not inventoried."
-               Classes="label" FontSize="12" TextWrapping="Wrap" MaxHeight="54" />
+    <Border Grid.Row="3" Classes="actionBar"><Grid RowDefinitions="Auto,Auto" RowSpacing="4">
+      <TextBlock x:Name="JobScope" Text="Current bootstrap context · read only" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" />
+      <WrapPanel Grid.Row="1"><Button x:Name="RefreshJobs" Content="↻ Refresh" /><Button x:Name="JobDetails" Content="ⓘ Properties" IsEnabled="False" /><Button x:Name="CopyJob" Content="Copy details" IsEnabled="False" /></WrapPanel>
+    </Grid></Border>
+    <TextBlock x:Name="JobStatus" IsVisible="False" />
   </Grid>
 </UserControl>

@@ -102,55 +102,38 @@ public sealed class ResourceDetailsTests
     }
 
     [AvaloniaTest]
-    public void DetailProviderIsLazyRefreshesOnlyWhileOpenAndClosesOnDetach()
+    public void ResourceTooltipIsLazyStaysLiveAndClosesWithEscapeOrDetach()
     {
         var calls = 0; var snapshot = Snapshot(ResourceMetric.Cpu);
         var gauge = new ResourceGauge { Title = "CPU", IsCompact = true, GaugeStyle = "None" };
         gauge.EnableDetails(() => { calls++; return snapshot; });
-        var window = new Window { Width = 720, Height = 224, Content = gauge };
-        window.Show();
+        var window = new Window { Width = 720, Height = 200, Content = gauge };
+        window.Show(); Dispatcher.UIThread.RunJobs();
         gauge.Update(GaugeReading.Empty, "baseline");
         Assert.That(calls, Is.Zero);
-        var button = gauge.GetVisualDescendants().OfType<Button>().Single();
-        Assert.That(Avalonia.Automation.AutomationProperties.GetName(button), Is.EqualTo("CPU details"));
-        Dispatcher.UIThread.RunJobs();
-        var point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
-        window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
-        Dispatcher.UIThread.RunJobs();
-        var inspector = window.OwnedWindows.OfType<ResourceDetailsWindow>().Single();
-        Assert.That(inspector.IsVisible, Is.True);
-        Assert.That(calls, Is.EqualTo(1));
+        Assert.That(gauge.GetVisualDescendants().OfType<Button>(), Is.Empty, "Readouts no longer have Details buttons");
+        gauge.Focus(); Dispatcher.UIThread.RunJobs();
+        Assert.That(ToolTip.GetIsOpen(gauge), Is.True);
+        Assert.That(calls, Is.GreaterThan(0));
+        Assert.That(window.OwnedWindows, Is.Empty, "Details are a tooltip, not another window");
+        var view = (ResourceDetailsView)ToolTip.GetTip(gauge)!;
+        Assert.That(view.FindControl<TextBlock>("DetailTitle")!.Text, Does.Contain("CPU"));
+        Assert.That(view.FindControl<Button>("CloseDetails")!.IsVisible, Is.False);
         snapshot = ResourceDetails.Create(ResourceMetric.Cpu, null, null, GaugeReading.Empty, 10);
         gauge.Update(GaugeReading.Empty, "Unavailable");
-        Assert.That(calls, Is.EqualTo(2));
-        var view = inspector.DetailsView;
         Assert.That(view.FindControl<TextBlock>("DetailStatus")!.Text, Does.Contain("Waiting for live"));
-        view.FindControl<Button>("CloseDetails")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        Assert.That(inspector.IsVisible, Is.False);
-        Dispatcher.UIThread.RunJobs();
-        Assert.That(button.IsFocused, Is.True);
-        gauge.Update(GaugeReading.Empty, "Unavailable");
-        Assert.That(calls, Is.EqualTo(2));
-        button.Focus();
-        window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null); window.KeyRelease(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
-        inspector = window.OwnedWindows.OfType<ResourceDetailsWindow>().Single();
-        Assert.That(inspector.IsVisible, Is.True);
-        inspector.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+        window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
         window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-        Assert.That(inspector.IsVisible, Is.False);
-        button.Focus();
-        window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
-        window.KeyRelease(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
-        inspector = window.OwnedWindows.OfType<ResourceDetailsWindow>().Single();
-        Assert.That(inspector.IsVisible, Is.True);
-        window.Content = null;
-        Dispatcher.UIThread.RunJobs();
-        Assert.That(inspector.IsVisible, Is.False);
+        Assert.That(ToolTip.GetIsOpen(gauge), Is.False);
+        var closedCalls = calls;
+        gauge.Update(GaugeReading.Empty, "Unavailable"); Assert.That(calls, Is.EqualTo(closedCalls));
+        ToolTip.SetIsOpen(gauge, true); window.Content = null;
+        Assert.That(ToolTip.GetIsOpen(gauge), Is.False);
         window.Close();
     }
 
     [AvaloniaTest]
-    public void OpeningAnotherMetricReplacesTheInspectorWithoutDisablingItsOwner()
+    public void KeyboardResourceFocusSwitchesTooltipsWithoutDisablingOwner()
     {
         var compact = new CompactView();
         foreach (var (gauge, index) in compact.Gauges.Select((gauge, index) => (gauge, index)))
@@ -162,16 +145,13 @@ public sealed class ResourceDetailsTests
         window.Show(); Dispatcher.UIThread.RunJobs();
         foreach (var gauge in compact.Gauges.Take(2))
         {
-            var button = gauge.GetVisualDescendants().OfType<Button>().Single();
-            var point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
-            window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
-            Dispatcher.UIThread.RunJobs();
+            gauge.Focus(); Dispatcher.UIThread.RunJobs();
             Assert.That(window.IsEnabled, Is.True);
-            Assert.That(window.OwnedWindows, Has.Count.EqualTo(1));
-            Assert.That(window.OwnedWindows.Single().Title, Does.Contain(gauge.Title));
+            Assert.That(window.OwnedWindows, Is.Empty);
+            Assert.That(compact.Gauges.Count(ToolTip.GetIsOpen), Is.EqualTo(1));
+            Assert.That(ToolTip.GetIsOpen(gauge), Is.True);
         }
         window.Close();
-        Assert.That(window.OwnedWindows, Is.Empty);
     }
 
     [AvaloniaTest]

@@ -41,11 +41,9 @@ public sealed partial class MainWindow : Window
     private volatile Func<ProcessUsage, bool>? _retain;
     private bool _refreshingRows;
     private string _operationStatus = "";
-    private string _networkChoicesKey = "";
-    private bool _refreshingAdapters;
     private readonly ProcessPins _pins = new(MacFrameSource.IdentityPolicy);
     private readonly HistoryInspection _inspection = new();
-    private int RangeSeconds => HistoryRange.SelectedIndex switch { 1 => 600, 2 => 1800, 3 => 3600, _ => 120 };
+    private int RangeSeconds => _historyRange switch { 1 => 600, 2 => 1800, 3 => 3600, _ => 120 };
     private bool Grouped => GroupProcesses.IsChecked == true;
 
     private WindowViewState _viewState = new(new MacPreferences());
@@ -55,9 +53,10 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        UpdateTitleBarInsets();
         _historyOrigins = new HistoryProvenance(_bootId);
         VersionLabel.Text = typeof(MainWindow).Assembly.GetName().Version?.ToString(3);
-        MachineLabel.Text = $"{Environment.MachineName} · {Environment.ProcessorCount} logical cores";
+        OpenInfo.Click += async (_, _) => await ShowHardwareInfo();
         _session = new MonitorSession(() => _source,
             () => new SamplingOptions(Retain: _retain),
             action => Dispatcher.UIThread.Post(action), identityPolicy: MacFrameSource.IdentityPolicy);
@@ -65,6 +64,7 @@ public sealed partial class MainWindow : Window
         _session.Recorded += Update;
         PropertyChanged += (_, change) =>
         {
+            if (change.Property == IsExtendedIntoWindowDecorationsProperty) UpdateTitleBarInsets();
             if ((change.Property == WindowStateProperty || change.Property == IsVisibleProperty) &&
                 IsVisible && WindowState != WindowState.Minimized) Update();
             if (change.Property == WindowStateProperty && WindowState == WindowState.Minimized) HideResourceDetails();
@@ -81,7 +81,10 @@ public sealed partial class MainWindow : Window
         ResourceCards.SizeChanged += (_, _) => ResourceCards.Columns = ResourceCards.Bounds.Width < 700 ? 2 : 4;
         _session.LiveSampleRecorded += ObserveCaptures;
         _session.LiveSampleRecorded += JobsView.ObserveLiveSample;
+        JobsView.SummaryChanged += summary => { JobSummary.Text = summary; ToolTip.SetTip(JobSummary, JobsView.SummaryDetails); };
         EnterCompactView.Click += (_, _) => SetCompactView(true);
+        CompactPanel.InfoRequested += async () => await ShowHardwareInfo();
+        CompactPanel.ExportRequested += async kind => await Export(kind);
         CompactPanel.FullViewRequested += () => SetCompactView(false);
         CompactPanel.SettingsRequested += async () => await ShowSettings();
         CompactPanel.TopmostChanged += value => AlwaysOnTop.IsChecked = value;
@@ -90,7 +93,7 @@ public sealed partial class MainWindow : Window
             if (!_switchingView && IsVisible) _viewState.ObserveSize(args.NewSize, WindowState == WindowState.Normal);
         };
         OpenSettings.Click += async (_, _) => await ShowSettings();
-        ConfigureCaptures.Click += async (_, _) => await ShowSettings(3);
+        ConfigureCaptures.Click += async (_, _) => { AutomaticCaptures.Flyout?.Hide(); await ShowSettings(3); };
         KeyDown += async (_, args) =>
         {
             if (args.Key == Key.M && args.KeyModifiers == (KeyModifiers.Meta | KeyModifiers.Shift))
@@ -110,15 +113,8 @@ public sealed partial class MainWindow : Window
         UsageSearch.TextChanged += (_, _) => UpdateUsage();
 
         ResetUsage.Click += (_, _) => { _session.Usage.Reset(DateTimeOffset.Now); UpdateUsage(); };
-        ExportUsage.Click += async (_, _) => await Export(CsvExportKind.UsageTotals);
-        DataTabs.SelectionChanged += (_, args) => { if (args.Source == DataTabs) { UpdateProcesses(); UpdateUsage(); JobsView.SetActive(!CompactMode && DataTabs.SelectedIndex == 2); } };
-        NetworkAdapter.ItemsSource = new[] { new MacNetworkChoice("", "Automatic · active Ethernet/Wi-Fi") };
-        NetworkAdapter.SelectedIndex = 0;
-        NetworkAdapter.SelectionChanged += (_, _) =>
-        {
-            if (!_refreshingAdapters && NetworkAdapter.SelectedItem is MacNetworkChoice choice)
-                _source.NetworkInterfaceId = choice.Id.Length == 0 ? null : choice.Id;
-        };
+        ExportUsage.Click += async (_, _) => { OpenExport.Flyout?.Hide(); await Export(CsvExportKind.UsageTotals); };
+        DataTabs.SelectionChanged += (_, args) => { if (args.Source == DataTabs) { UpdateTabSummary(); UpdateProcesses(); UpdateUsage(); JobsView.SetActive(!CompactMode && DataTabs.SelectedIndex == 1); } };
         ProcessSearchBox.TextChanged += (_, _) => UpdateProcesses();
 
         ProcessList.SelectionChanged += (_, _) =>
@@ -151,14 +147,8 @@ public sealed partial class MainWindow : Window
         Chart.SampleSelected += InspectSample;
         CaptureMode.Click += (_, _) => { if (_session.Latest is { } sample) InspectSample(sample); };
         LiveMode.Click += (_, _) => ReturnToLive();
-        HistoryRange.SelectionChanged += (_, _) =>
-        {
-            _session.History.Resize(RangeSeconds);
-            Chart.RangeSeconds = RangeSeconds;
-            Update();
-        };
-        ExportResources.Click += async (_, _) => await Export(CsvExportKind.ResourceHistory);
-        ExportProcesses.Click += async (_, _) => await Export(CsvExportKind.ProcessSamples);
+        ExportResources.Click += async (_, _) => { OpenExport.Flyout?.Hide(); await Export(CsvExportKind.ResourceHistory); };
+        ExportProcesses.Click += async (_, _) => { OpenExport.Flyout?.Hide(); await Export(CsvExportKind.ProcessSamples); };
         AlwaysOnTop.IsCheckedChanged += (_, _) => { Topmost = AlwaysOnTop.IsChecked == true; CompactPanel.AlwaysOnTop = Topmost; };
         ShowProperties.Click += async (_, _) => await ShowProcessDetails();
         CopyProcessDetails.Click += async (_, _) => await CopyProcess();
@@ -187,8 +177,6 @@ public sealed partial class MainWindow : Window
         if (sample is null)
         {
             ClearGauges();
-            DiskValue.Text = "—";
-            DiskTotal.Text = "Capacity unavailable";
             StatusLabel.Text = "Readings unavailable · retrying…";
             _refreshingRows = true;
             ProcessList.ItemsSource = Array.Empty<ProcessRow>();
@@ -200,9 +188,6 @@ public sealed partial class MainWindow : Window
         }
 
         UpdateResourceGauges(sample);
-        DiskValue.Text = GiB(sample.Resources.DiskFreeBytes);
-        DiskTotal.Text = $"of {GiB(sample.Resources.DiskTotalBytes)}";
-        UpdateActivity(sample);
         var display = TrailHistory();
         var captured = display.LastOrDefault();
         Chart.SelectedTimestamp = _inspection.IsHistorical ? captured?.MonotonicTimestamp : null;
@@ -221,10 +206,10 @@ public sealed partial class MainWindow : Window
         if (!_session.HasLiveSample)
         {
             ClearGauges();
-            DiskValue.Text = "—";
             StatusLabel.Text = "Restored history · waiting for live readings…";
         }
-        if (_operationStatus.Length > 0) StatusLabel.Text += $" · {_operationStatus}";
+        if (_operationStatus.Length > 0) StatusLabel.Text = _operationStatus;
+        StatusLabel.IsVisible = _session.Error is not null || _operationStatus.Length > 0;
     }
 
     private ResourceGauge[] VisibleGauges => CompactMode ? CompactPanel.Gauges : [CpuGauge, MemoryGauge, NetworkGauge, StorageGauge];
@@ -244,21 +229,6 @@ public sealed partial class MainWindow : Window
     {
         foreach (var gauge in VisibleGauges)
             gauge.Update(GaugeReading.Empty, "Waiting for live readings…");
-    }
-
-    private void UpdateActivity(MonitorSample sample)
-    {
-        var interfaces = _source.NetworkInterfaces;
-        var key = string.Join("\n", interfaces.Select(adapter => adapter.Id + adapter.Name));
-        if (_networkChoicesKey == key) return;
-        _networkChoicesKey = key;
-        var selected = _source.NetworkInterfaceId ?? "";
-        var choices = new[] { new MacNetworkChoice("", "Automatic · active Ethernet/Wi-Fi") }.Concat(interfaces).ToList();
-        if (!choices.Any(choice => choice.Id == selected)) choices.Add(new(selected, $"{selected} · disconnected"));
-        _refreshingAdapters = true;
-        NetworkAdapter.ItemsSource = choices;
-        NetworkAdapter.SelectedItem = choices.First(choice => choice.Id == selected);
-        _refreshingAdapters = false;
     }
 
     private static string Rate(double? value) => value is { } bytes
@@ -299,8 +269,8 @@ public sealed partial class MainWindow : Window
         EmptyProcessLabel.Text = _session.Error == SamplingError.ProcessesUnavailable
             ? "Process enumeration unavailable · retrying…"
             : sample.IsGap ? "Establishing process baselines…" : "No matching processes";
-        ProcessCountLabel.Text = $"{rows.Length} shown · {sample.Resources.ProcessCount?.ToString() ?? "—"} enumerated · " +
-            $"{sample.UnavailableProcesses} unavailable";
+        ProcessCountLabel.Text = $"{rows.Length} shown · processes {sample.Resources.ProcessCount?.ToString() ?? "—"} · observed threads {sample.Processes.Sum(p => (long)(p.ThreadCount ?? 0))}";
+        ToolTip.SetTip(ProcessCountLabel, $"{sample.UnavailableProcesses} processes unavailable. Thread count sums readable observations; handles are not collected on macOS.");
         UpdateSelection();
     }
 
@@ -372,11 +342,18 @@ public sealed partial class MainWindow : Window
 
     private void UpdateUsage()
     {
-        if (_session is null || CompactMode || DataTabs.SelectedIndex != 1) return;
+        if (_session is null || CompactMode || DataTabs.SelectedIndex != 2) return;
         UpdateUsageHeaders();
         var rows = UsagePresentation.Rows(_session.Usage, UsageSearch.Text ?? "", (UsageSort)Math.Max(0, UsageSortBox.SelectedIndex),
-            SelectedLimit(UsageLimitBox), UsageAppsOnly.IsChecked == true, _usageAscending);
-        UsageList.ItemsSource = rows;
+            SelectedLimit(UsageLimitBox), UsageAppsOnly.IsChecked == true, _usageAscending, _session.Latest?.Timestamp);
+        _refreshingUsage = true;
+        try
+        {
+            UsageList.ItemsSource = rows;
+            UsageList.SelectedItem = rows.FirstOrDefault(row => row.App.Key == _usageSelection);
+        }
+        finally { _refreshingUsage = false; }
+        UpdateUsageSelection();
         UsageStatus.Text = $"{rows.Length} shown · live totals since {_session.Usage.Since:HH:mm:ss zzz} · un-attributed CPU {TimeSpan.FromTicks(_session.Usage.NotAttributedCpuTicks).TotalSeconds:F1} s";
         ToolTip.SetTip(UsageStatus, "Includes exited apps. Busy share uses observed machine CPU time. Missing intervals are excluded; disk I/O excludes network. Capture/chart range does not change these totals.");
     }
@@ -523,9 +500,8 @@ public sealed partial class MainWindow : Window
         _preferences = snapshot;
         AlwaysOnTop.IsChecked = snapshot.AlwaysOnTop;
         _keepHistory = snapshot.KeepHistory;
-        HistoryRange.SelectedIndex = snapshot.HistoryRange;
+        SetHistoryRange(snapshot.HistoryRange);
         _source.NetworkInterfaceId = snapshot.NetworkId;
-        _networkChoicesKey = "\0"; // Rebuild the interface choice even if the discovered set did not change.
         if (_captureOptions.Enabled != snapshot.Captures.Enabled ||
             _captureOptions.CooldownSeconds != snapshot.Captures.CooldownSeconds ||
             !_captureOptions.Rules.SequenceEqual(snapshot.Captures.Rules))
@@ -556,10 +532,11 @@ public sealed partial class MainWindow : Window
         _pins.Restore(_preferences.Pins);
         GroupProcesses.IsChecked = _preferences.Grouped; PinnedOnly.IsChecked = _preferences.PinnedOnly;
         ProcessSortBox.SelectedIndex = _preferences.ProcessSort; UsageSortBox.SelectedIndex = _preferences.UsageSort;
+        IndividualProcesses.IsChecked = !Grouped;
         RestoreTables();
-        JobsView.SortIndex = _preferences.JobSort; JobsView.FilterIndex = _preferences.JobFilter;
+        JobsView.SortIndex = _preferences.JobSort; JobsView.FilterIndex = _preferences.JobFilter; JobsView.RowLimit = _preferences.JobLimit;
         RestoreCharts();
-        DataTabs.SelectedIndex = _preferences.DataTab; HistoryRange.SelectedIndex = _preferences.HistoryRange;
+        DataTabs.SelectedIndex = _preferences.DataTab; SetHistoryRange(_preferences.HistoryRange);
         AlwaysOnTop.IsChecked = _preferences.AlwaysOnTop;
         _keepHistory = _preferences.KeepHistory;
         _session.History.Resize(RangeSeconds);
@@ -568,6 +545,7 @@ public sealed partial class MainWindow : Window
         _captureRules = new(_captureOptions.Rules, TimeSpan.FromSeconds(_captureOptions.CooldownSeconds), Environment.ProcessorCount);
         UpdateRetention();
         _viewState = new(_preferences with { Width = Width, Height = Height });
+        UpdateTabSummary();
         ApplyViewLayout();
     }
 
@@ -584,7 +562,7 @@ public sealed partial class MainWindow : Window
             ChartMode = Chart.Mode, VisibleMetrics = Chart.VisibleMetrics, FocusMetric = Chart.FocusMetric,
             BootId = _bootId, Grouped = Grouped, PinnedOnly = PinnedOnly.IsChecked == true,
             Pins = _pins.Snapshot(), ProcessSort = ProcessSortBox.SelectedIndex, UsageSort = UsageSortBox.SelectedIndex,
-            DataTab = DataTabs.SelectedIndex, JobSort = JobsView.SortIndex, JobFilter = JobsView.FilterIndex, HistoryRange = HistoryRange.SelectedIndex, NetworkId = _source.NetworkInterfaceId,
+            DataTab = DataTabs.SelectedIndex, JobSort = JobsView.SortIndex, JobFilter = JobsView.FilterIndex, JobLimit = JobsView.RowLimit, HistoryRange = _historyRange, NetworkId = _source.NetworkInterfaceId,
             AlwaysOnTop = Topmost, Captures = _captureOptions, KeepHistory = _keepHistory,
             DashboardRatio = MainLayout.RowDefinitions[1].Height.Value / Math.Max(0.01, MainLayout.RowDefinitions[3].Height.Value)
         });

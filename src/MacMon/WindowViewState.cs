@@ -5,7 +5,7 @@ namespace MacMon;
 /// <summary>Compact dimensions never replace the saved full-window dimensions.</summary>
 public sealed class WindowViewState
 {
-    public const double CompactHeight = 224;
+    public const double CompactHeight = 178;
     public const double CompactMinimumWidth = 720;
     public bool CompactMode { get; private set; }
     public Size FullSize { get; private set; }

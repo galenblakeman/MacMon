@@ -35,6 +35,7 @@ public sealed class MacPreferenceTests
             {
                 Assert.That(loaded.Error, Is.Null);
                 Assert.That(loaded.Preferences.Grouped, Is.True);
+                Assert.That(loaded.Preferences.DashboardRatio, Is.EqualTo(1.15));
                 Assert.That(loaded.Preferences.DataTab, Is.EqualTo(2));
                 Assert.That(loaded.Preferences.JobSort, Is.EqualTo(1));
                 Assert.That(loaded.Preferences.JobFilter, Is.EqualTo(2));
@@ -64,7 +65,7 @@ public sealed class MacPreferenceTests
         {
             Assert.That(normalized.Width, Is.EqualTo(1000));
             Assert.That(normalized.Height, Is.EqualTo(760));
-            Assert.That(normalized.DashboardRatio, Is.EqualTo(2));
+            Assert.That(normalized.DashboardRatio, Is.EqualTo(1.15));
             Assert.That(normalized.ProcessSort, Is.EqualTo(5));
             Assert.That(normalized.UsageSort, Is.Zero);
             Assert.That(normalized.HistoryRange, Is.EqualTo(3));
@@ -72,6 +73,28 @@ public sealed class MacPreferenceTests
             Assert.That(normalized.JobSort, Is.Zero);
             Assert.That(normalized.JobFilter, Is.EqualTo(2));
         });
+    }
+
+    [Test]
+    public void LegacyTabOrderMigratesOnceAndBarStyleKeepsItsMeaning()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "macmon-tabs-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var path = Path.Combine(root, "settings.json");
+            File.WriteAllText(path, "{\"DataTab\":1,\"GaugeStyle\":\"Bar\",\"Grouped\":true,\"DashboardRatio\":2}");
+            var loaded = MacPreferenceStore.Load(path, null);
+            Assert.That(loaded.Preferences.DataTab, Is.EqualTo(2), "Old Usage remains Usage");
+            Assert.That(loaded.Preferences.GaugeStyle, Is.EqualTo("BottomBar"));
+            Assert.That(loaded.Preferences.DashboardRatio, Is.EqualTo(1.15));
+            Assert.That(loaded.Preferences.Grouped, Is.True);
+            MacPreferenceStore.Save(path, loaded.Preferences);
+            Assert.That(MacPreferenceStore.Load(path, null).Preferences.DataTab, Is.EqualTo(2), "Migration is not repeated");
+            File.WriteAllText(path, "{\"DataTab\":2}");
+            Assert.That(MacPreferenceStore.Load(path, null).Preferences.DataTab, Is.EqualTo(1), "Old Jobs remains Jobs");
+        }
+        finally { Directory.Delete(root, true); }
     }
 
     [Test]

@@ -69,7 +69,8 @@ public sealed class CpuChart : Control
         var sample = _hoverPoint is { } position && plot.Width > 0
             ? HistoryInspection.Nearest(_samples, RangeSeconds, (position.X - plot.X) / plot.Width) : null;
         HoveredSample = sample;
-        ToolTip.SetTip(this, sample is null ? null : ResourceCharts.Describe(sample));
+        ToolTip.SetTip(this, sample is null ? null : ResourceCharts.Describe(sample) + "\nHistory scales: " +
+            string.Join(" · ", ResourceCharts.Metrics(VisibleMetrics).Select(i => $"{ResourceCharts.Names[i]} {ResourceCharts.Scale(i, Maximum(i))}")));
         SampleHovered?.Invoke(sample);
         InvalidateVisual();
     }
@@ -141,9 +142,13 @@ public sealed class CpuChart : Control
             var plot = ResourceCharts.Plot(panel);
             if (plot.Height <= 0 || plot.Width <= 0) continue;
             var metric = panel.Metrics[0];
-            var title = panel.Metrics.Length > 1 ? "Each series uses its labeled scale" :
-                $"{ResourceCharts.Names[metric]} · {ResourceCharts.Scale(metric, Maximum(metric))}";
-            Label(context, title, panel.Bounds.TopLeft, panel.Metrics.Length > 1 ? MarkerBrush : Brush(metric));
+            if (panel.SideLabel)
+            {
+                Label(context, ResourceCharts.Names[metric], new(panel.Bounds.X + 2, panel.Bounds.Y + Math.Max(0, panel.Bounds.Height / 2 - 13)), Brush(metric));
+                if (panel.Bounds.Height >= 32) Label(context, ResourceCharts.Scale(metric, Maximum(metric)),
+                    new(panel.Bounds.X + 2, panel.Bounds.Y + panel.Bounds.Height / 2 + 1), MarkerBrush);
+            }
+            else if (panel.Metrics.Length == 1) Label(context, ResourceCharts.Names[metric], panel.Bounds.TopLeft + new Vector(5, 4), Brush(metric));
             for (var i = 0; i <= 4; i++) context.DrawLine(new Pen(GridBrush, 1),
                 new(plot.X, plot.Y + plot.Height * i / 4), new(plot.Right, plot.Y + plot.Height * i / 4));
             if (_samples.Count == 0) continue;

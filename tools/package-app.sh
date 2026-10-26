@@ -20,7 +20,7 @@ trap 'rm -rf "$stage_root"' EXIT
 # Publish into a fresh directory: reused output can retain a newer-dated DLL from an older local package.
 bundle="$stage_root/MacMon.app"
 mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
-cp dependencies/microgauge/LICENSE "$bundle/Contents/Resources/MicroGauge.LICENSE"
+cp dependencies/winmon-ui/LICENSE "$bundle/Contents/Resources/WinMon.LICENSE"
 dotnet publish src/MacMon/MacMon.csproj -c Release -r "$runtime" --self-contained true \
     -m:1 -p:UseSharedCompilation=false -p:DebugType=None -p:DebugSymbols=false -o "$bundle/Contents/MacOS"
 app_version="$(dotnet msbuild src/MacMon/MacMon.csproj -getProperty:Version -nologo)"

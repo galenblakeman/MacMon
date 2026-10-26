@@ -1,6 +1,6 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="using:MacMon" x:Class="MacMon.App" Name="MacMon" RequestedThemeVariant="Dark">
+             xmlns:local="using:MacMon" xmlns:chrome="using:Avalonia.Controls.Chrome" x:Class="MacMon.App" Name="MacMon" RequestedThemeVariant="Dark">
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
@@ -29,13 +29,26 @@
       <Setter Property="Background" Value="{DynamicResource MacWindowBrush}" />
       <Setter Property="Foreground" Value="{DynamicResource MacTextBrush}" />
     </Style>
+    <Style Selector="TextBlock.toolbarLabel"><Setter Property="FontSize" Value="13" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+    <Style Selector="TextBlock.columnLabel"><Setter Property="FontSize" Value="11" /><Setter Property="Foreground" Value="{DynamicResource MacMutedBrush}" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+    <Style Selector="ComboBox"><Setter Property="MinHeight" Value="28" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="6,3" /></Style>
+    <Style Selector="TextBox"><Setter Property="MinHeight" Value="28" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="6,3" /></Style>
+    <Style Selector="Button.titleAction, ToggleButton.titleAction"><Setter Property="chrome:WindowDecorationProperties.ElementRole" Value="User" /><Setter Property="Background" Value="Transparent" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="6,4" /></Style>
+    <Style Selector="Button.chip, RadioButton.chip"><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="7,3" /><Setter Property="MinHeight" Value="26" /><Setter Property="Background" Value="Transparent" /></Style>
+    <Style Selector="RadioButton.chip"><Setter Property="Template"><ControlTemplate><Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}"><ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border></ControlTemplate></Setter></Style>
+    <Style Selector="RadioButton.chip:checked, Button.chip.active, ToggleButton.titleAction:checked"><Setter Property="Background" Value="{DynamicResource MacGridBrush}" /></Style>
+    <Style Selector="Border.sectionHeader"><Setter Property="Background" Value="{DynamicResource MacCardBrush}" /><Setter Property="Padding" Value="6,5,6,1" /></Style>
+    <Style Selector="Border.actionBar"><Setter Property="Background" Value="{DynamicResource MacCardBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource MacGridBrush}" /><Setter Property="BorderThickness" Value="0,1,0,0" /><Setter Property="Padding" Value="8,5" /></Style>
+    <Style Selector="Border.actionBar Button"><Setter Property="Margin" Value="0,0,6,0" /><Setter Property="FontSize" Value="12" /></Style>
+    <Style Selector="Border.dataRow"><Setter Property="BorderBrush" Value="{DynamicResource MacGridBrush}" /><Setter Property="BorderThickness" Value="0,0,0,1" /><Setter Property="Padding" Value="6,3" /><Setter Property="MinHeight" Value="42" /></Style>
+    <Style Selector="Button.rowPin"><Setter Property="MinWidth" Value="0" /><Setter Property="MaxWidth" Value="28" /><Setter Property="Background" Value="Transparent" /><Setter Property="Padding" Value="2" /><Setter Property="MinHeight" Value="24" /><Setter Property="FontSize" Value="16" /></Style>
     <Style Selector="Button"><Setter Property="Padding" Value="8,4" /><Setter Property="MinHeight" Value="28" /></Style>
     <Style Selector="Button.tableHeader">
       <Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource MacMutedBrush}" />
       <Setter Property="FontSize" Value="11" /><Setter Property="Padding" Value="2,1" /><Setter Property="MinHeight" Value="24" />
     </Style>
     <Style Selector="ListBox.dataRows"><Setter Property="FontSize" Value="12" /></Style>
-    <Style Selector="ListBox.dataRows ListBoxItem"><Setter Property="Padding" Value="6,2" /><Setter Property="MinHeight" Value="24" /></Style>
+    <Style Selector="ListBox.dataRows ListBoxItem"><Setter Property="Padding" Value="0" /><Setter Property="MinHeight" Value="42" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>
     <Style Selector="TabItem"><Setter Property="FontSize" Value="14" /><Setter Property="Padding" Value="10,6" /></Style>
     <Style Selector="TextBlock.label"><Setter Property="Foreground" Value="{DynamicResource MacMutedBrush}" /></Style>
     <Style Selector="TextBlock.cpuMetric"><Setter Property="Foreground" Value="{DynamicResource CpuText}" /></Style>

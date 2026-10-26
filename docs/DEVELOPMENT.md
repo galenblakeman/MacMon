@@ -429,3 +429,76 @@ view defaults were restored after testing. Package signing, both packaged
 collector smoke checks, ZIP integrity and archive SHA-256 passed. Intel execution
 and notarization remain the existing external gates; Windows verification was
 not repeated.
+
+### WinMon appearance alignment — 0.9.0/build 10
+
+This implements the maintainer's detailed title/gauge/chart/table layout request
+against the current sibling WinMon source. The title row extends into native Mac
+chrome, reserving room for traffic lights, marking its interactive buttons as
+chrome user controls and its remaining surface as a drag area. Info, Settings and
+Export are left; compact/full and Always on top are right in both modes. Export
+contains all three existing CSV paths. Info reports supported OS, architecture,
+logical-core, memory, volume and interface information.
+
+Readouts now use WinMon's 98px geometry and layout, smaller unit suffixes,
+resource-colored chart checkboxes and hover/keyboard resource tooltips instead
+of Details buttons/windows. The seven styles are Bowl, Needle, Segmented Arc,
+Left Bar, Bottom Bar, Segmented Bar and None. The renderer ports WinMon's drawing
+geometry to Avalonia rather than retaining a four-style MicroGauge adapter; that
+dependency and its bundle license copy are replaced by the WinMon renderer and
+license. Source provenance is recorded under `dependencies/winmon-ui`. Existing
+Bar maps to Bottom Bar.
+Tooltip providers run only while open; values stay live, Escape/focus loss/
+detach dismiss, and opening a keyboard resource tooltip closes the previous one.
+
+The chart header uses one combined layout/focus menu, central Live/Capture
+chips, right-hand 2/10/30/60-minute chips and the Auto menu for settings/reports.
+Series toggles live on the gauges. Small Multiples and Heatmap use stacked lanes
+in CPU, memory, storage, network order. Focus puts its selected metric above the
+other lanes. Routine readout/instruction/status blocks are removed from the chart;
+inspection tooltips retain readings, interval gaps and labeled history scales.
+The full view no longer needs a scrolling dashboard. Network selection remains
+in Settings, and volume capacity is available through Info/storage tooltip.
+
+Tabs are Processes, Jobs, Usage, with their count/status summaries aligned right.
+A saved-tab layout marker migrates legacy Usage/Jobs indices once. The old default
+2:1 pane split migrates to 1.15:1; custom splits, including the maintainer's 1.92,
+remain intact. The data pane has WinMon's 344px minimum. Compact height is 178px
+with an integrated native title row and the same 98px readouts.
+
+Table headers follow the requested Top/by/Search/filter/chip order and wrap at
+narrow widths. Row separators, WinMon-like name/detail rows and numeric alignment
+are shared across tables. Process columns are process/PID, history, CPU, resident
+memory, disk MiB/s, threads, pin. A star pins the clicked exact lifetime/group and
+is disabled where provenance forbids pinning. Existing captured-target termination
+and other actions remain in the selection bar. Usage adds Copy Usage and selected
+app properties/copy/reveal; duration and seen(running) formatting match WinMon.
+Copy uses the displayed rows and sanitizes embedded TSV delimiters; CSV preserves
+its existing all-source semantics. Process/Jobs histories share their metric scale
+across displayed rows; CPU uses 0–100%.
+
+Jobs stay read only. Top limit applies after filtering/ranking. CPU/memory/disk
+readings and 30s histories describe only a fresh, verified direct process lifetime;
+stale, unmatched and reused PIDs stay unavailable. Native discovery still polls
+every 5s while visible; presentation can use each new live process frame. Trails
+break on missing intervals and wake gaps. Application jobs show verified process
+names over their exact labels; job label/PID/last exit/scope remain in tooltips
+and properties. No Windows GPU, handle, service-control or child-worker readings
+are invented.
+
+Verification so far: 143 Mac tests and three release-workflow tests pass, with
+zero build warnings, native resource/launchd smoke and both-theme renders. Added
+checks cover migration, range chips, combined focus/visibility, stacked order,
+real popup input, all seven gauges, tooltip lifecycle, shared histories, Jobs
+metric identity/freshness, row separators and Usage report formatting. The
+final 600-job/850-process presentation fixture measured 2.615ms / 1,778,044 bytes
+per refresh. Individual process rows measured 1.123ms, grouped 2.444ms and top-20
+0.687ms; native discovery and total app usage are separate.
+
+An arm64 development package passed ad-hoc strict signing and packaged native
+collector/launchd smoke. Native UI verified integrated traffic lights/title buttons,
+restoration of the existing Focus Network/Jobs view, live job readings/history
+and the Info dialog. The Mac locked while checking the Export popup; remaining
+native menu, tooltip and row-pin checks are pending unlock. The running package
+is the initial native preview; packaging the final committed build is also
+pending a clean exit after unlock. No running bundle was replaced.

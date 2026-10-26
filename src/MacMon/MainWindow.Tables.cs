@@ -12,7 +12,7 @@ public sealed partial class MainWindow
     private bool _processAscending;
     private bool _usageAscending;
     private sealed record RowLimit(int Count)
-    { public override string ToString() => Count == 0 ? "All rows" : $"Top {Count}"; }
+    { public override string ToString() => Count == 0 ? "All" : Count.ToString(); }
     private static int SelectedLimit(ComboBox box) => (box.SelectedItem as RowLimit)?.Count ?? 0;
     private void InitializeTables()
     {
@@ -35,6 +35,8 @@ public sealed partial class MainWindow
         ProcessAppsOnly.IsCheckedChanged += (_, _) => { if (!_restoringTables) UpdateProcesses(); };
         UsageAppsOnly.IsCheckedChanged += (_, _) => { if (!_restoringTables) UpdateUsage(); };
         ShowProcessActions.IsCheckedChanged += (_, _) => { if (!_restoringTables) UpdateSelection(); };
+        InitializeUsageActions();
+        CopyUsage.Click += async (_, _) => await CopyUsageRows();
         ToolTip.SetTip(ExportUsage, "Export all session usage, including rows hidden by filters or limits");
         ToolTip.SetTip(ExportProcesses, "Export retained process samples, independent of table filters");
     }
@@ -55,7 +57,8 @@ public sealed partial class MainWindow
     private ProcessRow[] PresentedProcesses(MonitorSample sample) => ProcessPresentation.Rows(TrailHistory(), sample, Grouped, Sort,
         ProcessSearchBox.Text ?? "", _pins, PinnedOnly.IsChecked == true, _inspection.IsHistorical,
         SelectedLimit(ProcessLimitBox), ProcessAppsOnly.IsChecked == true, _processAscending,
-        ProcessSortBox.SelectedIndex switch { 4 => ProcessTableOrder.Name, 5 => ProcessTableOrder.Pid, _ => ProcessTableOrder.Metric });
+        ProcessSortBox.SelectedIndex switch { 4 => ProcessTableOrder.Name, 5 => ProcessTableOrder.Pid, _ => ProcessTableOrder.Metric },
+        _historyOrigins.CanPin(sample, Grouped, _inspection.IsHistorical));
     private void OnProcessHeaderClick(object? sender, RoutedEventArgs args)
     {
         if (sender is not Button { Tag: string tag } || !int.TryParse(tag, out var sort)) return;
@@ -83,16 +86,16 @@ public sealed partial class MainWindow
     }
     private void UpdateProcessHeaders()
     {
-        (Button Button, string Label)[] headers = [(ProcessNameHeader, "Name"), (ProcessPidHeader, Grouped ? "Members" : "PID"),
-            (ProcessCpuHeader, "CPU · 5s"), (ResidentHeader, Grouped ? "Resident sum*" : "Resident"),
-            (ProcessThreadsHeader, "Threads"), (ProcessIoHeader, "Disk I/O · 5s")];
+        (Button Button, string Label)[] headers = [(ProcessNameHeader, "Process"), (ProcessPidHeader, Grouped ? "Members" : "PID"),
+            (ProcessCpuHeader, "CPU"), (ResidentHeader, Grouped ? "Memory Σ" : "Memory"),
+            (ProcessThreadsHeader, "Threads"), (ProcessIoHeader, "Disk MiB/s")];
         if (ProcessSortBox.Items[5] is ComboBoxItem pidChoice) pidChoice.Content = Grouped ? "Member count" : "PID";
         foreach (var (button, label) in headers) Header(button, label, ProcessSortBox.SelectedIndex, _processAscending, "processes");
     }
     private void UpdateUsageHeaders()
     {
-        (Button Button, string Label)[] headers = [(UsageNameHeader, "Executable"), (UsageCpuHeader, "CPU time"),
-            (UsageShareHeader, "Busy share"), (UsageIoHeader, "Disk I/O"), (UsageProcessesHeader, "Running / seen"), (UsageLastHeader, "Last active")];
+        (Button Button, string Label)[] headers = [(UsageNameHeader, "App"), (UsageCpuHeader, "CPU time"),
+            (UsageShareHeader, "Share"), (UsageIoHeader, "I/O MiB"), (UsageProcessesHeader, "Processes"), (UsageLastHeader, "Last active")];
         foreach (var (button, label) in headers) Header(button, label, UsageSortBox.SelectedIndex, _usageAscending, "usage");
     }
 }

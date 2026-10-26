@@ -43,6 +43,33 @@ public sealed class LaunchdPresentationTests
     }
 
     [Test]
+    public void ResourceRankingAndTrailsRequireFreshVerifiedDirectProcessLifetimes()
+    {
+        var first = Frame(Process with { WorkingSetBytes = 1048576, IoBytesPerSecond = 2097152 }) with { MonotonicTimestamp = System.Diagnostics.Stopwatch.Frequency };
+        var second = first with { MonotonicTimestamp = 2 * System.Diagnostics.Stopwatch.Frequency, Processes = [first.Processes[0] with { CpuPercent = 4 }] };
+        var gap = second with { MonotonicTimestamp = 8 * System.Diagnostics.Stopwatch.Frequency };
+        var rows = LaunchdPresentation.Rows(Snapshot, gap, true, null, 0, 3, 5, [first, second, gap]);
+        Assert.That(rows[0].Job, Is.EqualTo(Running));
+        var app = Running with { Id = new(Context, "application.example.worker.123") };
+        var friendly = LaunchdPresentation.Rows(new(Snapshot.ObservedAt, Context, [app]), gap, true, null, 0, 0).Single();
+        Assert.That(friendly.Name, Is.EqualTo("worker"));
+        Assert.That(friendly.ProcessDescription, Does.Contain(app.Id.Label));
+        Assert.That(rows[0].Cpu, Is.EqualTo("4.0%"));
+        Assert.That(rows[0].Resident, Is.EqualTo("1.0 MiB"));
+        Assert.That(rows[0].Io, Is.EqualTo("2.00"));
+        Assert.That(rows[0].Trail.Values, Is.EqualTo(new double?[] { 1, 4, null, 4 }));
+        foreach (var fresh in new[] { true, false })
+        {
+            var reused = gap with { Processes = [Process with { CreationTicks = 999999 }] };
+            var row = LaunchdPresentation.Rows(Snapshot, reused, fresh, "worker", 0, 4, 5, [first, reused]).Single();
+            Assert.That(row.Cpu, Is.EqualTo("—"));
+            Assert.That(row.Trail.Values, Is.Empty);
+        }
+        Assert.That(LaunchdPresentation.Rows(Snapshot, first, false, "worker", 0, 5, history: [first]).Single().Io, Is.EqualTo("—"));
+        Assert.That(LaunchdPresentation.Rows(Snapshot, first, true, "idle", 2, 3, 5), Has.Count.EqualTo(1));
+    }
+
+    [Test]
     public void DiscoveryFailurePreservesLastSuccessWithExplicitErrorAndRecoveryReplacesRows()
     {
         var inventory = new LaunchdInventory();

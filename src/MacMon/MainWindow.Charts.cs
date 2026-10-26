@@ -5,75 +5,84 @@ namespace MacMon;
 public sealed partial class MainWindow
 {
     private bool _restoringCharts;
+    private int _historyRange;
+    private CheckBox CpuVisible => CpuGauge.SeriesToggle;
+    private CheckBox MemoryVisible => MemoryGauge.SeriesToggle;
+    private CheckBox NetworkVisible => NetworkGauge.SeriesToggle;
+    private CheckBox StorageVisible => StorageGauge.SeriesToggle;
     private CheckBox[] MetricSwitches => [CpuVisible, MemoryVisible, NetworkVisible, StorageVisible];
+    private RadioButton[] RangeChips => [Range2, Range10, Range30, Range60];
+    private sealed record ChartChoice(string Label, ResourceChartMode Mode, int Focus = 0)
+    { public override string ToString() => Label; }
+    private static readonly ChartChoice[] ChartChoices = [new("Overlay", ResourceChartMode.Overlay),
+        new("Small multiples", ResourceChartMode.SmallMultiples), new("Heatmap", ResourceChartMode.Heatmap),
+        new("Focus · CPU", ResourceChartMode.Focus), new("Focus · Memory", ResourceChartMode.Focus, 1),
+        new("Focus · Storage", ResourceChartMode.Focus, 3), new("Focus · Network", ResourceChartMode.Focus, 2)];
     private void InitializeCharts()
     {
         Chart.SampleHovered += _ => UpdateChartReadout();
         Chart.LiveRequested += ReturnToLive;
-        ChartModeBox.SelectionChanged += (_, _) => ApplyChartChoices();
-        FocusMetricBox.SelectionChanged += (_, _) =>
-        {
-            if (!_restoringCharts && FocusMetricBox.SelectedIndex is >= 0 and < 4)
-                MetricSwitches[FocusMetricBox.SelectedIndex].IsChecked = true;
-            ApplyChartChoices();
-        };
-        foreach (var toggle in MetricSwitches) toggle.IsCheckedChanged += (_, _) => ApplyChartChoices();
+        ChartModeBox.ItemsSource = ChartChoices;
+        ChartModeBox.SelectionChanged += (_, _) => ApplyChartChoices(true);
+        foreach (var toggle in MetricSwitches) toggle.IsCheckedChanged += (_, _) => ApplyChartChoices(false);
+        foreach (var (chip, index) in RangeChips.Select((chip, index) => (chip, index)))
+            chip.IsCheckedChanged += (_, _) => { if (!_restoringCharts && chip.IsChecked == true) SetHistoryRange(index); };
+    }
+    private void SetHistoryRange(int index)
+    {
+        _historyRange = Math.Clamp(index, 0, 3);
+        _restoringCharts = true;
+        try { RangeChips[_historyRange].IsChecked = true; }
+        finally { _restoringCharts = false; }
+        _session.History.Resize(RangeSeconds); Chart.RangeSeconds = RangeSeconds;
+        Update();
     }
     private void RestoreCharts()
     {
         _restoringCharts = true;
         try
         {
-            ChartModeBox.SelectedIndex = (int)_preferences.ChartMode;
-            FocusMetricBox.SelectedIndex = _preferences.FocusMetric;
+            ChartModeBox.SelectedIndex = Array.FindIndex(ChartChoices, c => c.Mode == _preferences.ChartMode &&
+                (c.Mode != ResourceChartMode.Focus || c.Focus == _preferences.FocusMetric));
             for (var i = 0; i < 4; i++) MetricSwitches[i].IsChecked = (_preferences.VisibleMetrics & (1 << i)) != 0;
         }
         finally { _restoringCharts = false; }
-        ApplyChartChoices();
+        ApplyChartChoices(false);
     }
-    private void ApplyChartChoices()
+    private void ApplyChartChoices(bool choseLayout)
     {
-        if (_restoringCharts) return;
-        Chart.Mode = (ResourceChartMode)Math.Clamp(ChartModeBox.SelectedIndex, 0, 3);
+        if (_restoringCharts || ChartModeBox.SelectedItem is not ChartChoice choice) return;
+        if (choseLayout && choice.Mode == ResourceChartMode.Focus)
+        {
+            _restoringCharts = true;
+            try { MetricSwitches[choice.Focus].IsChecked = true; }
+            finally { _restoringCharts = false; }
+        }
+        Chart.Mode = choice.Mode;
         Chart.VisibleMetrics = MetricSwitches.Select((toggle, i) => toggle.IsChecked == true ? 1 << i : 0).Sum();
-        Chart.FocusMetric = ResourceCharts.Focus(Chart.VisibleMetrics, FocusMetricBox.SelectedIndex);
+        Chart.FocusMetric = ResourceCharts.Focus(Chart.VisibleMetrics, choice.Focus);
         _restoringCharts = true;
-        try { FocusMetricBox.SelectedIndex = Chart.FocusMetric; }
+        try
+        {
+            if (choice.Mode == ResourceChartMode.Focus && Chart.VisibleMetrics != 0)
+                ChartModeBox.SelectedIndex = Array.FindIndex(ChartChoices, c => c.Mode == ResourceChartMode.Focus && c.Focus == Chart.FocusMetric);
+        }
         finally { _restoringCharts = false; }
-        FocusMetricBox.IsVisible = Chart.Mode == ResourceChartMode.Focus;
-        Chart.ClearHover();
-        Chart.InvalidateVisual();
-        UpdateChartLabels();
+        Chart.ClearHover(); Chart.InvalidateVisual(); UpdateChartLabels();
     }
     private void UpdateChartReadout()
     {
-        var hovered = Chart.HoveredSample;
-        var sample = hovered ?? TrailHistory().LastOrDefault();
-        var state = hovered is not null ? "Preview" : _inspection.IsHistorical ? "Captured" : "Live";
-        ChartReadout.Text = sample is null ? $"{state} · readings unavailable" : $"{state} · {ResourceCharts.Describe(sample)}";
-        LiveMode.Content = _inspection.IsHistorical ? "Return to Live" : "● Live";
-        LiveMode.IsEnabled = _inspection.IsHistorical;
-        CaptureMode.Content = _inspection.IsHistorical ? "Captured" : "Capture";
-        CaptureMode.IsEnabled = !_inspection.IsHistorical && _session.Latest is not null;
-        ToolTip.SetTip(LiveMode, "Return to current readings; sampling continues during capture inspection");
-        ToolTip.SetTip(CaptureMode, "Inspect the latest retained sample without pausing collection");
+        LiveMode.Content = "● Live"; CaptureMode.Content = "◎ Capture";
+        LiveMode.Classes.Set("active", !_inspection.IsHistorical);
+        CaptureMode.Classes.Set("active", _inspection.IsHistorical);
+        CaptureMode.IsEnabled = _session.Latest is not null;
+        ToolTip.SetTip(LiveMode, "Return to current readings; sampling continues during inspection");
+        ToolTip.SetTip(CaptureMode, "Inspect the latest retained sample; click the plot or use arrow keys to select another");
     }
     private void ReturnToLive()
     {
         if (!_historyOrigins.SameBoot(TrailHistory().LastOrDefault(), _session.LatestFull)) ClearSelection();
-        _inspection.Live();
-        Chart.ClearHover();
-        Update();
+        _inspection.Live(); Chart.ClearHover(); Update();
     }
-    private void UpdateChartLabels()
-    {
-        UpdateChartReadout();
-        for (var i = 0; i < 4; i++)
-        {
-            var label = $"{ResourceCharts.Names[i]} · {ResourceCharts.Scale(i, Chart.Maximum(i))}";
-            MetricSwitches[i].Content = label;
-            Avalonia.Automation.AutomationProperties.SetName(MetricSwitches[i], $"Show {label}");
-            ToolTip.SetTip(MetricSwitches[i], i < 2 ? "Share of machine capacity" : "Combined throughput; independent scale, not device utilization");
-        }
-    }
+    private void UpdateChartLabels() => UpdateChartReadout();
 }

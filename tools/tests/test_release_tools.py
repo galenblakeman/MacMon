@@ -18,8 +18,8 @@ class ReleaseWorkflowTests(unittest.TestCase):
         for name in ("package-app.sh", "package-release.sh", "sign-app.py"):
             shutil.copy(source / "tools" / name, self.root / "tools" / name)
         (self.root / "tools" / "verify.sh").write_text('#!/bin/bash\necho "verify.sh" >> "$MACMON_TEST_LOG"\n')
-        (self.root / "dependencies" / "microgauge").mkdir(parents=True)
-        shutil.copy(source / "dependencies" / "microgauge" / "LICENSE", self.root / "dependencies" / "microgauge")
+        (self.root / "dependencies" / "winmon-ui").mkdir(parents=True)
+        shutil.copy(source / "dependencies" / "winmon-ui" / "LICENSE", self.root / "dependencies" / "winmon-ui")
         (self.root / "packaging").mkdir()
         shutil.copy(source / "packaging" / "MacMon.entitlements", self.root / "packaging")
         (self.root / "artifacts" / "local-feed").mkdir(parents=True)

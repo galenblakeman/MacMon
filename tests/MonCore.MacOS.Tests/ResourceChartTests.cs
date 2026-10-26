@@ -57,7 +57,7 @@ public sealed class ResourceChartTests
         Assert.That(invalid.FocusMetric, Is.EqualTo(1));
         Assert.That(invalid.ChartMode, Is.EqualTo(ResourceChartMode.Overlay));
         Assert.That(ResourceCharts.Panels(new(600, 180), 0, ResourceChartMode.Focus, 0), Is.Empty);
-        Assert.That(ResourceCharts.Panels(new(600, 180), 12, ResourceChartMode.Focus, 0).Single().Metrics, Is.EqualTo(new[] { 2 }));
+        Assert.That(ResourceCharts.Panels(new(600, 180), 12, ResourceChartMode.Focus, 0).First().Metrics, Is.EqualTo(new[] { 3 }));
     }
 
     [Test]
@@ -108,8 +108,8 @@ public sealed class ResourceChartTests
             Press(Key.End); Assert.That(selected, Is.SameAs(samples[^1]));
             Press(Key.Right); Assert.That(selected, Is.SameAs(samples[^1]));
             Press(Key.Escape); Assert.That(live, Is.EqualTo(1)); Assert.That(selected, Is.Null);
-            window.MouseMove(new Point(10, 2));
-            Assert.That(chart.HoveredSample, Is.Null, "Panel titles must not select data");
+            window.MouseMove(new Point(-1, -1));
+            Assert.That(chart.HoveredSample, Is.Null, "Leaving the chart clears preview");
             window.Close();
         }
     }
@@ -132,12 +132,25 @@ public sealed class ResourceChartTests
             var point = new Point(plot.X + plot.Width / 2, plot.Y + 3);
             window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
         }
-        ClickPanel(15, 2);
+        ClickPanel(15, 3);
         Assert.That(captures, Is.EqualTo(1)); Assert.That(selections, Is.Zero);
         chart.VisibleMetrics = 3; chart.Update(samples);
         ClickPanel(3, 0);
         Assert.That(captures, Is.EqualTo(1)); Assert.That(selections, Is.EqualTo(1));
         window.Close();
+    }
+
+    [Test]
+    public void AlternativeChartsUseWinMonResourceOrderAndStackedLanes()
+    {
+        var stacked = ResourceCharts.Panels(new(800, 240), 15, ResourceChartMode.SmallMultiples, 0);
+        Assert.That(stacked.Select(p => p.Metrics.Single()), Is.EqualTo(new[] { 0, 1, 3, 2 }));
+        Assert.That(stacked.All(p => p.Bounds.X == 0 && p.Bounds.Width == 800), Is.True);
+        Assert.That(stacked.Select(p => p.Bounds.Y), Is.Ordered.Ascending);
+        var focus = ResourceCharts.Panels(new(800, 240), 15, ResourceChartMode.Focus, 2);
+        Assert.That(focus[0].Metrics, Is.EqualTo(new[] { 2 }));
+        Assert.That(focus[0].Bounds.Height, Is.GreaterThan(focus[1].Bounds.Height));
+        Assert.That(focus.Skip(1).Select(p => p.Metrics.Single()), Is.EqualTo(new[] { 0, 1, 3 }));
     }
 
     [AvaloniaTest]

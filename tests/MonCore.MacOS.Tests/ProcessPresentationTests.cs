@@ -34,6 +34,17 @@ public sealed class ProcessPresentationTests
     }
 
     [Test]
+    public void ProcessHistoriesShareOneScaleAcrossRows()
+    {
+        var sample = Sample(1, Process(1, "/A", 1, 100), Process(2, "/B", 50, 900));
+        var pins = new ProcessPins(MacFrameSource.IdentityPolicy);
+        var cpu = ProcessPresentation.Rows([sample], sample, false, ProcessSort.Cpu, "", pins, false);
+        Assert.That(cpu.Select(row => row.Trail.Maximum), Is.All.EqualTo(100));
+        var memory = ProcessPresentation.Rows([sample], sample, false, ProcessSort.Memory, "", pins, false);
+        Assert.That(memory.Select(row => row.Trail.Maximum), Is.All.EqualTo(900));
+    }
+
+    [Test]
     public void GroupSearchMatchesMemberPidAndKeepsWholeGroup()
     {
         var sample = Sample(1, Process(11, "/A", 2), Process(22, "/A", 3));

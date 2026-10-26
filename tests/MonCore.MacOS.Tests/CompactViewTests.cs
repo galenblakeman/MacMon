@@ -122,7 +122,7 @@ public sealed class CompactViewTests
                 var origin = gauge.TranslatePoint(default, window)!.Value;
                 Assert.That(origin.Y + gauge.Bounds.Height, Is.LessThanOrEqualTo(window.ClientSize.Height));
                 Assert.That(origin.X + gauge.Bounds.Width, Is.LessThanOrEqualTo(window.ClientSize.Width));
-                Assert.That(gauge.Bounds.Height, Is.EqualTo(110));
+                Assert.That(gauge.Bounds.Height, Is.EqualTo(98));
                 var number = gauge.GetVisualDescendants().OfType<TextBlock>().Single(text => text.FontSize == 20);
                 Assert.That(number.TextLayout.WidthIncludingTrailingWhitespace, Is.LessThanOrEqualTo(number.Bounds.Width), $"{width}/{theme}/{palette}/{style}");
             }

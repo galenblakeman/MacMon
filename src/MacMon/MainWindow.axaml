@@ -1,216 +1,140 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="using:MacMon"
-        x:Class="MacMon.MainWindow" Title="MacMon" Width="1000" Height="900"
-        MinWidth="800" MinHeight="760">
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:MacMon" xmlns:chrome="using:Avalonia.Controls.Chrome" x:Class="MacMon.MainWindow" Title="MacMon" Width="1000" Height="900" MinWidth="800" MinHeight="760" ExtendClientAreaToDecorationsHint="True" ExtendClientAreaTitleBarHeightHint="36">
   <Grid>
-  <local:CompactView x:Name="CompactPanel" IsVisible="False" />
-  <Grid x:Name="MainLayout" Margin="16" RowSpacing="8">
-    <Grid.RowDefinitions>
-      <RowDefinition Height="Auto" />
-      <RowDefinition Height="2*" MinHeight="120" />
-      <RowDefinition Height="6" />
-      <RowDefinition Height="*" MinHeight="300" />
-      <RowDefinition Height="Auto" />
-    </Grid.RowDefinitions>
-    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" MinHeight="32">
-      <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-        <TextBlock Text="MacMon" FontSize="15" FontWeight="SemiBold" />
-        <TextBlock x:Name="VersionLabel" Classes="label" FontSize="11" VerticalAlignment="Center" />
-      </StackPanel>
-      <TextBlock Grid.Column="1" x:Name="MachineLabel" Classes="label" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
-        <CheckBox x:Name="AlwaysOnTop" Content="Always on top" FontSize="12" />
-        <Button x:Name="EnterCompactView" Content="Compact" ToolTip.Tip="Compact view (⌘⇧M)" />
-        <Button x:Name="OpenSettings" Content="Settings…" ToolTip.Tip="Settings (⌘,)" />
-      </StackPanel>
-    </Grid>
-    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-      <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8" Margin="0,0,4,0">
-    <UniformGrid x:Name="ResourceCards" Grid.Row="0" Columns="4">
-      <Border Classes="card" Padding="8" Margin="0,0,8,8"><local:ResourceGauge x:Name="CpuGauge" Title="CPU" Fill="{DynamicResource CpuStroke}" /></Border>
-      <Border Classes="card" Padding="8" Margin="0,0,8,8"><local:ResourceGauge x:Name="MemoryGauge" Title="Memory" Fill="{DynamicResource MemoryStroke}" /></Border>
-      <Border Classes="card" Padding="8" Margin="0,0,8,8"><local:ResourceGauge x:Name="NetworkGauge" Title="Network" Fill="{DynamicResource NetworkStroke}" /></Border>
-      <Border Classes="card" Padding="8" Margin="0,0,0,8"><local:ResourceGauge x:Name="StorageGauge" Title="Storage" Fill="{DynamicResource StorageStroke}" /></Border>
-    </UniformGrid>
-    <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="16" MinHeight="32">
-      <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="Network" Classes="label" VerticalAlignment="Center" /><ComboBox x:Name="NetworkAdapter" AutomationProperties.Name="Network interface" HorizontalAlignment="Stretch" MaxWidth="340" /></StackPanel>
-      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8"><TextBlock Text="Data volume · available" Classes="label" VerticalAlignment="Center" /><TextBlock x:Name="DiskValue" Text="—" VerticalAlignment="Center" /><TextBlock x:Name="DiskTotal" Classes="label" FontSize="11" VerticalAlignment="Center" /></StackPanel>
-    </Grid>
-    <Border Grid.Row="2" Classes="card" Padding="12">
-      <Grid RowDefinitions="Auto,*,Auto" RowSpacing="6">
-        <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8">
-          <TextBlock Text="Resource history" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
-          <ComboBox Grid.Column="1" x:Name="ChartModeBox" SelectedIndex="0" AutomationProperties.Name="Chart layout">
-            <ComboBoxItem Content="Overlay" /><ComboBoxItem Content="Small multiples" /><ComboBoxItem Content="Heatmap" /><ComboBoxItem Content="Focus" />
-          </ComboBox>
-          <ComboBox Grid.Column="2" x:Name="FocusMetricBox" SelectedIndex="0" AutomationProperties.Name="Focus metric" IsVisible="False">
-            <ComboBoxItem Content="CPU" /><ComboBoxItem Content="Memory" /><ComboBoxItem Content="Network" /><ComboBoxItem Content="Storage" />
-          </ComboBox>
-          <ComboBox Grid.Column="3" x:Name="HistoryRange" SelectedIndex="0" AutomationProperties.Name="History range">
-            <ComboBoxItem Content="2 minutes" /><ComboBoxItem Content="10 minutes" /><ComboBoxItem Content="30 minutes" /><ComboBoxItem Content="60 minutes" />
-          </ComboBox>
-        </Grid>
-        <Grid Grid.Row="1" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="4">
-          <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="8">
-            <Button x:Name="LiveMode" Content="Live" />
-            <Button Grid.Column="1" x:Name="CaptureMode" Content="Capture" />
-            <TextBlock Grid.Column="2" Text="← → inspect · Esc live" Classes="label" VerticalAlignment="Center" FontSize="12" TextWrapping="Wrap" />
-            <Button Grid.Column="3" x:Name="ExportResources" Content="Export resources" />
-            <Button Grid.Column="4" x:Name="ExportProcesses" Content="Export processes" />
-          </Grid>
-
-          <UniformGrid Grid.Row="1" Columns="4">
-            <CheckBox x:Name="CpuVisible" Content="CPU · 0–100%" Foreground="{DynamicResource CpuText}" IsChecked="True" FontSize="11" />
-            <CheckBox x:Name="MemoryVisible" Content="Memory · 0–100%" Foreground="{DynamicResource MemoryText}" IsChecked="True" FontSize="11" />
-            <CheckBox x:Name="NetworkVisible" Content="Network · bytes/s" Foreground="{DynamicResource NetworkText}" IsChecked="True" FontSize="11" />
-            <CheckBox x:Name="StorageVisible" Content="Storage · bytes/s" Foreground="{DynamicResource StorageText}" IsChecked="True" FontSize="11" />
-          </UniformGrid>
-          <TextBlock Grid.Row="2" x:Name="ChartReadout" Text="Live · waiting for readings" Classes="label" FontSize="11" TextWrapping="Wrap" MinHeight="18" />
-          <local:CpuChart Grid.Row="3" x:Name="Chart" Height="180" AutomationProperties.Name="Resource history" />
-        </Grid>
-        <StackPanel Grid.Row="2" Spacing="6">
-          <Expander Header="Automatic capture reports" HorizontalAlignment="Stretch" Padding="0">
-          <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
-            <Button x:Name="ConfigureCaptures" Content="Automatic captures…" />
-            <ComboBox Grid.Column="1" x:Name="CapturesList" PlaceholderText="Saved automatic captures" AutomationProperties.Name="Automatic captures" HorizontalAlignment="Stretch" />
-            <Button Grid.Column="2" x:Name="OpenCaptureReport" Content="Open report" IsEnabled="False" />
-            <Button Grid.Column="3" x:Name="CopyCapture" Content="Copy capture" />
-          </Grid>
-          </Expander>
-          <TextBlock x:Name="CaptureStatus" Text="Live · recording" Classes="label" FontSize="12" TextWrapping="Wrap" />
+    <local:CompactView x:Name="CompactPanel" IsVisible="False" />
+    <Grid x:Name="MainLayout" Margin="20,0,20,8" RowSpacing="6">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="36" /><RowDefinition Height="1.15*" MinHeight="240" />
+        <RowDefinition Height="6" /><RowDefinition Height="*" MinHeight="344" /><RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+      <Grid x:Name="TitleActions" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" ColumnSpacing="6" Background="Transparent" chrome:WindowDecorationProperties.ElementRole="TitleBar">
+        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,8,0">
+          <TextBlock Text="MacMon" FontSize="14" FontWeight="SemiBold" /><TextBlock x:Name="VersionLabel" Classes="label" FontSize="11" VerticalAlignment="Center" />
         </StackPanel>
-      </Grid>
-    </Border>
-      </Grid>
-    </ScrollViewer>
-    <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" ResizeDirection="Rows"
-                  ResizeBehavior="PreviousAndNext" Focusable="True" Background="{DynamicResource MacGridBrush}" AutomationProperties.Name="Resize dashboard and data panes" />
-    <Border Grid.Row="3" Classes="card" MinHeight="300" Padding="12">
-      <TabControl x:Name="DataTabs">
-        <TabItem Header="Processes">
-      <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="6">
-        <Grid ColumnDefinitions="*,210,150" ColumnSpacing="8">
-          <StackPanel Spacing="4">
-            <TextBlock x:Name="ProcessCountLabel" Text="Establishing baselines…" Classes="label" FontSize="12" />
-          </StackPanel>
-          <TextBox Grid.Column="1" x:Name="ProcessSearchBox" PlaceholderText="Search name or PID"
-                   AutomationProperties.Name="Search processes" VerticalAlignment="Center" />
-          <ComboBox Grid.Column="2" x:Name="ProcessSortBox" SelectedIndex="0"
-                    AutomationProperties.Name="Sort processes" HorizontalAlignment="Stretch" VerticalAlignment="Center">
-            <ComboBoxItem Content="CPU usage" />
-            <ComboBoxItem Content="Resident memory" />
-            <ComboBoxItem Content="Threads" />
-            <ComboBoxItem Content="Disk I/O" /><ComboBoxItem Content="Name" /><ComboBoxItem Content="PID" />
-          </ComboBox>
-        </Grid>
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
-          <CheckBox x:Name="GroupProcesses" Content="Grouped" FontSize="12" />
-          <CheckBox x:Name="PinnedOnly" Content="Pinned only" FontSize="12" />
-          <CheckBox x:Name="ProcessAppsOnly" Content="App bundles only" FontSize="12" ToolTip.Tip="Executables inside .app bundles, including helpers and background apps; not a visible-window filter" />
-          <CheckBox x:Name="ShowProcessActions" Content="Actions" IsChecked="True" FontSize="12" />
-          <ComboBox x:Name="ProcessLimitBox" AutomationProperties.Name="Process row limit" Width="86" FontSize="12" ToolTip.Tip="Maximum unpinned rows; all matching pinned rows remain visible" />
-          <Button x:Name="PinSelection" Content="Pin selected" IsEnabled="False" FontSize="12" />
-        </StackPanel>
-        <Grid Grid.Row="2" ColumnDefinitions="*,65,90,100,60,100,75" Margin="6,0">
-          <Button x:Name="ProcessNameHeader" Content="Name" Classes="tableHeader" Tag="4" Click="OnProcessHeaderClick" />
-          <Button Grid.Column="1" x:Name="ProcessPidHeader" Content="PID" Classes="tableHeader" Tag="5" Click="OnProcessHeaderClick" />
-          <Button Grid.Column="2" x:Name="ProcessCpuHeader" Content="CPU · 5s" Classes="tableHeader" Tag="0" Click="OnProcessHeaderClick" />
-          <Button Grid.Column="3" x:Name="ResidentHeader" Content="Resident" Classes="tableHeader" Tag="1" Click="OnProcessHeaderClick" />
-          <Button Grid.Column="4" x:Name="ProcessThreadsHeader" Content="Threads" Classes="tableHeader" Tag="2" Click="OnProcessHeaderClick" />
-          <Button Grid.Column="5" x:Name="ProcessIoHeader" Content="Disk I/O · 5s" Classes="tableHeader" Tag="3" Click="OnProcessHeaderClick" />
-          <TextBlock Grid.Column="6" Text="30s trend" Classes="label" FontSize="11" VerticalAlignment="Center" ToolTip.Tip="Selected metric at a local scale; CPU for name/PID sorting" />
-        </Grid>
-        <Grid Grid.Row="3">
-          <ListBox x:Name="ProcessList" Classes="dataRows" AutoScrollToSelectedItem="False" Background="Transparent" BorderThickness="0"
-                   AutomationProperties.Name="Observed processes">
-            <ListBox.Styles>
-              <Style Selector="ListBoxItem">
-                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-              </Style>
-            </ListBox.Styles>
-            <ListBox.ItemTemplate>
-              <DataTemplate x:DataType="local:ProcessRow">
-                <Grid ColumnDefinitions="*,65,90,100,60,100,75" Margin="0,1" ToolTip.Tip="{Binding Path}">
-                  <Grid ColumnDefinitions="Auto,16,*" ColumnSpacing="5">
-                    <TextBlock Text="{Binding Pin}" Classes="pinMetric" />
-                    <Image Grid.Column="1" Source="{Binding Icon}" Width="16" Height="16" />
-                    <TextBlock Grid.Column="2" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                  </Grid>
-                  <TextBlock Grid.Column="1" Text="{Binding Pid}" />
-                  <TextBlock Grid.Column="2" Text="{Binding Cpu}" Classes="cpuMetric" />
-                  <TextBlock Grid.Column="3" Text="{Binding Resident}" />
-                  <TextBlock Grid.Column="4" Text="{Binding Threads}" />
-                  <TextBlock Grid.Column="5" Text="{Binding Io}" />
-                  <local:ProcessSparkline Grid.Column="6" Trail="{Binding Trail}" Height="20" />
-                </Grid>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
-          <TextBlock x:Name="EmptyProcessLabel" Text="Waiting for process readings…" Classes="label"
-                     HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
-        </Grid>
-        <StackPanel Grid.Row="4" Spacing="6">
-          <StackPanel x:Name="ProcessActionsPanel" Orientation="Horizontal" Spacing="10" IsVisible="False">
-            <Button x:Name="ShowProperties" Content="Properties" />
-            <Button x:Name="CopyProcessDetails" Content="Copy details" />
-            <Button x:Name="RevealExecutable" Content="Reveal in Finder" />
-            <Button x:Name="EndProcess" Content="End process…" />
-          </StackPanel>
-          <TextBlock x:Name="SelectionLabel" Text="Select a process to inspect its lifetime and path."
-                     Classes="label" FontSize="12" TextWrapping="Wrap" MaxHeight="40" />
-        </StackPanel>
-      </Grid>
-        </TabItem>
-        <TabItem Header="Usage">
-          <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="6" Margin="0,6,0,0">
-            <Grid ColumnDefinitions="*,180,140,Auto,Auto" ColumnSpacing="10">
-              <TextBlock Text="Session usage" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
-              <TextBox Grid.Column="1" x:Name="UsageSearch" PlaceholderText="Search name or path" AutomationProperties.Name="Search usage" />
-              <ComboBox Grid.Column="2" x:Name="UsageSortBox" SelectedIndex="0" AutomationProperties.Name="Sort usage" HorizontalAlignment="Stretch">
-                <ComboBoxItem Content="CPU time" /><ComboBoxItem Content="Disk I/O" /><ComboBoxItem Content="Last active" /><ComboBoxItem Content="Name" /><ComboBoxItem Content="Busy share" /><ComboBoxItem Content="Running / seen" />
-              </ComboBox>
-              <Button Grid.Column="3" x:Name="ResetUsage" Content="Reset" />
-              <Button Grid.Column="4" x:Name="ExportUsage" Content="Export CSV" />
-            </Grid>
-            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="12">
-              <CheckBox x:Name="UsageAppsOnly" Content="App bundles only" FontSize="12" ToolTip.Tip="Executables inside .app bundles; includes helpers and exited apps" />
-              <ComboBox x:Name="UsageLimitBox" AutomationProperties.Name="Usage row limit" Width="86" FontSize="12" />
+        <Button Grid.Column="1" x:Name="OpenInfo" Content="ⓘ Info" Classes="titleAction" ToolTip.Tip="About MacMon and hardware information" />
+        <Button Grid.Column="2" x:Name="OpenSettings" Content="⚙ Settings" Classes="titleAction" ToolTip.Tip="Settings (⌘,)" />
+        <Button Grid.Column="3" x:Name="OpenExport" Content="↥ Export" Classes="titleAction">
+          <Button.Flyout><Flyout Placement="Bottom">
+            <StackPanel Spacing="6" MinWidth="210">
+              <Button x:Name="ExportResources" Content="Resource history CSV…" HorizontalAlignment="Stretch" />
+              <Button x:Name="ExportProcesses" Content="Retained processes CSV…" HorizontalAlignment="Stretch" />
+              <Button x:Name="ExportUsage" Content="Session usage CSV…" HorizontalAlignment="Stretch" />
             </StackPanel>
-            <Grid Grid.Row="2" ColumnDefinitions="*,90,80,100,100,90" Margin="6,0">
-              <Button x:Name="UsageNameHeader" Content="Executable" Classes="tableHeader" Tag="3" Click="OnUsageHeaderClick" />
-              <Button Grid.Column="1" x:Name="UsageCpuHeader" Content="CPU time" Classes="tableHeader" Tag="0" Click="OnUsageHeaderClick" />
-              <Button Grid.Column="2" x:Name="UsageShareHeader" Content="Busy share" Classes="tableHeader" Tag="4" Click="OnUsageHeaderClick" />
-              <Button Grid.Column="3" x:Name="UsageIoHeader" Content="Disk I/O" Classes="tableHeader" Tag="1" Click="OnUsageHeaderClick" />
-              <Button Grid.Column="4" x:Name="UsageProcessesHeader" Content="Running / seen" Classes="tableHeader" Tag="5" Click="OnUsageHeaderClick" />
-              <Button Grid.Column="5" x:Name="UsageLastHeader" Content="Last active" Classes="tableHeader" Tag="2" Click="OnUsageHeaderClick" />
-            </Grid>
-            <ListBox Grid.Row="3" x:Name="UsageList" Classes="dataRows" AutoScrollToSelectedItem="False" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Session usage totals">
-              <ListBox.Styles><Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style></ListBox.Styles>
-              <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="local:UsageRow">
-                  <Grid ColumnDefinitions="*,90,80,100,100,90" Margin="0,1" ToolTip.Tip="{Binding Path}">
-                    <Grid ColumnDefinitions="16,*" ColumnSpacing="5"><Image Source="{Binding Icon}" Width="16" Height="16" /><TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" /></Grid>
-                    <TextBlock Grid.Column="1" Text="{Binding Cpu}" Classes="cpuMetric" />
-                    <TextBlock Grid.Column="2" Text="{Binding Share}" />
-                    <TextBlock Grid.Column="3" Text="{Binding DiskIo}" />
-                    <TextBlock Grid.Column="4" Text="{Binding Processes}" />
-                    <TextBlock Grid.Column="5" Text="{Binding LastActive}" />
-                  </Grid>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-            <TextBlock Grid.Row="4" x:Name="UsageStatus" Classes="label" FontSize="12" TextWrapping="Wrap" />
+          </Flyout></Button.Flyout>
+        </Button>
+        <Button Grid.Column="5" x:Name="EnterCompactView" Content="▱ Compact view" Classes="titleAction" ToolTip.Tip="Compact view (⌘⇧M)" />
+        <ToggleButton Grid.Column="6" x:Name="AlwaysOnTop" Content="↟ Always on top" Classes="titleAction" ToolTip.Tip="Keep MacMon above other windows" />
+      </Grid>
+      <Grid Grid.Row="1" RowDefinitions="98,Auto,*" RowSpacing="8">
+        <UniformGrid x:Name="ResourceCards" Columns="4">
+          <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="0,0,12,0"><local:ResourceGauge x:Name="CpuGauge" Title="CPU" Fill="{DynamicResource CpuStroke}" TextAccent="{DynamicResource CpuText}" /></Border>
+          <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="12,0"><local:ResourceGauge x:Name="MemoryGauge" Title="Memory" Fill="{DynamicResource MemoryStroke}" TextAccent="{DynamicResource MemoryText}" /></Border>
+          <Border BorderBrush="{DynamicResource MacGridBrush}" BorderThickness="0,0,1,0" Padding="12,0"><local:ResourceGauge x:Name="StorageGauge" Title="Storage" Fill="{DynamicResource StorageStroke}" TextAccent="{DynamicResource StorageText}" /></Border>
+          <Border Padding="12,0,0,0"><local:ResourceGauge x:Name="NetworkGauge" Title="Network" Fill="{DynamicResource NetworkStroke}" TextAccent="{DynamicResource NetworkText}" /></Border>
+        </UniformGrid>
+        <Border Grid.Row="1" Classes="sectionHeader" Padding="0,5">
+          <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="8">
+            <ComboBox x:Name="ChartModeBox" Width="142" HorizontalAlignment="Left" AutomationProperties.Name="Chart layout or focus metric" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
+              <Button x:Name="LiveMode" Content="● Live" Classes="chip" /><Button x:Name="CaptureMode" Content="◎ Capture" Classes="chip" />
+            </StackPanel>
+            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="2">
+              <Button x:Name="AutomaticCaptures" Content="◎ Auto" Classes="titleAction" ToolTip.Tip="Automatic captures and saved reports">
+                <Button.Flyout><Flyout Placement="Bottom">
+                  <StackPanel Spacing="8" Width="360">
+                    <Button x:Name="ConfigureCaptures" Content="Automatic capture settings…" HorizontalAlignment="Stretch" />
+                    <ComboBox x:Name="CapturesList" PlaceholderText="Saved automatic captures" AutomationProperties.Name="Automatic captures" HorizontalAlignment="Stretch" />
+                    <StackPanel Orientation="Horizontal" Spacing="6"><Button x:Name="OpenCaptureReport" Content="Open report" IsEnabled="False" /><Button x:Name="CopyCapture" Content="Copy capture" /></StackPanel>
+                    <TextBlock x:Name="CaptureStatus" Classes="label" FontSize="11" TextWrapping="Wrap" />
+                  </StackPanel>
+                </Flyout></Button.Flyout>
+              </Button>
+              <RadioButton x:Name="Range2" Content="2m" GroupName="HistoryRange" Classes="chip" IsChecked="True" AutomationProperties.Name="2 minute history" />
+              <RadioButton x:Name="Range10" Content="10m" GroupName="HistoryRange" Classes="chip" AutomationProperties.Name="10 minute history" />
+              <RadioButton x:Name="Range30" Content="30m" GroupName="HistoryRange" Classes="chip" AutomationProperties.Name="30 minute history" />
+              <RadioButton x:Name="Range60" Content="60m" GroupName="HistoryRange" Classes="chip" AutomationProperties.Name="60 minute history" />
+            </StackPanel>
           </Grid>
-        </TabItem>
-        <TabItem Header="Jobs"><local:LaunchdView x:Name="JobsView" /></TabItem>
-      </TabControl>
-    </Border>
-    <StackPanel Grid.Row="4" Spacing="6">
-      <TextBlock x:Name="StatusLabel" Text="Starting native collector…" Classes="label" FontSize="11" TextWrapping="Wrap" />
-      <TextBlock Text="CPU is a share of total machine capacity · — means unavailable · resident memory includes shared pages"
-                 Classes="label" FontSize="11" TextWrapping="Wrap" />
-    </StackPanel>
-  </Grid>
+        </Border>
+        <local:CpuChart Grid.Row="2" x:Name="Chart" MinHeight="80" AutomationProperties.Name="Resource history" />
+      </Grid>
+      <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" Focusable="True" Background="{DynamicResource MacGridBrush}" AutomationProperties.Name="Resize dashboard and data panes" />
+      <Grid Grid.Row="3">
+        <TabControl x:Name="DataTabs">
+          <TabItem Header="Processes">
+            <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="4">
+              <Border Classes="sectionHeader">
+                <WrapPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,8,4">
+                    <TextBlock Text="Top" Classes="toolbarLabel" /><ComboBox x:Name="ProcessLimitBox" Width="60" AutomationProperties.Name="Process row limit" ToolTip.Tip="Maximum unpinned rows; matching pins remain visible" />
+                    <TextBlock Text="processes by" Classes="toolbarLabel" /><ComboBox x:Name="ProcessSortBox" Width="115" SelectedIndex="0" AutomationProperties.Name="Sort processes"><ComboBoxItem Content="CPU" /><ComboBoxItem Content="Memory" /><ComboBoxItem Content="Threads" /><ComboBoxItem Content="Disk I/O" /><ComboBoxItem Content="Name" /><ComboBoxItem Content="PID" /></ComboBox>
+                  </StackPanel>
+                  <TextBox x:Name="ProcessSearchBox" Width="150" PlaceholderText="Search name or PID" AutomationProperties.Name="Search processes" Margin="0,0,8,4" />
+                  <CheckBox x:Name="ProcessAppsOnly" Content="App Only" FontSize="12" Margin="0,0,8,4" ToolTip.Tip="Executables inside .app bundles, including helpers and background apps" />
+                  <CheckBox x:Name="PinnedOnly" Content="Pinned Only" FontSize="12" Margin="0,0,8,4" />
+                  <StackPanel Orientation="Horizontal" Spacing="2" Margin="0,0,0,4"><RadioButton x:Name="IndividualProcesses" Content="Individual" GroupName="ProcessGrouping" Classes="chip" IsChecked="True" /><RadioButton x:Name="GroupProcesses" Content="Grouped" GroupName="ProcessGrouping" Classes="chip" /></StackPanel>
+                </WrapPanel>
+              </Border>
+              <Grid Grid.Row="1" ColumnDefinitions="*,140,65,100,90,60,28" Margin="6,0,18,0">
+                <StackPanel Orientation="Horizontal"><Button x:Name="ProcessNameHeader" Content="Process" Classes="tableHeader" Tag="4" Click="OnProcessHeaderClick" /><Button x:Name="ProcessPidHeader" Content="PID" IsVisible="False" Classes="tableHeader" Tag="5" Click="OnProcessHeaderClick" /></StackPanel>
+                <TextBlock Grid.Column="1" Text="History" Classes="columnLabel" HorizontalAlignment="Center" />
+                <Button Grid.Column="2" x:Name="ProcessCpuHeader" Content="CPU" Classes="tableHeader" Tag="0" Click="OnProcessHeaderClick" />
+                <Button Grid.Column="3" x:Name="ResidentHeader" Content="Memory" Classes="tableHeader" Tag="1" Click="OnProcessHeaderClick" />
+                <Button Grid.Column="4" x:Name="ProcessIoHeader" Content="Disk MiB/s" Classes="tableHeader" Tag="3" Click="OnProcessHeaderClick" />
+                <Button Grid.Column="5" x:Name="ProcessThreadsHeader" Content="Threads" Classes="tableHeader" Tag="2" Click="OnProcessHeaderClick" />
+                <TextBlock Grid.Column="6" Text="Pin" Classes="columnLabel" />
+              </Grid>
+              <Grid Grid.Row="2">
+                <ListBox x:Name="ProcessList" Classes="dataRows" AutoScrollToSelectedItem="False" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Observed processes">
+                  <ListBox.ItemTemplate><DataTemplate x:DataType="local:ProcessRow">
+                    <Border Classes="dataRow"><Grid ColumnDefinitions="*,140,65,100,90,60,28" ColumnSpacing="0" ToolTip.Tip="{Binding Path}">
+                      <Grid ColumnDefinitions="20,*" ColumnSpacing="5"><Image Source="{Binding Icon}" Width="16" Height="16" /><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Pid}" Classes="label" FontSize="10" /></StackPanel></Grid>
+                      <local:ProcessSparkline Grid.Column="1" Trail="{Binding Trail}" Height="24" Margin="6,0" />
+                      <TextBlock Grid.Column="2" Text="{Binding Cpu}" Classes="cpuMetric" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                      <TextBlock Grid.Column="3" Text="{Binding Resident}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                      <TextBlock Grid.Column="4" Text="{Binding Io}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                      <TextBlock Grid.Column="5" Text="{Binding Threads}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                      <Button Grid.Column="6" Content="{Binding PinAction}" IsEnabled="{Binding CanPin}" Click="OnRowPinClick" Classes="rowPin" AutomationProperties.Name="{Binding PinActionName}" ToolTip.Tip="{Binding PinActionName}" />
+                    </Grid></Border>
+                  </DataTemplate></ListBox.ItemTemplate>
+                </ListBox>
+                <TextBlock x:Name="EmptyProcessLabel" Text="Waiting for process readings…" Classes="label" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
+              </Grid>
+              <Border Grid.Row="3" Classes="actionBar"><Grid RowDefinitions="Auto,Auto" RowSpacing="4">
+                <Grid ColumnDefinitions="*,Auto"><TextBlock x:Name="SelectionLabel" Text="Select a process" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" /><ToggleButton Grid.Column="1" x:Name="ShowProcessActions" Content="Actions" Classes="titleAction" IsChecked="True" /></Grid>
+                <WrapPanel Grid.Row="1" x:Name="ProcessActionsPanel" IsVisible="False"><Button x:Name="PinSelection" Content="☆ Pin" /><Button x:Name="ShowProperties" Content="ⓘ Properties" /><Button x:Name="CopyProcessDetails" Content="Copy details" /><Button x:Name="RevealExecutable" Content="Reveal in Finder" /><Button x:Name="EndProcess" Content="End process…" /></WrapPanel>
+              </Grid></Border>
+            </Grid>
+          </TabItem>
+          <TabItem Header="Jobs"><local:LaunchdView x:Name="JobsView" /></TabItem>
+          <TabItem Header="Usage">
+            <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="4">
+              <Border Classes="sectionHeader"><WrapPanel>
+                <StackPanel Orientation="Horizontal" Spacing="5" Margin="0,0,8,4"><TextBlock Text="Top" Classes="toolbarLabel" /><ComboBox x:Name="UsageLimitBox" Width="60" AutomationProperties.Name="Usage row limit" /><TextBlock Text="apps by" Classes="toolbarLabel" /><ComboBox x:Name="UsageSortBox" Width="110" SelectedIndex="0" AutomationProperties.Name="Sort usage"><ComboBoxItem Content="CPU time" /><ComboBoxItem Content="Disk I/O" /><ComboBoxItem Content="Last active" /><ComboBoxItem Content="Name" /><ComboBoxItem Content="Busy share" /><ComboBoxItem Content="Running / seen" /></ComboBox></StackPanel>
+                <TextBox x:Name="UsageSearch" Width="150" PlaceholderText="Search name or path" AutomationProperties.Name="Search usage" Margin="0,0,8,4" />
+                <CheckBox x:Name="UsageAppsOnly" Content="App Only" FontSize="12" Margin="0,0,8,4" ToolTip.Tip="Executables inside .app bundles, including helpers and exited apps" />
+                <Button x:Name="CopyUsage" Content="Copy Usage" Margin="0,0,6,4" /><Button x:Name="ResetUsage" Content="Reset" Margin="0,0,0,4" />
+              </WrapPanel></Border>
+              <Grid Grid.Row="1" ColumnDefinitions="*,80,64,84,78,84" Margin="6,0,18,0">
+                <Button x:Name="UsageNameHeader" Content="App" Classes="tableHeader" Tag="3" Click="OnUsageHeaderClick" /><Button Grid.Column="1" x:Name="UsageCpuHeader" Content="CPU time" Classes="tableHeader" Tag="0" Click="OnUsageHeaderClick" /><Button Grid.Column="2" x:Name="UsageShareHeader" Content="Share" Classes="tableHeader" Tag="4" Click="OnUsageHeaderClick" /><Button Grid.Column="3" x:Name="UsageIoHeader" Content="I/O MiB" Classes="tableHeader" Tag="1" Click="OnUsageHeaderClick" /><Button Grid.Column="4" x:Name="UsageProcessesHeader" Content="Processes" Classes="tableHeader" Tag="5" Click="OnUsageHeaderClick" /><Button Grid.Column="5" x:Name="UsageLastHeader" Content="Last active" Classes="tableHeader" Tag="2" Click="OnUsageHeaderClick" />
+              </Grid>
+              <ListBox Grid.Row="2" x:Name="UsageList" Classes="dataRows" AutoScrollToSelectedItem="False" Background="Transparent" BorderThickness="0" AutomationProperties.Name="Session usage totals">
+                <ListBox.ItemTemplate><DataTemplate x:DataType="local:UsageRow"><Border Classes="dataRow"><Grid ColumnDefinitions="*,80,64,84,78,84" ToolTip.Tip="{Binding Path}">
+                  <Grid ColumnDefinitions="20,*" ColumnSpacing="5"><Image Source="{Binding Icon}" Width="16" Height="16" /><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Path}" Classes="label" FontSize="10" TextTrimming="CharacterEllipsis" /></StackPanel></Grid>
+                  <TextBlock Grid.Column="1" Text="{Binding Cpu}" Classes="cpuMetric" VerticalAlignment="Center" HorizontalAlignment="Right" /><TextBlock Grid.Column="2" Text="{Binding Share}" VerticalAlignment="Center" HorizontalAlignment="Right" /><TextBlock Grid.Column="3" Text="{Binding DiskIo}" VerticalAlignment="Center" HorizontalAlignment="Right" /><TextBlock Grid.Column="4" Text="{Binding Processes}" VerticalAlignment="Center" HorizontalAlignment="Right" /><TextBlock Grid.Column="5" Text="{Binding LastActive}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                </Grid></Border></DataTemplate></ListBox.ItemTemplate>
+              </ListBox>
+              <Border Grid.Row="3" Classes="actionBar"><Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6"><TextBlock x:Name="UsageSelection" Text="Select an app" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" /><Button Grid.Column="1" x:Name="UsageProperties" Content="ⓘ Properties" IsEnabled="False" /><Button Grid.Column="2" x:Name="CopyUsageApp" Content="Copy details" IsEnabled="False" /><Button Grid.Column="3" x:Name="RevealUsageApp" Content="Reveal in Finder" IsEnabled="False" /></Grid></Border>
+            </Grid>
+          </TabItem>
+        </TabControl>
+        <Grid HorizontalAlignment="Right" VerticalAlignment="Top" Height="34" MaxWidth="440" Margin="240,0,4,0">
+          <TextBlock x:Name="ProcessCountLabel" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+          <TextBlock x:Name="JobSummary" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" IsVisible="False" />
+          <TextBlock x:Name="UsageStatus" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" IsVisible="False" />
+        </Grid>
+      </Grid>
+      <TextBlock Grid.Row="4" x:Name="StatusLabel" Classes="label" FontSize="11" TextTrimming="CharacterEllipsis" />
+    </Grid>
   </Grid>
 </Window>
