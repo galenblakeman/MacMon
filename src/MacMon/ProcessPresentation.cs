@@ -40,7 +40,7 @@ public static class ProcessPresentation
             .Concat(pinnedOnly ? [] : live.Where(process => !pins.Contains(process, grouped))
                 .Select(process => new ProcessRow(process, false, PinnedProcessState.Present, grouped) { CanPin = canPin }))
             .Where(row => (!appsOnly || TablePresentation.ApplicationBundle(row.Process.ImagePath) is not null) &&
-                (string.IsNullOrWhiteSpace(search) || ProcessSearch.Filter([row.Process], search).Any()));
+                (string.IsNullOrWhiteSpace(search) || TableInteractions.Matches(row.Process, search)));
         var ordered = TablePresentation.Sort(matching, sort, order, ascending).ToArray();
         var maximum = TablePresentation.NormalizeLimit(limit);
         var rows = maximum == 0 ? ordered : ordered.Where(row => row.Pinned)

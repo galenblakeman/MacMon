@@ -18,6 +18,8 @@ public sealed partial class MainWindow
     private static int SelectedLimit(ComboBox box) => (box.SelectedItem as RowLimit)?.Count ?? 0;
     private void InitializeTables()
     {
+        TableInteractions.AddSearchClear(ProcessSearchBox);
+        TableInteractions.AddSearchClear(UsageSearch);
         DataTabs.Loaded += (_, _) =>
         {
             // Fluent sets a local clip on this wrapper. Let header backgrounds bleed

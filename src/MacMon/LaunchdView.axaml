@@ -6,11 +6,16 @@
       <ComboBox x:Name="JobFilter" Width="120" SelectedIndex="0" AutomationProperties.Name="{local:Loc &quot;Filter jobs&quot;}" Margin="0,0,0,4"><ComboBoxItem Content="{local:Loc &quot;All loaded&quot;}" /><ComboBoxItem Content="{local:Loc &quot;Running&quot;}" /><ComboBoxItem Content="{local:Loc &quot;Not running&quot;}" /></ComboBox>
     </local:TableToolbarLayout></Border>
     <Grid Grid.Row="1" ColumnDefinitions="*,140,100,65,95,85" Margin="6,0,18,0">
-      <TextBlock Text="{local:Loc &quot;Job / process&quot;}" Classes="columnLabel" /><TextBlock Grid.Column="1" Text="{local:Loc &quot;History&quot;}" Classes="columnLabel" HorizontalAlignment="Center" /><TextBlock Grid.Column="2" Text="{local:Loc &quot;Status&quot;}" Classes="columnLabel" /><TextBlock x:Name="JobCpuHeader" Grid.Column="3" Text="{local:Loc &quot;CPU&quot;}" Classes="columnLabel" HorizontalAlignment="Right" /><TextBlock Grid.Column="4" Text="{local:Loc &quot;Memory&quot;}" Classes="columnLabel" HorizontalAlignment="Right" /><TextBlock Grid.Column="5" Text="{local:Loc &quot;Disk&quot;}" Classes="columnLabel" HorizontalAlignment="Right" />
+      <Button x:Name="JobNameHeader" Content="{local:Loc &quot;Job / process&quot;}" Classes="tableHeader" Tag="0" Click="OnJobHeaderClick" />
+      <TextBlock Grid.Column="1" Text="{local:Loc &quot;History&quot;}" Classes="columnLabel" HorizontalAlignment="Center" />
+      <Button x:Name="JobStateHeader" Grid.Column="2" Content="{local:Loc &quot;Status&quot;}" Classes="tableHeader" Tag="1" Click="OnJobHeaderClick" />
+      <Button x:Name="JobCpuHeader" Grid.Column="3" Content="{local:Loc &quot;CPU&quot;}" Classes="tableHeader numericHeader" Tag="3" Click="OnJobHeaderClick" />
+      <Button x:Name="JobMemoryHeader" Grid.Column="4" Content="{local:Loc &quot;Memory&quot;}" Classes="tableHeader numericHeader" Tag="4" Click="OnJobHeaderClick" />
+      <Button x:Name="JobIoHeader" Grid.Column="5" Content="{local:Loc &quot;Disk&quot;}" Classes="tableHeader numericHeader" Tag="5" Click="OnJobHeaderClick" />
     </Grid>
     <Grid Grid.Row="2">
       <ListBox x:Name="JobList" Classes="dataRows" AutoScrollToSelectedItem="False" Background="Transparent" BorderThickness="0" AutomationProperties.Name="{local:Loc &quot;Loaded launchd jobs&quot;}">
-        <ListBox.ItemTemplate><DataTemplate x:DataType="local:LaunchdRow"><Border Classes="dataRow"><Grid ColumnDefinitions="*,140,100,65,95,85" ToolTip.Tip="{Binding Description}">
+        <ListBox.ItemTemplate><DataTemplate x:DataType="local:LaunchdRow"><Border Classes="dataRow" ContextRequested="OnJobContextRequested"><Grid ColumnDefinitions="*,140,100,65,95,85" ToolTip.Tip="{Binding Description}">
           <StackPanel VerticalAlignment="Center"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding ProcessDescription}" Classes="label" FontSize="10" TextTrimming="CharacterEllipsis" /></StackPanel>
           <local:ProcessSparkline Grid.Column="1" Trail="{Binding Trail}" Height="24" Margin="6,0" />
           <TextBlock Grid.Column="2" Text="{Binding State}" FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />

@@ -567,7 +567,7 @@ public sealed partial class MainWindow : Window
         ProcessSortBox.SelectedIndex = _preferences.ProcessSort; UsageSortBox.SelectedIndex = _preferences.UsageSort;
         IndividualProcesses.IsChecked = !Grouped;
         RestoreTables();
-        JobsView.SortIndex = _preferences.JobSort; JobsView.FilterIndex = _preferences.JobFilter; JobsView.RowLimit = _preferences.JobLimit;
+        JobsView.SortIndex = _preferences.JobSort; JobsView.SortAscending = _preferences.JobAscending ?? _preferences.JobSort < 3; JobsView.FilterIndex = _preferences.JobFilter; JobsView.RowLimit = _preferences.JobLimit;
         _source.PrimaryDiskId = _preferences.PrimaryDiskId; _source.SecondaryDiskId = _preferences.SecondaryDiskId;
         UpdateDiskLayout();
         RestoreCharts();
@@ -598,7 +598,7 @@ public sealed partial class MainWindow : Window
             ChartMode = Chart.Mode, VisibleMetrics = Chart.VisibleMetrics, FocusMetric = Chart.FocusMetric,
             BootId = _bootId, Grouped = Grouped, PinnedOnly = PinnedOnly.IsChecked == true,
             Pins = _pins.Snapshot(), ProcessSort = ProcessSortBox.SelectedIndex, UsageSort = UsageSortBox.SelectedIndex,
-            DataTab = DataTabs.SelectedIndex, JobSort = JobsView.SortIndex, JobFilter = JobsView.FilterIndex, JobLimit = JobsView.RowLimit, HistoryRange = _historyRange, NetworkId = _source.NetworkInterfaceId,
+            DataTab = DataTabs.SelectedIndex, JobSort = JobsView.SortIndex, JobAscending = JobsView.SortAscending, JobFilter = JobsView.FilterIndex, JobLimit = JobsView.RowLimit, HistoryRange = _historyRange, NetworkId = _source.NetworkInterfaceId,
             AlwaysOnTop = Topmost, Captures = _captureOptions, KeepHistory = _keepHistory,
             DashboardRatio = MainLayout.RowDefinitions[1].Height.Value / Math.Max(0.01, MainLayout.RowDefinitions[3].Height.Value)
         });

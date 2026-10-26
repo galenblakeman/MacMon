@@ -1242,3 +1242,22 @@ smoke checks pass with zero build warnings/errors. Rendered Candy, Copper,
 Crystal and Slate views retain readable tabs and the selection underline.
 Native 0.13.10 checks confirm larger chart labels; stderr is empty. Strict
 signing, ZIP integrity and SHA-256 verification pass.
+
+## Parity slice 4: table interactions — 0.13.11/build 34
+
+All three table searches have accessible clear controls. Processes and Usage
+have row menus for their existing actions; Jobs has Properties, Copy details
+and Refresh only. Menu callbacks re-resolve the exact selected lifetime or
+executable/job identity before acting, retaining historical and protected-target
+restrictions and the existing termination confirmation.
+
+Usage adds Show processes in the action bar and row menu. It returns to Live,
+clears restrictive app/pin filters, and uses an explicit case-sensitive path:
+query, applied before row limits. Clear search exits this filter. Jobs headers
+sort in either direction, keep unavailable values last and persist direction.
+
+Validation: 205 full-suite tests plus the added popup/row-targeting regression
+pass (206 tests total), alongside three release checks and collector/launchd
+smoke. Native 0.13.11 search clearing restores the inventory and keyboard focus;
+Jobs exposes sortable headers. Actual headless popup geometry confirms the
+read-only context menu opens for the requested row. Package signing passes.

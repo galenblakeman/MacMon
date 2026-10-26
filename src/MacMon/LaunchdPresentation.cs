@@ -41,7 +41,7 @@ public static class LaunchdPresentation
         return live?.Processes.FirstOrDefault(process => process.Identity == identity);
     }
     public static IReadOnlyList<LaunchdRow> Rows(LaunchdSnapshot? snapshot, MonitorSample? live, bool fresh,
-        string? search, int filter, int sort, int limit = 0, IReadOnlyList<MonitorSample>? history = null)
+        string? search, int filter, int sort, int limit = 0, IReadOnlyList<MonitorSample>? history = null, bool? ascending = null)
     {
         var query = search?.Trim() ?? "";
         var current = fresh && live is not null ? live.Processes.ToDictionary(p => p.Identity) : [];
@@ -53,15 +53,15 @@ public static class LaunchdPresentation
             { Process = job.ObservedIdentity is { } key && current.TryGetValue(key, out var matched) ? matched : null })
             .Where(row => query.Length == 0 || row.Label.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                 row.Pid.Contains(query, StringComparison.Ordinal) || row.ProcessName.Contains(query, StringComparison.OrdinalIgnoreCase));
-        var sorted = (sort switch
-        {
-            1 => rows.OrderByDescending(row => row.Job.ReportedPid is not null).ThenBy(row => row.Label, StringComparer.Ordinal),
-            2 => rows.OrderBy(row => row.Job.ReportedPid ?? int.MaxValue).ThenBy(row => row.Label, StringComparer.Ordinal),
-            3 => rows.OrderByDescending(row => row.Process?.ObservedCpuPercent).ThenBy(row => row.Label, StringComparer.Ordinal),
-            4 => rows.OrderByDescending(row => row.Process?.WorkingSetBytes).ThenBy(row => row.Label, StringComparer.Ordinal),
-            5 => rows.OrderByDescending(row => row.Process?.IoBytesPerSecond).ThenBy(row => row.Label, StringComparer.Ordinal),
-            _ => rows.OrderBy(row => row.Label, StringComparer.Ordinal)
-        });
+        var direction = ascending ?? sort < 3;
+        double? Value(LaunchdRow row) => sort switch
+        { 1 => row.Job.ReportedPid is not null ? 0 : 1, 2 => row.Job.ReportedPid, 3 => row.Process?.ObservedCpuPercent,
+          4 => row.Process?.WorkingSetBytes, 5 => row.Process?.IoBytesPerSecond, _ => 0 };
+        var sorted = rows.OrderBy(row => Value(row) is null).ThenBy(row => row,
+            Comparer<LaunchdRow>.Create((a, b) => direction
+                ? sort == 0 ? StringComparer.Ordinal.Compare(a.Label, b.Label) : Nullable.Compare(Value(a), Value(b))
+                : sort == 0 ? StringComparer.Ordinal.Compare(b.Label, a.Label) : Nullable.Compare(Value(b), Value(a))))
+            .ThenBy(row => row.Label, StringComparer.Ordinal);
         var maximum = TablePresentation.NormalizeLimit(limit);
         var shown = (maximum == 0 ? sorted.AsEnumerable() : sorted.Take(maximum)).ToArray();
         if (history is null || history.Count == 0) return shown;

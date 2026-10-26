@@ -39,9 +39,10 @@ public sealed partial class LaunchdView : UserControl
         _heartbeat.Start();
         ShowJobActions.IsCheckedChanged += (_, _) => ButtonIcon.SetKind(ShowJobActions, ShowJobActions.IsChecked == true ? "ChevronDown" : "ChevronUp");
         RefreshJobs.Click += async (_, _) => await Refresh();
+        TableInteractions.AddSearchClear(JobSearch);
         JobSearch.TextChanged += (_, _) => Rebuild();
         JobFilter.SelectionChanged += (_, _) => Rebuild();
-        JobSort.SelectionChanged += (_, _) => Rebuild();
+        JobSort.SelectionChanged += (_, _) => { if (!_changingSort) _ascending = JobSort.SelectedIndex < 3; UpdateHeaders(); Rebuild(); };
         JobLimit.ItemsSource = TablePresentation.Limits.Select(n => n == 0 ? "All" : n.ToString()).ToArray();
         JobLimit.SelectedIndex = 0;
         JobLimit.SelectionChanged += (_, _) => Rebuild();
@@ -114,9 +115,10 @@ public sealed partial class LaunchdView : UserControl
     private void Rebuild()
     {
         if (JobList is null || _stopped) return;
+        UpdateHeaders();
         var snapshot = Inventory.LastSuccess;
         var rows = LaunchdPresentation.Rows(snapshot, _live, Fresh && !Inventory.IsStale,
-            JobSearch.Text, JobFilter.SelectedIndex, JobSort.SelectedIndex, RowLimit, _history.ToArray());
+            JobSearch.Text, JobFilter.SelectedIndex, JobSort.SelectedIndex, RowLimit, _history.ToArray(), _ascending);
         var scroller = JobList.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
         var offset = scroller?.Offset;
         _updating = true;

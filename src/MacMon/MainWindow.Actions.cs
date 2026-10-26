@@ -63,6 +63,7 @@ public sealed partial class MainWindow
             if (!_refreshingUsage) _usageSelection = (UsageList.SelectedItem as UsageRow)?.App.Key;
             UpdateUsageSelection();
         };
+        UsageShowProcesses.Click += (_, _) => { if (UsageList.SelectedItem is UsageRow row) NavigateToProcesses(row); };
         UsageProperties.Click += async (_, _) =>
         {
             if (UsageList.SelectedItem is UsageRow row) await new ProcessDialog("App usage", UsageDetails(row)).ShowDialog<bool>(this);
@@ -86,6 +87,7 @@ public sealed partial class MainWindow
     {
         var row = UsageList.SelectedItem as UsageRow;
         UsageProperties.IsEnabled = CopyUsageApp.IsEnabled = row is not null;
+        UsageShowProcesses.IsEnabled = row is not null && row.Path.Length > 0;
         RevealUsageApp.IsEnabled = row is not null && File.Exists(row.Path);
         UsageSelectionName.Text = row?.Name ?? UiText.Get("Select an app");
         ToolTip.SetTip(UsageSelectionName, row?.Name);

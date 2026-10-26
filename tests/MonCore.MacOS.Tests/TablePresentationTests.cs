@@ -190,7 +190,7 @@ public sealed class TablePresentationTests
             Assert.That(items.Length, Is.GreaterThan(2));
             Assert.That(items.All(item => item.Bounds.Height <= 44), Is.True);
             var cpuCell = items[0].GetVisualDescendants().OfType<TextBlock>().Single(t => t.Classes.Contains("cpuMetric"));
-            var cpuHeader = view.FindControl<TextBlock>("JobCpuHeader")!;
+            var cpuHeader = view.FindControl<Button>("JobCpuHeader")!;
             Assert.That(cpuHeader.TranslatePoint(new(cpuHeader.Bounds.Width, 0), window)!.Value.X,
                 Is.EqualTo(cpuCell.TranslatePoint(new(cpuCell.Bounds.Width, 0), window)!.Value.X).Within(1), "Job CPU column alignment");
             Assert.That(view.FindControl<ComboBox>("JobLimit")!.SelectedItem?.ToString(), Is.EqualTo("All"));

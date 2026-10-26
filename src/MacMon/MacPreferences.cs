@@ -23,6 +23,7 @@ public sealed record MacPreferences
     public int JobLimit { get; init; }
     public int DataTab { get; init; }
     public int JobSort { get; init; }
+    public bool? JobAscending { get; init; }
     public int JobFilter { get; init; }
     public ResourceChartMode ChartMode { get; init; }
     public int VisibleMetrics { get; init; } = 31;

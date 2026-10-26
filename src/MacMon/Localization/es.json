@@ -321,5 +321,8 @@
   "Auto {0}": "Auto {0}",
   "Automatic captures enabled · Captures in history: {0}": "Capturas automáticas activadas · Capturas en el historial: {0}",
   "Automatic captures disabled · Captures in history: {0}": "Capturas automáticas desactivadas · Capturas en el historial: {0}",
-  "Peak {0}": "Pico {0}"
+  "Peak {0}": "Pico {0}",
+  "Clear search": "Borrar búsqueda",
+  "Show processes": "Mostrar procesos",
+  "Click to sort; click again to reverse. Unavailable values remain last.": "Haz clic para ordenar; otra vez para invertir. Los valores no disponibles quedan al final."
 }
