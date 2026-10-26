@@ -677,3 +677,23 @@ left open in Live mode, showing a 2.84 GHz estimate and 58% GPU at the last chec
 ZIP integrity and SHA-256 verification passed for
 `MacMon-0.10.0-osx-arm64-dev.zip`:
 `a36265235145b6839c102de8d9361c36c74323a7a1259271de57c2a94e644e38`.
+
+## Settings parity slice 1 — appearance and navigation
+
+Settings uses vector icons for General, Appearance, Monitoring and Automatic
+captures. Appearance follows WinMon's vertical selector order and removes its
+extra prose. The 12 named WinMon finishes join System/Light/Dark; the 19 palette
+choices show six resource-color swatches. Themes select their paired palette
+while the previous palette is still the prior theme's default; custom choices
+remain intact. “Use theme palette” explicitly restores that pairing.
+
+WinMon's MIT-licensed catalog is adapted to Avalonia solid surfaces. Windows-only
+Mica/Acrylic and grain are not claimed on macOS. Plot, chrome, card, text and gauge
+track colors update with the finish, including preview and reverting to standard
+themes. Color adjustment preserves 4.5:1 readout and 3:1 stroke contrast on the
+actual surfaces. Old “High contrast” preferences migrate to the matching inclusive
+palette. Reference sources are recorded under dependencies/winmon-ui.
+
+Validation: 156 Mac tests plus three release-workflow tests pass, zero build
+warnings. Added checks cover every finish/palette combination and following or
+preserving custom palettes when themes change.

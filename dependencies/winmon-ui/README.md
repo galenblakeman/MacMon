@@ -19,3 +19,9 @@ Window chrome, chart controls and table layouts were also compared with the same
 WinMon checkout. MacMon retains native Mac window controls, verified process
 lifetimes, read-only launchd scope, and explicit unavailable readings for
 unsupported platform metrics.
+
+Settings themes and palettes additionally adapt `Preferences/ThemeFinishes.cs`
+and `Preferences/ChartPalettes.cs` from the same clean reference commit. Their
+catalog values are in `WinMonAppearanceCatalog.cs`; macOS uses solid Avalonia
+surfaces and retains contrast adjustment. The existing MIT license covers these
+adaptations as well.

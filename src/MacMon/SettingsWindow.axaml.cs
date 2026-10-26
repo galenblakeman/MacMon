@@ -24,6 +24,7 @@ public sealed partial class SettingsWindow : Window
         TopmostSetting.IsChecked = preferences.AlwaysOnTop;
         KeepHistorySetting.IsChecked = preferences.KeepHistory;
         RangeChoice.SelectedIndex = preferences.HistoryRange;
+        ThemeChoice.ItemTemplate = new FuncDataTemplate<string>((theme, _) => new TextBlock { Text = Appearance.ThemeLabel(theme!) });
         ThemeChoice.ItemsSource = Appearance.Themes; ThemeChoice.SelectedItem = preferences.Theme;
         PaletteChoice.ItemsSource = Appearance.Palettes; PaletteChoice.SelectedItem = preferences.Palette;
         GaugeChoice.ItemTemplate = new FuncDataTemplate<string>((style, _) => new TextBlock { Text = ResourceGauge.StyleLabel(style) });
@@ -39,7 +40,14 @@ public sealed partial class SettingsWindow : Window
         SecondaryDiskChoice.SelectedItem = SecondaryDiskChoice.Items.OfType<MacDiskChoice>().First(d => d.Id == (preferences.SecondaryDiskId ?? ""));
         CaptureEditor.Load(preferences.Captures);
         Sections.SelectionChanged += (_, _) => ShowSection();
-        ThemeChoice.SelectionChanged += (_, _) => UpdatePreview();
+        var previousTheme = preferences.Theme;
+        ThemeChoice.SelectionChanged += (_, _) =>
+        {
+            var theme = ThemeChoice.SelectedItem as string ?? "Dark";
+            if (PaletteChoice.SelectedItem as string == Appearance.DefaultPalette(previousTheme)) PaletteChoice.SelectedItem = Appearance.DefaultPalette(theme);
+            previousTheme = theme; UpdatePreview();
+        };
+        DefaultPalette.Click += (_, _) => PaletteChoice.SelectedItem = Appearance.DefaultPalette(ThemeChoice.SelectedItem as string);
         PaletteChoice.SelectionChanged += (_, _) => UpdatePreview();
         GaugeChoice.SelectionChanged += (_, _) => UpdatePreview();
         ActualThemeVariantChanged += (_, _) => UpdatePreview();
@@ -89,15 +97,23 @@ public sealed partial class SettingsWindow : Window
         PreviewScope.RequestedThemeVariant = variant;
         var dark = variant == ThemeVariant.Dark;
         var palette = PaletteChoice.SelectedItem as string ?? "Classic";
-        Appearance.SetPaletteResources(PreviewScope.Resources, palette, dark);
+        Appearance.SetThemeResources(PreviewScope.Resources, theme, dark);
+        Appearance.SetPaletteResources(PreviewScope.Resources, palette, dark, theme);
+        PaletteChoice.ItemTemplate = new FuncDataTemplate<string>((choice, _) => PalettePreview(choice!, theme, dark));
         PreviewScope.Resources["ResourceGaugeStyle"] = GaugeChoice.SelectedItem as string ?? "Bowl";
-        PaletteDescription.Text = palette switch
+    }
+    private static Control PalettePreview(string palette, string theme, bool dark)
+    {
+        var row = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 10 };
+        row.Children.Add(new TextBlock { Text = palette, MinWidth = 230, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center });
+        var colors = Appearance.Colors(palette, dark, true, theme).All;
+        var swatches = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 3 };
+        foreach (var i in new[] { 0, 1, 3, 2, 4, 5 })
         {
-            "Ocean" => "Cool blues, violet and sea green.",
-            "Colorblind" => "Blue, orange, purple and green resource colors.",
-            "High contrast" => "Strong resource colors with theme-aware contrast.",
-            _ => "MacMon’s teal, purple, blue and gold resource colors."
-        };
+            var swatch = new Border { Width = 12, Height = 12, CornerRadius = new(2), Background = new Avalonia.Media.SolidColorBrush(colors[i]) };
+            ToolTip.SetTip(swatch, ResourceCharts.Names[i]); swatches.Children.Add(swatch);
+        }
+        row.Children.Add(swatches); return row;
     }
 
     private async Task Save()

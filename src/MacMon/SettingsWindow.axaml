@@ -5,8 +5,8 @@
     <TextBlock Text="Settings" FontSize="26" FontWeight="SemiBold" />
     <Grid Grid.Row="1" ColumnDefinitions="175,*" ColumnSpacing="24">
       <ListBox x:Name="Sections" SelectedIndex="0" AutomationProperties.Name="Settings section" Background="Transparent" BorderThickness="0">
-        <ListBoxItem Content="General" /><ListBoxItem Content="Appearance" />
-        <ListBoxItem Content="Monitoring" /><ListBoxItem Content="Automatic captures" />
+        <ListBoxItem Content="{local:TitleButtonContent Settings, General}" AutomationProperties.Name="General" /><ListBoxItem Content="{local:TitleButtonContent Appearance, Appearance}" AutomationProperties.Name="Appearance" />
+        <ListBoxItem Content="{local:TitleButtonContent Monitoring, Monitoring}" AutomationProperties.Name="Monitoring" /><ListBoxItem Content="{local:TitleButtonContent Capture, 'Automatic captures'}" AutomationProperties.Name="Automatic captures" />
       </ListBox>
       <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <Grid Margin="0,0,8,0">
@@ -18,19 +18,20 @@
           </StackPanel>
           <StackPanel x:Name="AppearancePage" Spacing="14" IsVisible="False">
             <TextBlock Text="Appearance" FontSize="21" FontWeight="SemiBold" />
-            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="16">
-              <StackPanel Spacing="6"><TextBlock Text="Theme" Classes="label" /><ComboBox x:Name="ThemeChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Theme" /></StackPanel>
-              <StackPanel Grid.Column="1" Spacing="6"><TextBlock Text="Chart palette" Classes="label" /><ComboBox x:Name="PaletteChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Chart palette" /></StackPanel>
-              <StackPanel Grid.Column="2" Spacing="6"><TextBlock Text="Resource gauges" Classes="label" /><ComboBox x:Name="GaugeChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Resource gauge style" /></StackPanel>
+            <TextBlock Text="Theme" Classes="label" />
+            <ComboBox x:Name="ThemeChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Theme" />
+            <TextBlock Text="Chart palette" Classes="label" />
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+              <ComboBox x:Name="PaletteChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Chart palette" />
+              <Button Grid.Column="1" x:Name="DefaultPalette" Content="Use theme palette" />
             </Grid>
-            <TextBlock Classes="label" TextWrapping="Wrap" Text="System follows your Mac’s appearance. The chart palette stays independent when you change the theme." />
-            <TextBlock x:Name="PaletteDescription" Classes="label" TextWrapping="Wrap" />
-            <TextBlock Text="Preview" FontWeight="SemiBold" />
+            <TextBlock Text="Resource gauges" Classes="label" />
+            <ComboBox x:Name="GaugeChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="Resource gauge style" />
             <ThemeVariantScope x:Name="PreviewScope">
               <Border Background="{DynamicResource MacWindowBrush}" CornerRadius="10" Padding="14">
                 <Border Classes="card" Padding="14">
                   <StackPanel Spacing="8">
-                    <TextBlock Text="Resource history · sample readings" Foreground="{DynamicResource MacTextBrush}" FontWeight="SemiBold" />
+
                     <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="8">
                       <local:ResourceGauge x:Name="PreviewCpu" Title="CPU" ReadoutSize="16" Fill="{DynamicResource CpuText}" />
                       <local:ResourceGauge Grid.Column="1" x:Name="PreviewMemory" Title="Memory" ReadoutSize="16" Fill="{DynamicResource MemoryText}" />
@@ -42,7 +43,7 @@
                       <local:CpuChart Grid.Column="1" x:Name="PreviewActivity" Height="60" VisibleMetrics="12" />
                     </Grid>
                     <local:ResourceGauge x:Name="PreviewGpu" Title="GPU" ReadoutSize="16" Fill="{DynamicResource GpuStroke}" TextAccent="{DynamicResource GpuText}" />
-                    <TextBlock Text="CPU / memory · network / disk · GPU" Foreground="{DynamicResource MacMutedBrush}" FontSize="12" />
+
                   </StackPanel>
                 </Border>
               </Border>

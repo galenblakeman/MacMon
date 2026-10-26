@@ -11,6 +11,8 @@ namespace MacMon;
 
 public sealed class CpuChart : Control
 {
+    public static readonly StyledProperty<IBrush> PlotBrushProperty = AvaloniaProperty.Register<CpuChart, IBrush>(nameof(PlotBrush), Brushes.Transparent);
+    public IBrush PlotBrush { get => GetValue(PlotBrushProperty); set => SetValue(PlotBrushProperty, value); }
     public static readonly StyledProperty<IBrush> CpuBrushProperty =
         AvaloniaProperty.Register<CpuChart, IBrush>(nameof(CpuBrush), new SolidColorBrush(Color.Parse("#6DE3CB")));
     public IBrush CpuBrush { get => GetValue(CpuBrushProperty); set => SetValue(CpuBrushProperty, value); }
@@ -35,7 +37,7 @@ public sealed class CpuChart : Control
     public static readonly StyledProperty<IBrush> MarkerBrushProperty =
         AvaloniaProperty.Register<CpuChart, IBrush>(nameof(MarkerBrush), new SolidColorBrush(Color.Parse("#FFFFFF")));
     public IBrush MarkerBrush { get => GetValue(MarkerBrushProperty); set => SetValue(MarkerBrushProperty, value); }
-    static CpuChart() => AffectsRender<CpuChart>(CpuBrushProperty, MemoryBrushProperty, NetworkBrushProperty, StorageBrushProperty, GridBrushProperty, MarkerBrushProperty, GpuBrushProperty, SecondDiskBrushProperty);
+    static CpuChart() => AffectsRender<CpuChart>(CpuBrushProperty, MemoryBrushProperty, NetworkBrushProperty, StorageBrushProperty, PlotBrushProperty, GridBrushProperty, MarkerBrushProperty, GpuBrushProperty, SecondDiskBrushProperty);
     private IReadOnlyList<MonitorSample> _samples = [];
     private IReadOnlyList<MonitorSample> _visible = [];
     private double[] _maxima = [100, 100, 1024, 1024, 100, 1024];
@@ -163,7 +165,7 @@ public sealed class CpuChart : Control
     {
         base.Render(context);
         if (Bounds.Width <= 0 || Bounds.Height <= 0) return;
-        context.DrawRectangle(Brushes.Transparent, null, new Rect(Bounds.Size));
+        context.DrawRectangle(PlotBrush, null, new Rect(Bounds.Size));
         if (Panels.Length == 0) { Label(context, "Select a metric to display history", new(8, 8), MarkerBrush); return; }
         foreach (var panel in Panels)
         {

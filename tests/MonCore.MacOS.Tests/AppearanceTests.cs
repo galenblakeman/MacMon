@@ -9,6 +9,22 @@ namespace MonCore.MacOS.Tests;
 public sealed class AppearanceTests
 {
     [Test]
+    public void EveryFinishPaletteKeepsReadoutsAndTracesLegible()
+    {
+        foreach (var theme in Appearance.Themes.Where(t => t is not ("System" or "Light" or "Dark")))
+        foreach (var palette in Appearance.Palettes)
+        {
+            var dark = Appearance.Variant(theme) == ThemeVariant.Dark;
+            var resources = new Avalonia.Controls.ResourceDictionary();
+            Appearance.SetThemeResources(resources, theme, dark);
+            Color Background(string name) => ((ISolidColorBrush)resources[name]!).Color;
+            Assert.That(Appearance.Colors(palette, dark, true, theme).All.All(c =>
+                Appearance.Contrast(c, Background("MacCardBrush")) >= 4.5 && Appearance.Contrast(c, Background("MacWindowBrush")) >= 4.5), Is.True, theme + "/" + palette);
+            Assert.That(Appearance.Colors(palette, dark, false, theme).All.All(c =>
+                Appearance.Contrast(c, Background("MacPlotBrush")) >= 3), Is.True, theme + "/" + palette);
+        }
+    }
+    [Test]
     public void LegacyAndUnknownAppearanceChoicesNormalizeWithoutDiscardingOtherSettings()
     {
         var old = JsonSerializer.Deserialize<MacPreferences>("{\"Grouped\":true,\"HistoryRange\":2}")!.Normalized("boot");

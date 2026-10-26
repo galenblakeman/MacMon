@@ -37,7 +37,7 @@
     <Style Selector="Button.chip, RadioButton.chip"><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="7,3" /><Setter Property="MinHeight" Value="26" /><Setter Property="Background" Value="Transparent" /></Style>
     <Style Selector="RadioButton.chip"><Setter Property="Template"><ControlTemplate><Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}"><ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border></ControlTemplate></Setter></Style>
     <Style Selector="RadioButton.chip:checked, Button.chip.active, ToggleButton.titleAction:checked"><Setter Property="Background" Value="{DynamicResource MacGridBrush}" /></Style>
-    <Style Selector="Border.sectionHeader"><Setter Property="Background" Value="{DynamicResource MacCardBrush}" /><Setter Property="Padding" Value="6,5,6,1" /></Style>
+    <Style Selector="Border.sectionHeader"><Setter Property="Background" Value="{DynamicResource MacHeaderBrush}" /><Setter Property="Padding" Value="6,5,6,1" /></Style>
     <Style Selector="Border.actionBar"><Setter Property="Background" Value="{DynamicResource MacCardBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource MacGridBrush}" /><Setter Property="BorderThickness" Value="0,1,0,0" /><Setter Property="Padding" Value="8,5" /></Style>
     <Style Selector="Border.actionBar Button"><Setter Property="Margin" Value="0,0,6,0" /><Setter Property="FontSize" Value="12" /></Style>
     <Style Selector="Border.dataRow"><Setter Property="BorderBrush" Value="{DynamicResource MacGridBrush}" /><Setter Property="BorderThickness" Value="0,0,0,1" /><Setter Property="Padding" Value="6,3" /><Setter Property="MinHeight" Value="42" /></Style>
@@ -64,10 +64,11 @@
     <Style Selector="local|ResourceGauge">
       <Setter Property="Foreground" Value="{DynamicResource MacTextBrush}" />
       <Setter Property="GaugeStyle" Value="{DynamicResource ResourceGaugeStyle}" />
-      <Setter Property="Track" Value="{DynamicResource MacGridBrush}" />
+      <Setter Property="Track" Value="{DynamicResource MacGaugeTrackBrush}" />
       <Setter Property="Marker" Value="{DynamicResource MacMarkerBrush}" />
     </Style>
     <Style Selector="local|CpuChart">
+      <Setter Property="PlotBrush" Value="{DynamicResource MacPlotBrush}" />
       <Setter Property="CpuBrush" Value="{DynamicResource CpuStroke}" />
       <Setter Property="MemoryBrush" Value="{DynamicResource MemoryStroke}" />
       <Setter Property="NetworkBrush" Value="{DynamicResource NetworkStroke}" />

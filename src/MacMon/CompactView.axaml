@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="using:MacMon" xmlns:chrome="using:Avalonia.Controls.Chrome" x:Class="MacMon.CompactView">
   <Grid Margin="12,0,12,4" RowDefinitions="Auto,*,Auto" RowSpacing="6">
-    <Grid x:Name="CompactTitleActions" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" ColumnSpacing="6" Height="44" Background="Transparent" chrome:WindowDecorationProperties.ElementRole="TitleBar">
+    <Grid x:Name="CompactTitleActions" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" ColumnSpacing="6" Height="44" Background="{DynamicResource MacChromeBrush}" chrome:WindowDecorationProperties.ElementRole="TitleBar">
       <TextBlock Text="MacMon" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,6,0" />
       <Button Grid.Column="1" x:Name="CompactInfo" Content="{local:TitleButtonContent Info, Info}" AutomationProperties.Name="Info" Classes="titleAction" />
       <Button Grid.Column="2" x:Name="CompactSettings" Content="{local:TitleButtonContent Settings, Settings}" AutomationProperties.Name="Settings" Classes="titleAction" ToolTip.Tip="Settings (⌘,)" />

@@ -11,27 +11,37 @@ public sealed record PaletteColors(Color Cpu, Color Memory, Color Network, Color
 
 public static class Appearance
 {
-    public static IReadOnlyList<string> Themes { get; } = Array.AsReadOnly(new[] { "System", "Light", "Dark" });
-    public static IReadOnlyList<string> Palettes { get; } = Array.AsReadOnly(new[] { "Classic", "Ocean", "Colorblind", "High contrast" });
+    public static IReadOnlyList<string> Themes { get; } = Array.AsReadOnly(new[] { "System", "Light", "Dark" }.Concat(WinMonAppearanceCatalog.Finishes.Keys).ToArray());
+    public static IReadOnlyList<string> Palettes { get; } = WinMonAppearanceCatalog.Palettes;
     public static string NormalizeTheme(string? theme) => Themes.Contains(theme) ? theme! : "Dark";
-    public static string NormalizePalette(string? palette) => Palettes.Contains(palette) ? palette! : "Classic";
+    public static string NormalizePalette(string? palette) => palette == "High contrast" ? "High-Contrast & Inclusive" : Palettes.Contains(palette) ? palette! : "Classic";
     public static ThemeVariant Variant(string? theme) => NormalizeTheme(theme) switch
-    { "Light" => ThemeVariant.Light, "Dark" => ThemeVariant.Dark, _ => ThemeVariant.Default };
+    { "Light" => ThemeVariant.Light, "Dark" => ThemeVariant.Dark, var name when WinMonAppearanceCatalog.Finishes.TryGetValue(name, out var finish) => finish.Light ? ThemeVariant.Light : ThemeVariant.Dark, _ => ThemeVariant.Default };
 
     public static Color Card(bool dark) => Color.Parse(dark ? "#17222E" : "#FFFFFF");
-    public static PaletteColors Colors(string? palette, bool dark, bool text = false)
+    public static PaletteColors Colors(string? palette, bool dark, bool text = false, string? theme = null)
     {
-        var hues = NormalizePalette(palette) switch
-        {
-            "Ocean" => new[] { "#64D8EB", "#AAB4FF", "#79C7FF", "#7DE2B2", "#FFAC84", "#E0CC66" },
-            "Colorblind" => new[] { "#56B4E9", "#E69F00", "#CC79A7", "#009E73", "#F0E442", "#AA4499" },
-            "High contrast" => new[] { "#00FFFF", "#FFFF00", "#FF80FF", "#FFFFFF", "#80FF80", "#FFA040" },
-            _ => new[] { "#6DE3CB", "#BD9AFF", "#73BFFF", "#F6C85F", "#FF9F87", "#D4ABFF" }
-        };
-        // Light high-contrast needs distinct hues rather than four darkened near-black colors.
-        if (!dark && palette == "High contrast") hues = ["#005A9C", "#7A2500", "#6A0080", "#006039", "#805000", "#602060"];
-        var colors = hues.Select(hue => EnsureContrast(Color.Parse(hue), Card(dark), text ? 4.5 : 3, dark)).ToArray();
+        var source = WinMonAppearanceCatalog.Colors(palette, !dark);
+        var hues = new[] { source[0], source[1], source[3], source[2], source[4], source[5] };
+        var finish = theme is not null ? WinMonAppearanceCatalog.Finishes.GetValueOrDefault(theme) : null;
+        var surfaces = text ? new[] { Color.Parse(finish?.Surface ?? (dark ? "#0E1721" : "#EDF2F7")), Color.Parse(finish?.Card ?? (dark ? "#17222E" : "#FFFFFF")) }
+            : new[] { Color.Parse(finish?.Plot ?? (dark ? "#0E1721" : "#EDF2F7")), Color.Parse(finish?.Card ?? (dark ? "#17222E" : "#FFFFFF")) };
+        var colors = hues.Select(hue => EnsureContrast(Color.Parse(hue), surfaces, text ? 4.5 : 3, dark)).ToArray();
         return new(colors[0], colors[1], colors[2], colors[3], colors[4], colors[5]);
+    }
+
+    public static string DefaultPalette(string? theme) => WinMonAppearanceCatalog.PaletteForTheme(theme);
+    public static string ThemeLabel(string theme) => System.Text.RegularExpressions.Regex.Replace(theme, "([a-z])([A-Z])", "$1 $2");
+    public static void SetThemeResources(IResourceDictionary resources, string theme, bool dark)
+    {
+        var f = WinMonAppearanceCatalog.Finishes.GetValueOrDefault(theme);
+        (string Key, string Value)[] values = [
+            ("MacWindowBrush", f?.Surface ?? (dark ? "#0E1721" : "#EDF2F7")), ("MacCardBrush", f?.Card ?? (dark ? "#17222E" : "#FFFFFF")),
+            ("MacChromeBrush", f?.Chrome ?? (dark ? "#0E1721" : "#EDF2F7")), ("MacHeaderBrush", f?.Header ?? (dark ? "#17222E" : "#FFFFFF")),
+            ("MacPlotBrush", f?.Plot ?? (dark ? "#0E1721" : "#EDF2F7")), ("MacTextBrush", f?.Text ?? (dark ? "#F2F5F8" : "#17222E")),
+            ("MacMutedBrush", f?.Muted ?? (dark ? "#9BAAB9" : "#4D5E70")), ("MacGridBrush", f?.Line ?? (dark ? "#394959" : "#CDD7E2")),
+            ("MacGaugeTrackBrush", f?.Track ?? (dark ? "#394959" : "#CDD7E2")), ("MacMarkerBrush", f?.Text ?? (dark ? "#FFFFFF" : "#17222E"))];
+        foreach (var (key, value) in values) resources[key] = new SolidColorBrush(Color.Parse(value));
     }
 
     public static double Contrast(Color left, Color right)
@@ -45,23 +55,23 @@ public static class Appearance
         return (Math.Max(a, b) + 0.05) / (Math.Min(a, b) + 0.05);
     }
 
-    private static Color EnsureContrast(Color color, Color background, double minimum, bool dark)
+    private static Color EnsureContrast(Color color, Color[] backgrounds, double minimum, bool dark)
     {
         for (var i = 0; i <= 100; i++)
         {
             byte Adjust(byte channel) => (byte)Math.Round(channel + ((dark ? 255 : 0) - channel) * i / 100d);
             var adjusted = Color.FromRgb(Adjust(color.R), Adjust(color.G), Adjust(color.B));
-            if (Contrast(adjusted, background) >= minimum) return adjusted;
+            if (backgrounds.All(background => Contrast(adjusted, background) >= minimum)) return adjusted;
         }
         return dark ? ColorsWhite : ColorsBlack;
     }
     private static Color ColorsWhite => Color.FromRgb(255, 255, 255);
     private static Color ColorsBlack => Color.FromRgb(0, 0, 0);
 
-    public static void SetPaletteResources(IResourceDictionary resources, string palette, bool dark)
+    public static void SetPaletteResources(IResourceDictionary resources, string palette, bool dark, string? theme = null)
     {
-        var strokes = Colors(palette, dark).All;
-        var labels = Colors(palette, dark, true).All;
+        var strokes = Colors(palette, dark, false, theme).All;
+        var labels = Colors(palette, dark, true, theme).All;
         var names = new[] { "Cpu", "Memory", "Network", "Storage", "Gpu", "SecondDisk" };
         for (var i = 0; i < names.Length; i++)
         {

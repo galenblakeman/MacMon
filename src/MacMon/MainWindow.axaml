@@ -7,7 +7,7 @@
         <RowDefinition Height="44" /><RowDefinition Height="1.15*" MinHeight="240" />
         <RowDefinition Height="6" /><RowDefinition Height="*" MinHeight="344" /><RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
-      <Grid x:Name="TitleActions" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" ColumnSpacing="6" Background="Transparent" chrome:WindowDecorationProperties.ElementRole="TitleBar">
+      <Grid x:Name="TitleActions" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto" ColumnSpacing="6" Background="{DynamicResource MacChromeBrush}" chrome:WindowDecorationProperties.ElementRole="TitleBar">
         <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,8,0">
           <TextBlock Text="MacMon" FontSize="14" FontWeight="SemiBold" /><TextBlock x:Name="VersionLabel" Classes="label" FontSize="11" VerticalAlignment="Center" />
         </StackPanel>

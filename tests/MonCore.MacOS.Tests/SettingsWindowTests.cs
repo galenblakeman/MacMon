@@ -23,6 +23,21 @@ public static class AppearanceTestAppBuilder
 
 public sealed class SettingsWindowTests
 {
+    [AvaloniaTest]
+    public void ThemePaletteFollowsItsDefaultUntilACustomPaletteIsChosen()
+    {
+        var window = Window();
+        Get<ComboBox>(window, "ThemeChoice").SelectedItem = "Copper";
+        Assert.That(Get<ComboBox>(window, "PaletteChoice").SelectedItem, Is.EqualTo("Copper"));
+        Get<ComboBox>(window, "PaletteChoice").SelectedItem = "Ocean";
+        Get<ComboBox>(window, "ThemeChoice").SelectedItem = "Candy";
+        Assert.That(Get<ComboBox>(window, "PaletteChoice").SelectedItem, Is.EqualTo("Ocean"));
+        Click(window, "DefaultPalette");
+        Assert.That(Get<ComboBox>(window, "PaletteChoice").SelectedItem, Is.EqualTo("Candy"));
+        Get<ComboBox>(window, "ThemeChoice").SelectedItem = "Crystal";
+        Assert.That(Get<ComboBox>(window, "PaletteChoice").SelectedItem, Is.EqualTo("Cool Tech"));
+        window.Close();
+    }
     private static SettingsWindow Window(Func<SettingsValues, Task<string?>>? save = null, int section = 1, bool writable = true) =>
         new(new MacPreferences(), [new MacNetworkChoice("", "Automatic"), new MacNetworkChoice("en1", "Wi-Fi")],
             section, writable, save ?? (_ => Task.FromResult<string?>(null)));
