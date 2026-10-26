@@ -281,5 +281,8 @@
   "Resource history. Live": "Historial de recursos. En vivo",
   "{0} threshold": "Umbral de {0}",
   "{0} duration seconds": "Duración de {0} en segundos",
-  "Device utilization": "Utilización del dispositivo"
+  "Device utilization": "Utilización del dispositivo",
+  "Estimated I/O activity": "Actividad de E/S estimada",
+  "The main percentage estimates I/O activity from accumulated read and write operation times divided by elapsed time, capped at 100%. Concurrent operations and multiple drivers overlap, so it is not Windows active-time utilization. All-driver mode sums operation times across drivers. Throughput is shown separately. Missing timing counters, source changes, resets and wake gaps require fresh readings.": "El porcentaje principal estima la actividad de E/S mediante los tiempos acumulados de lectura y escritura divididos por el tiempo transcurrido, con un límite del 100%. Las operaciones simultáneas y varios controladores se solapan; no equivale al tiempo activo de Windows. El modo de todos los controladores suma sus tiempos. La transferencia se muestra por separado. Los contadores ausentes, cambios, reinicios y pausas requieren nuevas lecturas.",
+  "Choose up to two whole disk devices. Disk images may appear; APFS volumes are excluded. All disks includes the second disk. Charts show throughput; gauges show an I/O activity estimate.": "Elige hasta dos dispositivos de disco completos. Pueden aparecer imágenes de disco; se excluyen los volúmenes APFS. Todos los discos incluye el segundo disco. Los gráficos muestran la transferencia; los indicadores, una estimación de actividad de E/S."
 }

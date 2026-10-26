@@ -93,7 +93,7 @@ public sealed class ResourceDetailsTests
     public void StorageSeparatesAggregateActivityFromFilesystemCapacity()
     {
         var model = Snapshot(ResourceMetric.Storage);
-        Assert.That(Row(model, "Current"), Is.EqualTo("4.0 KiB/s"));
+        Assert.That(Row(model, "Current"), Is.EqualTo("—"));
         Assert.That(Row(model, "Write"), Is.EqualTo("0.0 KiB/s"));
         Assert.That(Row(model, "Capacity volume"), Is.EqualTo("/System/Volumes/Data"));
         Assert.That(Row(model, "Available capacity"), Is.EqualTo("30.0 GiB"));

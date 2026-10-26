@@ -54,7 +54,7 @@ public static class MacHistoryStore
                 using (var bounded = new BudgetStream(zip, MaxExpandedBytes))
                 using (var writer = new BinaryWriter(bounded, Encoding.UTF8, leaveOpen: true))
                 {
-                    writer.Write(Magic); writer.Write(2); writer.Write(frequency);
+                    writer.Write(Magic); writer.Write(3); writer.Write(frequency);
                     writer.Write(strings.Count);
                     var stringBytes = 0;
                     foreach (var text in strings.Keys)
@@ -118,7 +118,7 @@ public static class MacHistoryStore
             using var reader = new BinaryReader(bounded, Encoding.UTF8);
             if (reader.ReadInt32() != Magic) throw new InvalidDataException("Not a MacMon history file.");
             var version = reader.ReadInt32();
-            if (version is not (1 or 2)) return new([], Error: "History uses an unsupported version; the original file will be preserved.", CanSave: false);
+            if (version is not (1 or 2 or 3)) return new([], Error: "History uses an unsupported version; the original file will be preserved.", CanSave: false);
             var savedFrequency = reader.ReadInt64();
             if (savedFrequency <= 0) throw new InvalidDataException("Invalid saved clock frequency.");
             var strings = new string[Count(reader, 65_536)];
@@ -212,6 +212,7 @@ public static class MacHistoryStore
 
     private static void WriteResources(BinaryWriter w, ResourceSample r, Dictionary<string, int> text)
     {
+        if (r.DiskActivePercent > 100 || r.SecondaryDiskActivePercent > 100) throw new InvalidDataException("Invalid disk activity estimate.");
         if (r.GpuPercent > 100 || r.CpuClockMhz is <= 0 or > 10000) throw new InvalidDataException("Invalid hardware reading.");
         WriteNumber(w, r.CpuKernelPercent);
         WriteUnsigned(w, r.TotalMemoryBytes); WriteUnsigned(w, r.UsedMemoryBytes); WriteUnsigned(w, r.AvailableMemoryBytes); WriteUnsigned(w, r.CachedBytes);
@@ -224,6 +225,7 @@ public static class MacHistoryStore
         WriteUnsigned(w, r.GpuSharedMemoryUsedBytes);
         WriteNumber(w, r.DiskReadBytesPerSecond); WriteNumber(w, r.DiskWriteBytesPerSecond);
         WriteUnsigned(w, r.SecondaryDiskTotalBytes);
+        WriteNumber(w, r.DiskActivePercent); WriteNumber(w, r.SecondaryDiskActivePercent);
     }
     private static ResourceSample ReadResources(BinaryReader r, Func<string> text, int version)
     {
@@ -241,6 +243,8 @@ public static class MacHistoryStore
             GpuSharedMemoryUsedBytes = ReadUnsigned(r), DiskReadBytesPerSecond = ReadNumber(r), DiskWriteBytesPerSecond = ReadNumber(r),
             SecondaryDiskTotalBytes = ReadUnsigned(r)
         };
+        if (version >= 3) result = result with { DiskActivePercent = ReadNumber(r), SecondaryDiskActivePercent = ReadNumber(r) };
+        if (result.DiskActivePercent > 100 || result.SecondaryDiskActivePercent > 100) throw new InvalidDataException("Invalid disk activity estimate.");
         if (result.GpuPercent > 100 || result.CpuClockMhz is <= 0 or > 10000) throw new InvalidDataException("Invalid hardware reading.");
         if (result.CpuKernelPercent > 100 || result.UsedMemoryBytes > result.TotalMemoryBytes || result.AvailableMemoryBytes > result.TotalMemoryBytes)
             throw new InvalidDataException("Invalid resource observation.");

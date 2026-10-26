@@ -59,6 +59,7 @@ public sealed class MacHistoryTests
         var sample = Sample(1, 1000);
         sample = sample with { Resources = sample.Resources with { CpuClockMhz = 2300, GpuPercent = 37, GpuId = "gpu-1",
             GpuName = "Test GPU", GpuEngine = "Device", GpuSharedMemoryUsedBytes = 123456,
+            DiskActivePercent = 12.5, SecondaryDiskActivePercent = 68.5,
             DiskName = "disk0 · Internal", DiskReadBytesPerSecond = 1000, DiskWriteBytesPerSecond = 2000,
             SecondaryDiskName = "disk2 · External", SecondaryDiskTotalBytes = 1000000 } };
         MacHistoryStore.Save(FilePath, [new(sample, "boot")], 1000);
@@ -70,15 +71,16 @@ public sealed class MacHistoryTests
         Assert.That(ResourceCharts.Value(loaded.Entries.Single().Sample, 5), Is.EqualTo(4096));
     }
 
-    [Test]
-    public void VersionOneHistoryStillLoadsAsAggregateDiskWithoutInventingGpuOrSecondDisk()
+    [TestCase(1)]
+    [TestCase(2)]
+    public void EarlierHistoryLoadsWithoutInventingDiskActivity(int version)
     {
         var instant = Sample(1, 1000).Timestamp;
         using (var file = File.Create(FilePath))
         using (var zip = new GZipStream(file, CompressionLevel.Fastest))
         using (var w = new BinaryWriter(zip))
         {
-            w.Write(0x31484D4D); w.Write(1); w.Write(1000L);
+            w.Write(0x31484D4D); w.Write(version); w.Write(1000L);
             string[] text = ["", "boot", "/data", "en0", "Wi-Fi", "All block-storage drivers"];
             w.Write(text.Length);
             foreach (var value in text) { var bytes = System.Text.Encoding.UTF8.GetBytes(value); w.Write(bytes.Length); w.Write(bytes); }
@@ -90,6 +92,7 @@ public sealed class MacHistoryTests
             w.Write(true); w.Write(10U); w.Write(2); Unsigned(1000); Unsigned(2000);
             w.Write(3); w.Write(4); Number(0); Number(125000);
             w.Write(5); Number(4096); Number(0);
+            if (version == 2) { w.Write(false); w.Write(false); w.Write(0); w.Write(0); w.Write(0); w.Write(false); w.Write(false); w.Write(false); w.Write(false); }
             w.Write(0); w.Write(0x21444E45);
         }
         var loaded = MacHistoryStore.Load(FilePath, 120, instant.AddSeconds(1), 5000, 1000);
@@ -99,6 +102,8 @@ public sealed class MacHistoryTests
         Assert.That(ResourceCharts.Value(sample, 5), Is.Null);
         Assert.That(sample.Resources.GpuPercent, Is.Null);
         Assert.That(sample.Resources.CpuClockMhz, Is.Null);
+        Assert.That(sample.Resources.DiskActivePercent, Is.Null);
+        Assert.That(sample.Resources.SecondaryDiskActivePercent, Is.Null);
     }
 
     [Test]

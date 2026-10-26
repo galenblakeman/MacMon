@@ -25,7 +25,7 @@ public sealed class ResourceGaugeHistory
         if (now <= _last || (now - _last) / (double)Stopwatch.Frequency > 2.5) _samples.Clear();
         _last = now;
         var values = new[] { Valid(sample.TotalCpuPercent, 100), Valid(r.MemoryPercent, 100),
-            Valid(r.ReceiveBytesPerSecond), Valid(ResourceCharts.DiskRate(r, false)), Valid(r.GpuPercent, 100), Valid(ResourceCharts.DiskRate(r, true)) };
+            Valid(r.ReceiveBytesPerSecond), Valid(sample.IsGap ? null : r.DiskActivePercent, 100), Valid(r.GpuPercent, 100), Valid(sample.IsGap ? null : r.SecondaryDiskActivePercent, 100) };
         // A baseline or source change starts a new activity interval, without retaining another device's peak.
         var primaryId = ResourceCharts.LegacyDisk(r) ? r.SecondaryDiskName : r.DiskName;
         foreach (var old in _samples)
@@ -44,11 +44,12 @@ public sealed class ResourceGaugeHistory
         {
             if (values[index] is not { } value) return GaugeReading.Empty;
             var peak = _samples.Max(entry => entry.Values[index]) ?? value;
-            var maximum = ResourceCharts.IsPercent(index) ? 100 : RateMaximum(peak);
-            return new GaugeReading(value, peak, maximum, ResourceCharts.IsPercent(index) ? $"{value:F1}%" : index == 2 ? NetworkRate(value) : Rate(value),
-                ResourceCharts.IsPercent(index) ? "0–100%" : $"0–{(index == 2 ? NetworkRate(maximum) : Rate(maximum))}");
+            var maximum = IsPercent(index) ? 100 : RateMaximum(peak);
+            return new GaugeReading(value, peak, maximum, IsPercent(index) ? $"{value:F1}%" : index == 2 ? NetworkRate(value) : Rate(value),
+                IsPercent(index) ? "0–100%" : $"0–{(index == 2 ? NetworkRate(maximum) : Rate(maximum))}");
         }).ToArray();
     }
+    public static bool IsPercent(int metric) => metric is 0 or 1 or 3 or 4 or 5;
     private static double? Valid(double? value, double maximum = double.MaxValue) =>
         value is { } number && double.IsFinite(number) && number >= 0 ? Math.Min(number, maximum) : null;
     private static double? Total(double? left, double? right) => Valid(left) is { } a && Valid(right) is { } b ? Valid(a + b) : null;

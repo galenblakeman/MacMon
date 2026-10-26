@@ -53,6 +53,7 @@ public static class MacCaptureReports
         text.AppendLine($"GPU {Clean(r.GpuName)}: {Number(r.GpuPercent)}% device utilization");
         text.AppendLine($"Memory estimate: {Number(r.MemoryPercent)}% · {r.UsedMemoryBytes?.ToString(CultureInfo.InvariantCulture) ?? "—"} bytes used");
         text.AppendLine($"Network {Clean(r.NetworkName)}: receive {Number(r.ReceiveBytesPerSecond)} B/s · send {Number(r.SendBytesPerSecond)} B/s");
+        text.AppendLine($"Estimated disk I/O activity: primary {Number(r.DiskActivePercent)}% · second {Number(r.SecondaryDiskActivePercent)}% (overlapping operation durations; capped load estimate)");
         var legacyDisk = ResourceCharts.LegacyDisk(r);
         text.AppendLine($"Primary disk {Clean(legacyDisk ? r.SecondaryDiskName : r.DiskName)}: read {Number(legacyDisk ? r.SecondaryDiskReadBytesPerSecond : r.DiskReadBytesPerSecond)} B/s · write {Number(legacyDisk ? r.SecondaryDiskWriteBytesPerSecond : r.DiskWriteBytesPerSecond)} B/s");
         if (!legacyDisk && r.SecondaryDiskName.Length > 0)

@@ -138,6 +138,7 @@ public sealed class MacFrameSource : IFrameSource
                 ProcessCount = batch.EnumerationAvailable ? checked((uint)(processes.Count + batch.UnavailableProcesses)) : null,
                 DiskName = primaryDisk.Name,
                 DiskTotalBytes = primaryDisk.Size,
+                DiskActivePercent = MacDiskSelection.ActivityPercent(_priorPrimaryDisk, primaryDisk, seconds, intervalValid),
                 DiskReadBytesPerSecond = MacDiskSelection.Rate(_priorPrimaryDisk, primaryDisk, seconds, intervalValid, true),
                 DiskWriteBytesPerSecond = MacDiskSelection.Rate(_priorPrimaryDisk, primaryDisk, seconds, intervalValid, false),
                 NetworkId = current.Activity.NetworkId,
@@ -146,6 +147,7 @@ public sealed class MacFrameSource : IFrameSource
                 SendBytesPerSecond = NetworkRate(before, current, seconds, intervalValid, false),
                 SecondaryDiskName = secondaryDisk.Name,
                 SecondaryDiskTotalBytes = secondaryDisk.Size,
+                SecondaryDiskActivePercent = MacDiskSelection.ActivityPercent(_priorSecondaryDisk, secondaryDisk, seconds, intervalValid),
                 SecondaryDiskReadBytesPerSecond = MacDiskSelection.Rate(_priorSecondaryDisk, secondaryDisk, seconds, intervalValid, true),
                 SecondaryDiskWriteBytesPerSecond = MacDiskSelection.Rate(_priorSecondaryDisk, secondaryDisk, seconds, intervalValid, false)
             }

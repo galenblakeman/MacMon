@@ -20,7 +20,7 @@ public sealed class ResourceGaugeTests
         new(DateTimeOffset.UtcNow.AddDays(-seconds), cpu, [], 0, false, (seconds + 1L) * Stopwatch.Frequency)
         { Resources = new() { TotalMemoryBytes = 100, UsedMemoryBytes = 62, NetworkId = network,
             ReceiveBytesPerSecond = rate, SendBytesPerSecond = 0, SecondaryDiskName = "All drivers",
-            SecondaryDiskReadBytesPerSecond = rate, SecondaryDiskWriteBytesPerSecond = 0 } };
+            DiskActivePercent = cpu, SecondaryDiskReadBytesPerSecond = rate, SecondaryDiskWriteBytesPerSecond = 0 } };
 
     [Test]
     public void PeaksUseMonotonicLiveWindowAndExpireWithoutDependingOnWallClock()
@@ -46,7 +46,7 @@ public sealed class ResourceGaugeTests
         history.Observe(Sample(1, 0, "en1", 0));
         Assert.That(history.Readings[2].Peak, Is.Zero);
         Assert.That(history.Readings[2].Maximum, Is.EqualTo(1024));
-        Assert.That(history.Readings[3].Peak, Is.EqualTo(8192));
+        Assert.That(history.Readings[3].Peak, Is.EqualTo(90));
         history.Observe(Sample(2, double.NaN, "en1", null));
         Assert.That(history.Readings[0].Value, Is.Null);
         Assert.That(history.Readings[2].Value, Is.Null);
@@ -55,8 +55,8 @@ public sealed class ResourceGaugeTests
         history.Observe(Sample(3, 125, "en1", 2049));
         Assert.That(history.Readings[0].Value, Is.EqualTo(100));
         Assert.That(history.Readings[2].Peak, Is.EqualTo(2049));
-        Assert.That(history.Readings[3].Peak, Is.EqualTo(2049));
-        Assert.That(history.Readings[3].Maximum, Is.EqualTo(4096));
+        Assert.That(history.Readings[3].Peak, Is.EqualTo(100));
+        Assert.That(history.Readings[3].Maximum, Is.EqualTo(100));
         history.Observe(Sample(4, -2, "en1", double.PositiveInfinity));
         Assert.That(history.Readings[0].Value, Is.Null);
         Assert.That(history.Readings[2].Value, Is.Null);

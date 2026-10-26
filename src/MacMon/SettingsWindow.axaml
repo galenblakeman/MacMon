@@ -72,7 +72,7 @@
             <ComboBox x:Name="PrimaryDiskChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Primary disk&quot;}" />
             <TextBlock Text="{local:Loc &quot;Second disk&quot;}" Classes="label" />
             <ComboBox x:Name="SecondaryDiskChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Second disk&quot;}" />
-            <TextBlock Classes="label" TextWrapping="Wrap" Text="{local:Loc &quot;Choose up to two whole disk devices. Disk images may appear; APFS volumes are excluded. All disks includes the second disk. Readings show throughput, not active-time percentage.&quot;}" />
+            <TextBlock Classes="label" TextWrapping="Wrap" Text="{local:Loc &quot;Choose up to two whole disk devices. Disk images may appear; APFS volumes are excluded. All disks includes the second disk. Charts show throughput; gauges show an I/O activity estimate.&quot;}" />
             <TextBlock Text="{local:Loc &quot;Network monitoring&quot;}" FontWeight="SemiBold" />
             <TextBlock Text="{local:Loc &quot;Network interface&quot;}" Classes="label" />
             <ComboBox x:Name="NetworkChoice" HorizontalAlignment="Stretch" AutomationProperties.Name="{local:Loc &quot;Settings network interface&quot;}" />

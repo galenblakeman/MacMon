@@ -55,8 +55,9 @@ public static class ResourceDetails
                 var second = metric == ResourceMetric.SecondDisk;
                 if (second && r is not null && ResourceCharts.LegacyDisk(r)) r = null;
                 var legacy = r is not null && ResourceCharts.LegacyDisk(r);
-                definition = "Combined read/write throughput for the selected whole disk device, or all block-storage drivers. APFS volumes are not independent disk devices. Disconnection, counter reset or device changes require a fresh baseline; throughput is not active-time utilization.";
+                definition = "The main percentage estimates I/O activity from accumulated read and write operation times divided by elapsed time, capped at 100%. Concurrent operations and multiple drivers overlap, so it is not Windows active-time utilization. All-driver mode sums operation times across drivers. Throughput is shown separately. Missing timing counters, source changes, resets and wake gaps require fresh readings.";
                 rows.AddRange([
+                    new("Estimated I/O activity", Percent(second ? r?.SecondaryDiskActivePercent : r?.DiskActivePercent)),
                     new("Activity scope", r is null ? "—" : legacy ? "All readable block-storage drivers" : Text(second ? r.SecondaryDiskName : r.DiskName)),
                     new("Read", Rate(second || legacy ? r?.SecondaryDiskReadBytesPerSecond : r?.DiskReadBytesPerSecond)),
                     new("Write", Rate(second || legacy ? r?.SecondaryDiskWriteBytesPerSecond : r?.DiskWriteBytesPerSecond))]);
@@ -69,7 +70,7 @@ public static class ResourceDetails
                 break;
             default: throw new ArgumentOutOfRangeException(nameof(metric));
         }
-        rows.Add(new("Peak · last 2 minutes", reading.Value is null ? "—" : metric is ResourceMetric.Cpu or ResourceMetric.Memory or ResourceMetric.Gpu
+        rows.Add(new("Peak · last 2 minutes", reading.Value is null ? "—" : metric is ResourceMetric.Cpu or ResourceMetric.Memory or ResourceMetric.Gpu or ResourceMetric.Storage or ResourceMetric.SecondDisk
             ? Percent(reading.Peak) : metric == ResourceMetric.Network ? ResourceGaugeHistory.NetworkRate(reading.Peak) : Rate(reading.Peak)));
         rows.Add(new("Gauge scale", reading.Value is null ? "—" : reading.Scale));
         return new(metric == ResourceMetric.Cpu ? "CPU details" : metric == ResourceMetric.Gpu ? "GPU details" : metric == ResourceMetric.SecondDisk ? "Disk 2 details" : metric == ResourceMetric.Storage ? "Disk details" : $"{metric} details",

@@ -16,6 +16,8 @@ internal static class DarwinStorageReader
             {
                 var read = Counter(Get(counters, "Bytes (Read)"));
                 var write = Counter(Get(counters, "Bytes (Write)"));
+                var readTime = Counter(Get(counters, "Total Time (Read)"));
+                var writeTime = Counter(Get(counters, "Total Time (Write)"));
                 var media = Children(driver, child =>
                 {
                     var bsd = Property(child, "BSD Name", Text);
@@ -24,11 +26,11 @@ internal static class DarwinStorageReader
                     // A GPT UUID survives reconnection and BSD renumbering. Unidentified media
                     // deliberately use a boot-scoped identity rather than silently following diskN.
                     var id = uuid is not null ? "gpt:" + uuid.ToUpperInvariant() : $"boot:{Boot}:registry:{registryId}";
-                    return new MacDiskDevice(id, $"{bsd} · {Name(child)}", $"{id}:{registryId}", read, write, Property(child, "Size", Counter));
+                    return new MacDiskDevice(id, $"{bsd} · {Name(child)}", $"{id}:{registryId}", read, write, Property(child, "Size", Counter), readTime, writeTime);
                 }).Where(d => d is not null).ToArray();
                 // An unreadable/unknown driver still participates in aggregate availability.
                 return media.Length == 1 ? media[0] : new MacDiskDevice($"boot:{Boot}:registry:{registryId}",
-                    $"Block driver {registryId}", registryId.ToString(), read, write, null);
+                    $"Block driver {registryId}", registryId.ToString(), read, write, null, readTime, writeTime);
             }
             finally { Release(counters); }
         });

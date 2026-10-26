@@ -878,3 +878,43 @@ check covers both chip types in English/Spanish and checks their absence of
 icons. Native package inspection confirms the text-only chips. Signing,
 resource/launchd smoke and ZIP/checksum verification pass. The app is left open
 in Live mode. Artifact: `MacMon-0.11.7-osx-arm64-dev.zip`, SHA-256: `181e5b203507a6e44f2c55bb58042bea9bade63ffc74866051097f8630890a92`.
+
+
+## Estimated disk I/O activity — 0.12.0/build 21
+
+The user selected estimated I/O activity for the disk main number. Primary and
+optional second-disk gauges now show a 0–100% estimate, retaining summed read/write
+throughput below. Charts retain their throughput data and scales. The estimate
+uses the change in IOBlockStorageDriver Total Time (Read) and Total Time (Write),
+in nanoseconds, divided by elapsed time and capped at 100%. Concurrent operations
+and multiple drivers overlap, so this is a load estimate rather than Windows
+active-time utilization. All-driver mode sums timings across every driver; if
+any driver lacks timing data, the aggregate estimate remains unavailable.
+
+Counter availability, source identity, resets and gaps govern baselines. Zero
+throughput alone never creates a percentage; supported timing counters can
+report true idle zero. Timing totals that remain entirely zero are treated as
+unsupported. Two-minute gauge peaks use percentage units and reset with sources.
+Tooltips, Monitoring's explanation and report text describe the estimate; Spanish
+labels are included. CSV resource columns retain their portable names
+`disk_active_percent` and `secondary_disk_active_percent`, with these Mac semantics.
+
+Apple documents the [read-time counter](https://developer.apple.com/documentation/iokit/kioblockstoragedriverstatisticstotalreadtimekey)
+in nanoseconds; its [driver implementation](https://github.com/apple-oss-distributions/IOStorageFamily/blob/main/IOBlockStorageDriver.cpp#L516)
+accumulates operation durations. The capped percentage formula is MacMon's
+interpretation, not a native busy-time percentage supplied by Apple.
+
+Mac history format 3 adds both estimates and continues reading formats 1 and 2;
+old histories retain unavailable estimates. Tests cover both older formats and
+hardware/percentage round trips, partial timing availability and overflow,
+reset/source/gap baselines, zero and capped load, gauge units, and separation from
+throughput charts. All 169 Mac tests and three release-workflow tests pass,
+zero build warnings/errors. Native smoke measured both aggregate and selected
+physical-disk estimates. UI inspection showed 7.4% over 38.6 MiB/s in full view
+and 0.5% over 2.7 MiB/s in compact view on this M2 Pro; these are observations,
+not calibrated busy-time measurements. Returned to full Live mode. A clean quit
+confirmed native history format 3. Strict ad-hoc signing, packaged resource/
+launchd smoke, ZIP integrity and checksum verification pass.
+
+Artifact: `MacMon-0.12.0-osx-arm64-dev.zip`, SHA-256:
+`73e8ef940f06e7e365fbf54123955030a256e6f1ca1c08be06211a432cfc2849`.

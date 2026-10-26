@@ -5,11 +5,50 @@ using Avalonia.Interactivity;
 using MacMon;
 using MonCore.MacOS;
 using NUnit.Framework;
+using WinMon.Monitoring;
 
 namespace MonCore.MacOS.Tests;
 
 public sealed class DiskMonitoringTests
 {
+    [Test]
+    public void ActivityEstimateUsesNanosecondsAndRequiresStableCompleteCounters()
+    {
+        var before = new MacDiskCounters("one", "disk0", 100, 100, null, 1000, 1000);
+        var current = before with { ReadNanoseconds = 500001000, WriteNanoseconds = 500001000 };
+        Assert.That(MacDiskSelection.ActivityPercent(before, current, 2, true), Is.EqualTo(50));
+        Assert.That(MacDiskSelection.ActivityPercent(before, current, 0.5, true), Is.EqualTo(100), "Concurrent operations cap at 100");
+        Assert.That(MacDiskSelection.ActivityPercent(current, current, 1, true), Is.Zero);
+        Assert.That(MacDiskSelection.ActivityPercent(null, current, 1, true), Is.Null);
+        Assert.That(MacDiskSelection.ActivityPercent(before, current, 1, false), Is.Null);
+        Assert.That(MacDiskSelection.ActivityPercent(before, current with { Id = "replacement" }, 1, true), Is.Null);
+        Assert.That(MacDiskSelection.ActivityPercent(before, current with { ReadNanoseconds = null }, 1, true), Is.Null);
+        Assert.That(MacDiskSelection.ActivityPercent(before, current with { ReadNanoseconds = 0 }, 1, true), Is.Null);
+        Assert.That(MacDiskSelection.ActivityPercent(before, current with { ReadNanoseconds = 0, WriteNanoseconds = 0 }, 1, true), Is.Null);
+    }
+
+    [Test]
+    public void AggregateTimingRequiresEveryDriverAndBothGaugePercentagesKeepThroughputSeparate()
+    {
+        var first = Device("a", 100) with { ReadNanoseconds = 1000, WriteNanoseconds = 2000 };
+        var second = Device("b", 100) with { ReadNanoseconds = 3000, WriteNanoseconds = 4000 };
+        Assert.That(MacDiskSelection.Resolve(Activity(first, second), null, true).ReadNanoseconds, Is.EqualTo(4000));
+        Assert.That(MacDiskSelection.Resolve(Activity(first, second with { ReadNanoseconds = null }), null, true).ReadNanoseconds, Is.Null);
+        Assert.That(MacDiskSelection.Resolve(Activity(first with { ReadNanoseconds = ulong.MaxValue }, second), null, true).ReadNanoseconds, Is.Null);
+        var sample = new MonitorSample(DateTimeOffset.UtcNow, 1, [], 0, false, Stopwatch.Frequency)
+        { Resources = new() { DiskName = "disk0", SecondaryDiskName = "disk2", DiskActivePercent = 42,
+            SecondaryDiskActivePercent = 17, DiskReadBytesPerSecond = 1024, DiskWriteBytesPerSecond = 1024,
+            SecondaryDiskReadBytesPerSecond = 4096, SecondaryDiskWriteBytesPerSecond = 0 } };
+        var gauges = new ResourceGaugeHistory(); gauges.Observe(sample);
+        Assert.That(gauges.Readings[3].Text, Is.EqualTo("42.0%"));
+        Assert.That(gauges.Readings[5].Text, Is.EqualTo("17.0%"));
+        Assert.That(gauges.Readings[3].Maximum, Is.EqualTo(100));
+        Assert.That(ResourceCharts.Value(sample, 3), Is.EqualTo(2048));
+        Assert.That(ResourceCharts.Value(sample, 5), Is.EqualTo(4096));
+        gauges.Observe(sample with { MonotonicTimestamp = 2 * Stopwatch.Frequency, Resources = sample.Resources with { DiskName = "replacement", DiskActivePercent = 5 } });
+        Assert.That(gauges.Readings[3].Peak, Is.EqualTo(5));
+    }
+
     private static MacDiskDevice Device(string id, ulong count, string generation = "one") => new(id, "disk1 · Test SSD", id + generation, count, count, 1000000);
     private static MacActivitySnapshot Activity(params MacDiskDevice[] devices) => MacActivitySnapshot.Empty with { StorageSet = "all", Read = 1000, Written = 1000, Disks = devices };
     [Test]
