@@ -37,9 +37,18 @@ public sealed partial class MainWindow
     }
     private void NavigateToProcesses(UsageRow row)
     {
-        if (string.IsNullOrEmpty(row.Path)) return;
-        ReturnToLive(); PinnedOnly.IsChecked = false; ProcessAppsOnly.IsChecked = false;
-        ProcessSearchBox.Text = "path:" + row.Path; DataTabs.SelectedIndex = 0; UpdateProcesses(); ProcessSearchBox.Focus();
+        var app = _session.Usage.Apps.FirstOrDefault(app => app.Key == row.App.Key) ?? row.App;
+        var target = UsageNavigation.Resolve(app, _session.History.Samples, _session.LatestFull);
+        if (target is null)
+        {
+            _operationStatus = UiText.Get("This app's process sample is no longer retained. Choose another app or return to Live.");
+            Update(); return;
+        }
+        if (target.Historical) InspectSample(target.Sample); else ReturnToLive();
+        PinnedOnly.IsChecked = false; ProcessAppsOnly.IsChecked = false; GroupProcesses.IsChecked = true;
+        ProcessSearchBox.Text = "";
+        _selection.Select(target.Process, true); UpdateRetention();
+        DataTabs.SelectedIndex = 0; UpdateProcesses(); ProcessList.Focus();
     }
     private void OnUsageContextRequested(object? sender, ContextRequestedEventArgs args)
     {

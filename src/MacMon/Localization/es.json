@@ -338,5 +338,6 @@
   "Captured launchd inventory": "Inventario de launchd capturado",
   "Captured jobs unavailable": "Tareas capturadas no disponibles",
   "No retained job inventory for this capture. Return to Live to observe jobs.": "No hay inventario de tareas conservado para esta captura. Vuelve a En vivo para observar tareas.",
-  "Captured": "Capturado"
+  "Captured": "Capturado",
+  "This app's process sample is no longer retained. Choose another app or return to Live.": "La muestra de procesos de esta app ya no se conserva. Elige otra app o vuelve a En vivo."
 }

@@ -1364,3 +1364,20 @@ looking for lazily created controls.
 
 Validation: all 223 regressions pass (222 in the ordinary host and the exhaustive
 compact appearance matrix in its own host); Release build has zero warnings/errors.
+
+## Parity slice 10: retained selection and Usage drilldown — 0.13.17/build 40
+
+Process actions resolve the selected lifetime/group independently of the ranked,
+filtered ListBox. Search and Top limits can hide its row without clearing the
+action identity. Missing observations and reused PIDs cannot enable termination;
+historical actions remain read-only.
+
+Usage clears restrictive filters and selects Grouped by executable identity.
+Running apps open Live; exited apps use their exact retained LastActive SampleKey.
+Missing, expired, case-mismatched or unrelated executable samples show a localized
+notice without moving to another moment. Existing boot provenance and pin guards
+remain in force. Regression tests cover these paths, including a hidden selection,
+Top limits, PID reuse, live/exited navigation and expired captures.
+
+Validation: three focused navigation tests and all 225 ordinary regressions pass
+with zero build warnings/errors. The compact matrix passed unchanged in slice 9.

@@ -283,7 +283,7 @@ public sealed partial class MainWindow : Window
 
     private void UpdateSelection()
     {
-        var selected = ProcessList.SelectedItem is null ? null : _selection.Resolve(LiveHistory(), Grouped, _inspection.IsHistorical, Sort);
+        var selected = ResolveSelection();
         ProcessActionsPanel.IsVisible = selected is not null && ShowProcessActions.IsChecked == true;
         ProcessSelectionName.Text = selected?.Usage.Name ?? UiText.Get("Select a process");
         ToolTip.SetTip(ProcessSelectionName, selected?.Usage.Name);
@@ -430,8 +430,14 @@ public sealed partial class MainWindow : Window
         if (Clipboard is { } clipboard) { await clipboard.SetTextAsync(text); _operationStatus = "Capture copied."; }
     }
 
+    private PinnedProcess? ResolveSelection()
+    {
+        var history = LiveHistory();
+        return history.Count == 0 ? null : _selection.Resolve(history, Grouped, _inspection.IsHistorical, Sort);
+    }
+
     private (PinnedProcess? Selected, MonitorSample? Sample) SelectedProcess() =>
-        (ProcessList.SelectedItem is null ? null : _selection.Resolve(LiveHistory(), Grouped, _inspection.IsHistorical, Sort), TrailHistory().LastOrDefault());
+        (ResolveSelection(), TrailHistory().LastOrDefault());
 
     private async Task ShowProcessDetails()
     {
