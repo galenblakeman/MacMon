@@ -1336,3 +1336,18 @@ attributed and are explicitly excluded. Job table totals remain direct-process
 only. Properties/Copy details include this bounded tree. History, identity,
 re-arm/filter behavior, and English/Spanish minimum-size dialog rendering have
 focused regressions; screenshots confirm aligned cells and readable notes.
+
+Validation: all 223 tests pass in a fresh full run against unchanged final
+binaries, followed by three release-workflow tests and collector/launchd smoke.
+The Release build has zero warnings/errors. The exhaustive compact matrix also
+passes in an isolated host. Final focused regressions cover frozen captured
+metrics/trails while live inventories change, dynamic search-clear localization
+and worker-column alignment in English/Spanish at minimum size.
+
+Native 0.13.15 checks confirm decimal disk/row rates, shared action-bar state,
+exact executable navigation from Usage, the Not attributed footer, unavailable
+pre-session job captures, retained current-session Jobs captures and a read-only
+worker tree containing verified descendants. Disk rules appear in resource order
+with both disabled by default; Settings was cancelled without changing rules.
+The final app is open on live Jobs with temporary search filters cleared. Strict
+ad-hoc signing, ZIP integrity and SHA-256 verification pass; native stderr is empty.
