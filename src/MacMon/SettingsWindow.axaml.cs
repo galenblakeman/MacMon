@@ -68,7 +68,7 @@ public sealed partial class SettingsWindow : Window
         NetworkChoice.SelectedItem = networks.FirstOrDefault(network => network.Id == (preferences.NetworkId ?? ""));
         var availableDisks = disks ?? [];
         MacDiskChoice[] Choices(string? selected, string fallback) => [new("", fallback), .. availableDisks,
-            .. selected is { Length: > 0 } && availableDisks.All(d => d.Id != selected) ? new[] { new MacDiskChoice(selected, selected + " · disconnected") } : []];
+            .. selected is { Length: > 0 } && availableDisks.All(d => d.Id != selected) ? new[] { new MacDiskChoice(selected, UiText.Interpolate($"{selected} · disconnected")) } : []];
         PrimaryDiskChoice.ItemsSource = Choices(preferences.PrimaryDiskId, "All block-storage drivers");
         SecondaryDiskChoice.ItemsSource = Choices(preferences.SecondaryDiskId, "Off");
         PrimaryDiskChoice.SelectedItem = PrimaryDiskChoice.Items.OfType<MacDiskChoice>().First(d => d.Id == (preferences.PrimaryDiskId ?? ""));
@@ -150,7 +150,7 @@ public sealed partial class SettingsWindow : Window
         foreach (var i in new[] { 0, 1, 3, 2, 4, 5 })
         {
             var swatch = new Border { Width = 12, Height = 12, CornerRadius = new(2), Background = new Avalonia.Media.SolidColorBrush(colors[i]) };
-            ToolTip.SetTip(swatch, ResourceCharts.Names[i]); swatches.Children.Add(swatch);
+            ToolTip.SetTip(swatch, UiText.Get(ResourceCharts.Names[i])); swatches.Children.Add(swatch);
         }
         Grid.SetColumn(swatches, 1); row.Children.Add(swatches); return row;
     }

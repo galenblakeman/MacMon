@@ -83,8 +83,8 @@ public sealed partial class LaunchdView : UserControl
             JobDetails.IsEnabled = CopyJob.IsEnabled = SelectedJob is not null;
             ShowWorkers.IsEnabled = SelectedJob is { Process: not null };
             JobSelectionName.Text = SelectedJob?.Name ?? UiText.Get("Select a job");
-            ToolTip.SetTip(JobSelectionName, SelectedJob?.Label);
-            JobScope.Text = SelectedJob is { } selected ? $"{selected.State} · {selected.ProcessDescription} · read only" : _historical ? UiText.Get("Captured launchd inventory") : "Current bootstrap context · read only";
+            ToolTip.SetTip(JobSelectionName,SelectedJob?.Label);
+            JobScope.Text = SelectedJob is { } selected ? UiText.Interpolate($"{selected.State} · {selected.ProcessDescription} · read only") : _historical ? UiText.Get("Captured launchd inventory") : UiText.Get("Current bootstrap context · read only");
         };
         ShowWorkers.Click += async (_, _) => await ShowWorkerTree();
         JobDetails.Click += async (_, _) =>
@@ -98,7 +98,7 @@ public sealed partial class LaunchdView : UserControl
             {
                 try { await clipboard.SetTextAsync(text); }
                 catch (Exception ex) when (ex is IOException or InvalidOperationException)
-                { JobStatus.Text = $"Copy failed: {ex.Message}"; }
+                { JobStatus.Text = UiText.Interpolate($"Copy failed: {ex.Message}"); }
             }
         };
     }
@@ -133,7 +133,7 @@ public sealed partial class LaunchdView : UserControl
     private async Task Read()
     {
         RefreshJobs.IsEnabled = false;
-        if (!_historical) JobStatus.Text = "Reading loaded jobs in the current bootstrap context…";
+        if (!_historical) JobStatus.Text = UiText.Get("Reading loaded jobs in the current bootstrap context…");
         try
         {
             await _monitor.Refresh();
@@ -167,29 +167,29 @@ public sealed partial class LaunchdView : UserControl
         JobDetails.IsEnabled = CopyJob.IsEnabled = SelectedJob is not null;
         ShowWorkers.IsEnabled = SelectedJob is { Process: not null };
         JobSelectionName.Text = SelectedJob?.Name ?? UiText.Get("Select a job");
-        ToolTip.SetTip(JobSelectionName, SelectedJob?.Label);
+        ToolTip.SetTip(JobSelectionName,SelectedJob?.Label);
         JobEmpty.IsVisible = rows.Count == 0;
-        JobEmpty.Text = snapshot is not null ? "No loaded jobs match this view." : Inventory.Error is null
-            ? "Waiting for loaded jobs…" : "Job inventory unavailable · choose Refresh to retry.";
-        _scope = (snapshot?.Context?.Display ?? (Inventory.Error is null ? "Current bootstrap context · waiting…" : "Current bootstrap context · unavailable")) +
-            (Inventory.IsStale ? " · STALE" : "");
+        JobEmpty.Text = snapshot is not null ? UiText.Get("No loaded jobs match this view.") : Inventory.Error is null
+            ? UiText.Get("Waiting for loaded jobs…") : UiText.Get("Job inventory unavailable · choose Refresh to retry.");
+        _scope = ((snapshot?.Context is { } displayContext ? LaunchdPresentation.Context(displayContext) : null) ?? (Inventory.Error is null ? UiText.Get("Current bootstrap context · waiting…") : UiText.Get("Current bootstrap context · unavailable"))) +
+            (Inventory.IsStale ? UiText.Get(" · STALE") : "");
         JobStatus.Text = Inventory.Error is { } error
-            ? $"Unavailable: {error}" + (snapshot is null ? "" : $" · STALE rows from {snapshot.ObservedAt:HH:mm:ss zzz}.")
-            : snapshot is null ? "Waiting for discovery · refreshes automatically while visible."
-            : $"{(Inventory.IsStale ? "STALE · " : "")}{rows.Count} shown / {snapshot.Jobs.Count} loaded · {snapshot.Jobs.Count(job => job.ReportedPid is not null)} running at {snapshot.ObservedAt:HH:mm:ss zzz}. Not running ≠ disabled. Refreshes every 5s while visible; captures use bounded session inventory.";
-        SummaryChanged?.Invoke(snapshot is null ? Inventory.Error ?? "Waiting for discovery" :
-            $"{(Inventory.IsStale ? "STALE · " : "")}{rows.Count} shown · {snapshot.Jobs.Count} jobs · {snapshot.Jobs.Count(job => job.ReportedPid is not null)} running");
-        JobScope.Text = SelectedJob is { } selected ? $"{selected.State} · {selected.ProcessDescription} · read only" : _historical ? UiText.Get("Captured launchd inventory") : "Current bootstrap context · read only";
+            ? UiText.Interpolate($"Unavailable: {error}") + (snapshot is null ? "" : UiText.Interpolate($" · STALE rows from {snapshot.ObservedAt:HH:mm:ss zzz}."))
+            : snapshot is null ? UiText.Get("Waiting for discovery · refreshes automatically while visible.")
+            : UiText.Interpolate($"{(Inventory.IsStale ? UiText.Get("STALE · ") : "")}{rows.Count} shown / {snapshot.Jobs.Count} loaded · {snapshot.Jobs.Count(job => job.ReportedPid is not null)} running at {snapshot.ObservedAt:HH:mm:ss zzz}. Not running ≠ disabled. Refreshes every 5s while visible; captures use bounded session inventory.");
+        SummaryChanged?.Invoke(snapshot is null ? Inventory.Error ?? UiText.Get("Waiting for discovery") :
+            UiText.Interpolate($"{(Inventory.IsStale ? UiText.Get("STALE · ") : "")}{rows.Count} shown · {snapshot.Jobs.Count} jobs · {snapshot.Jobs.Count(job => job.ReportedPid is not null)} running"));
+        JobScope.Text = SelectedJob is { } selected ? UiText.Interpolate($"{selected.State} · {selected.ProcessDescription} · read only") : _historical ? UiText.Get("Captured launchd inventory") : UiText.Get("Current bootstrap context · read only");
         if (_historical)
         {
-            _scope = UiText.Get("Captured launchd inventory") + (snapshot?.Context is { } context ? " · " + context.Display : "");
+            _scope = UiText.Get("Captured launchd inventory") + (snapshot?.Context is { } context ? " · " + LaunchdPresentation.Context(context) : "");
             JobStatus.Text = snapshot is null ? UiText.Get("No retained job inventory for this capture. Return to Live to observe jobs.")
-                : $"{UiText.Get("Captured")} {_inspection?.Timestamp:yyyy-MM-dd HH:mm:ss zzz} · inventory {snapshot.ObservedAt:HH:mm:ss zzz} · {rows.Count} / {snapshot.Jobs.Count} jobs · read only";
+                : UiText.Interpolate($"{UiText.Get("Captured")} {_inspection?.Timestamp:yyyy-MM-dd HH:mm:ss zzz} · inventory {snapshot.ObservedAt:HH:mm:ss zzz} · {rows.Count} / {snapshot.Jobs.Count} jobs · read only");
             if (snapshot is null) JobEmpty.Text = JobStatus.Text;
-            SummaryChanged?.Invoke(snapshot is null ? UiText.Get("Captured jobs unavailable") : $"{rows.Count} shown · {snapshot.Jobs.Count} captured jobs");
+            SummaryChanged?.Invoke(snapshot is null ? UiText.Get("Captured jobs unavailable") : UiText.Interpolate($"{rows.Count} shown · {snapshot.Jobs.Count} captured jobs"));
         }
         RefreshJobs.IsEnabled = !_historical && !_monitor.IsRefreshing;
-        ToolTip.SetTip(JobScope, SummaryDetails);
+        ToolTip.SetTip(JobScope,SummaryDetails);
 
     }
 

@@ -80,7 +80,7 @@ public sealed partial class MainWindow : Window
             if (_closing) return;
             var index = _captures.FindIndex(capture => capture.Id == record.Id);
             if (index >= 0) _captures[index] = record with { State = error is null ? "Saved" : "Failed" };
-            if (error is not null) _operationStatus = $"Capture report failed: {error}";
+            if (error is not null) _operationStatus = UiText.Interpolate($"Capture report failed: {error}");
             else if (_captureOptions.Notify && !_closing) MacDesktopIntegration.Notify(UiText.Get("Automatic capture saved"), record.Label);
             RefreshCaptures();
         }));
@@ -88,7 +88,7 @@ public sealed partial class MainWindow : Window
         ResourceCards.Columns = 5;
         _session.LiveSampleRecorded += ObserveCaptures;
         _session.LiveSampleRecorded += JobsView.ObserveLiveSample;
-        JobsView.SummaryChanged += summary => { JobSummary.Text = summary; ToolTip.SetTip(JobSummary, JobsView.SummaryDetails); };
+        JobsView.SummaryChanged += summary => { JobSummary.Text = summary; ToolTip.SetTip(JobSummary,JobsView.SummaryDetails); };
         EnterCompactView.Click += (_, _) => SetCompactView(true);
         CompactPanel.InfoRequested += async () => await ShowHardwareInfo();
         CompactPanel.ExportRequested += async () => await ShowExportDialog();
@@ -173,21 +173,21 @@ public sealed partial class MainWindow : Window
         {
             if (sample is not null && _session.HasLiveSample) UpdateResourceGauges(sample);
             else ClearGauges();
-            CompactPanel.Status = sample is null ? "Readings unavailable · retrying…" : !_session.HasLiveSample
-                ? "Restored history · waiting for live readings…" : _session.Error is not null
-                ? "Some readings are unavailable · retrying…" : $"Live · updated {sample.Timestamp:HH:mm:ss} · peak markers show the last 2 minutes";
+            CompactPanel.Status = sample is null ? UiText.Get("Readings unavailable · retrying…") : !_session.HasLiveSample
+                ? UiText.Get("Restored history · waiting for live readings…") : _session.Error is not null
+                ? UiText.Get("Some readings are unavailable · retrying…") : UiText.Interpolate($"Live · updated {sample.Timestamp:HH:mm:ss} · peak markers show the last 2 minutes");
             return;
         }
         if (sample is null)
         {
             ClearGauges();
-            StatusLabel.Text = "Readings unavailable · retrying…";
+            StatusLabel.Text = UiText.Get("Readings unavailable · retrying…");
             _refreshingRows = true;
             ProcessList.ItemsSource = Array.Empty<ProcessRow>();
             _refreshingRows = false;
             EmptyProcessLabel.IsVisible = true;
-            EmptyProcessLabel.Text = "Process readings unavailable · retrying…";
-            SelectionLabel.Text = "Selected process readings unavailable.";
+            EmptyProcessLabel.Text = UiText.Get("Process readings unavailable · retrying…");
+            SelectionLabel.Text = UiText.Get("Selected process readings unavailable.");
             return;
         }
 
@@ -201,18 +201,18 @@ public sealed partial class MainWindow : Window
         UpdateChartLabels();
         if (_captureCard.IsOpen) UpdateCaptureCard();
 
-        CaptureStatus.Text = !_inspection.IsHistorical ? $"Live · recording · {_session.History.Samples.Count} retained samples" : captured is null
-            ? "Capture expired from retained history · return to Live or select another moment"
-            : $"Captured {captured.Timestamp:yyyy-MM-dd HH:mm:ss zzz} · CPU {captured.TotalCpuPercent?.ToString("F1") ?? "—"}% · memory {GiB(captured.Resources.UsedMemoryBytes)} · network ↓ {Rate(captured.Resources.ReceiveBytesPerSecond)} ↑ {Rate(captured.Resources.SendBytesPerSecond)} · retained process observations";
+        CaptureStatus.Text = !_inspection.IsHistorical ? UiText.Interpolate($"Live · recording · {_session.History.Samples.Count} retained samples") : captured is null
+            ? UiText.Get("Capture expired from retained history · return to Live or select another moment")
+            : UiText.Interpolate($"Captured {captured.Timestamp:yyyy-MM-dd HH:mm:ss zzz} · CPU {captured.TotalCpuPercent?.ToString("F1") ?? "—"}% · memory {GiB(captured.Resources.UsedMemoryBytes)} · network ↓ {Rate(captured.Resources.ReceiveBytesPerSecond)} ↑ {Rate(captured.Resources.SendBytesPerSecond)} · retained process observations");
         UpdateProcesses();
         UpdateUsage();
         StatusLabel.Text = _session.Error is null
-            ? $"Updated {sample.Timestamp:HH:mm:ss} · macOS {Environment.OSVersion.Version}"
-            : "Some readings are unavailable · retrying…";
+            ? UiText.Interpolate($"Updated {sample.Timestamp:HH:mm:ss} · macOS {Environment.OSVersion.Version}")
+            : UiText.Get("Some readings are unavailable · retrying…");
         if (!_session.HasLiveSample)
         {
             ClearGauges();
-            StatusLabel.Text = "Restored history · waiting for live readings…";
+            StatusLabel.Text = UiText.Get("Restored history · waiting for live readings…");
         }
         if (_operationStatus.Length > 0) StatusLabel.Text = _operationStatus;
     }
@@ -223,12 +223,12 @@ public sealed partial class MainWindow : Window
         var r = sample.Resources;
         var usedMemory = (r.UsedMemoryBytes / 1073741824d)?.ToString("F1") ?? "—";
         string[] descriptions = [
-            r.CpuClockMhz is > 0 ? $"{r.CpuClockMhz.Value / 1000:F1} GHz" : "Speed unavailable",
-            $"{usedMemory} / {GiB(r.TotalMemoryBytes)}\nPressure: {_source.Memory.Pressure} · compressed {GiB(_source.Memory.CompressedBytes)}",
-            $"{r.NetworkName} · download\n↑ {ResourceGaugeHistory.NetworkRate(r.SendBytesPerSecond)}",
-            $"{r.DiskName} · read + write\n{Rate(ResourceCharts.DiskRate(r, false))}",
-            r.GpuName.Length > 0 ? r.GpuName : "Device utilization unavailable",
-            $"{r.SecondaryDiskName} · read + write\n{Rate(ResourceCharts.DiskRate(r, true))}"];
+            r.CpuClockMhz is > 0 ? $"{r.CpuClockMhz.Value / 1000:F1} GHz" : UiText.Get("Speed unavailable"),
+            UiText.Interpolate($"{usedMemory} / {GiB(r.TotalMemoryBytes)}\nPressure: {UiText.Get(_source.Memory.Pressure)} · compressed {GiB(_source.Memory.CompressedBytes)}"),
+            UiText.Interpolate($"{r.NetworkName} · download\n↑ {ResourceGaugeHistory.NetworkRate(r.SendBytesPerSecond)}"),
+            UiText.Interpolate($"{UiText.Get(r.DiskName)} · read + write\n{Rate(ResourceCharts.DiskRate(r, false))}"),
+            r.GpuName.Length > 0 ? r.GpuName : UiText.Get("Device utilization unavailable"),
+            UiText.Interpolate($"{UiText.Get(r.SecondaryDiskName)} · read + write\n{Rate(ResourceCharts.DiskRate(r, true))}")];
         var gauges = VisibleGauges;
         for (var index = 0; index < gauges.Length; index++) gauges[index].Update(_gaugeHistory.Readings[index], descriptions[index]);
     }
@@ -259,11 +259,11 @@ public sealed partial class MainWindow : Window
             ProcessList.ItemsSource = Array.Empty<ProcessRow>();
             _refreshingRows = false;
             EmptyProcessLabel.IsVisible = true;
-            EmptyProcessLabel.Text = "Selected capture is no longer retained";
+            EmptyProcessLabel.Text = UiText.Get("Selected capture is no longer retained");
             ProcessSelectionName.Text = UiText.Get("Select a process"); SelectionIcon.IsVisible = false; ProcessSelectionStatus.IsVisible = false;
             PinSelection.IsEnabled = false;
-            ProcessCountLabel.Text = "Capture expired";
-            SelectionLabel.Text = "Return to Live or select another moment.";
+            ProcessCountLabel.Text = UiText.Get("Capture expired");
+            SelectionLabel.Text = UiText.Get("Return to Live or select another moment.");
             ProcessActionsPanel.IsVisible = false;
             return;
         }
@@ -275,10 +275,10 @@ public sealed partial class MainWindow : Window
         _refreshingRows = false;
         EmptyProcessLabel.IsVisible = rows.Length == 0;
         EmptyProcessLabel.Text = _session.Error == SamplingError.ProcessesUnavailable
-            ? "Process enumeration unavailable · retrying…"
-            : sample.IsGap ? "Establishing process baselines…" : "No matching processes";
+            ? UiText.Get("Process enumeration unavailable · retrying…")
+            : sample.IsGap ? UiText.Get("Establishing process baselines…") : UiText.Get("No matching processes");
         ProcessCountLabel.Text = UiText.Format("Processes: {0} · Threads: {1}", sample.Resources.ProcessCount?.ToString() ?? "—", sample.Processes.Sum(p => (long)(p.ThreadCount ?? 0)));
-        ToolTip.SetTip(ProcessCountLabel, $"{rows.Length} rows shown; {sample.UnavailableProcesses} processes unavailable. Thread count sums readable observations; handles are not collected on macOS.");
+        ToolTip.SetTip(ProcessCountLabel,UiText.Interpolate($"{rows.Length} rows shown; {sample.UnavailableProcesses} processes unavailable. Thread count sums readable observations; handles are not collected on macOS."));
         UpdateSelection();
     }
 
@@ -287,26 +287,26 @@ public sealed partial class MainWindow : Window
         var selected = ResolveSelection();
         ProcessActionsPanel.IsVisible = selected is not null && ShowProcessActions.IsChecked == true;
         ProcessSelectionName.Text = selected?.Usage.Name ?? UiText.Get("Select a process");
-        ToolTip.SetTip(ProcessSelectionName, selected?.Usage.Name);
+        ToolTip.SetTip(ProcessSelectionName,selected?.Usage.Name);
         SelectionIcon.IsVisible = selected is not null;
         SelectionIcon.Source = selected is null ? null : ApplicationIcons.For(selected.Usage.ImagePath);
         ButtonIcon.SetKind(ShowProcessActions, ShowProcessActions.IsChecked == true ? "ChevronDown" : "ChevronUp");
         RevealExecutable.IsEnabled = selected is not null && selected.Usage.ImagePath.Length > 0;
-        EndProcess.Content = Grouped ? "End group…" : "End process…";
+        EndProcess.Content = Grouped ? UiText.Get("End group…") : UiText.Get("End process…");
         EndProcess.IsEnabled = !_processActionPending && !_inspection.IsHistorical && selected?.State == PinnedProcessState.Present &&
             selected.Usage.ProcessId > 1 && (Grouped
                 ? selected.Usage.MemberIds.Count > 0 && selected.Usage.MemberIds.All(pid => pid > 1 && pid != Environment.ProcessId)
                 : selected.Usage.ProcessId != Environment.ProcessId);
-        ToolTip.SetTip(SelectionLabel, selected?.Usage.ImagePath);
+        ToolTip.SetTip(SelectionLabel,selected?.Usage.ImagePath);
         PinSelection.IsEnabled = selected is not null && _historyOrigins.CanPin(TrailHistory().LastOrDefault(), Grouped, _inspection.IsHistorical);
-        PinSelection.Content = selected is not null && _pins.Contains(selected.Usage, Grouped) ? "Unpin selected" : "Pin selected";
+        PinSelection.Content = selected is not null && _pins.Contains(selected.Usage, Grouped) ? UiText.Get("Unpin selected") : UiText.Get("Pin selected");
         SelectionLabel.Text = selected is null ? "" : Grouped
             ? UiText.Format("{0} processes", selected.Usage.MemberCount)
-            : $"PID {selected.Usage.ProcessId}";
+            : UiText.Interpolate($"PID {selected.Usage.ProcessId}");
         if (selected is not null && !string.IsNullOrWhiteSpace(selected.Usage.AppName)) SelectionLabel.Text += " · " + selected.Usage.AppName;
         ProcessSelectionStatus.IsVisible = selected is not null;
         ProcessSelectionStatusText.Text = selected is null ? "" : selected.State != PinnedProcessState.Present
-            ? selected.State.ToString() : UiText.Get(_inspection.IsHistorical ? "Captured" : "Live");
+            ? ProcessDetails.State(selected.State) : UiText.Get(_inspection.IsHistorical ? "Captured" : "Live");
     }
 
     private void UpdateRetention()
@@ -336,21 +336,21 @@ public sealed partial class MainWindow : Window
         var notAttributed = _session.Usage.NotAttributedCpuTicks;
         var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
         {
-            Title = kind switch { CsvExportKind.ResourceHistory => "Export resource history", CsvExportKind.UsageTotals => "Export session usage totals", _ => "Export retained process samples" },
+            Title = UiText.Get(kind switch { CsvExportKind.ResourceHistory => "Export resource history", CsvExportKind.UsageTotals => "Export session usage totals", _ => "Export retained process samples" }),
             SuggestedFileName = $"MacMon-{kind}-{DateTime.Now:yyyyMMdd-HHmmss}.csv",
             DefaultExtension = "csv",
             FileTypeChoices = [new FilePickerFileType("CSV") { Patterns = ["*.csv"] }]
         });
         if (file is null) return;
         var path = file.TryGetLocalPath();
-        if (path is null) { _operationStatus = "Choose a local file for export."; return; }
+        if (path is null) { _operationStatus = UiText.Get("Choose a local file for export."); return; }
         try
         {
             await Task.Run(() => CsvExport.Write(path, kind, samples, apps, since, machine, notAttributed));
-            _operationStatus = kind == CsvExportKind.UsageTotals ? $"Exported session usage to {path}" : $"Exported {samples.Length} retained samples to {path}";
+            _operationStatus = kind == CsvExportKind.UsageTotals ? UiText.Interpolate($"Exported session usage to {path}") : UiText.Interpolate($"Exported {samples.Length} retained samples to {path}");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        { _operationStatus = $"Export failed: {ex.Message}"; }
+        { _operationStatus = UiText.Interpolate($"Export failed: {ex.Message}"); }
     }
 
     private static string GiB(ulong? bytes) => bytes is { } value ? $"{value / 1073741824d:F1} GiB" : "—";
@@ -371,8 +371,8 @@ public sealed partial class MainWindow : Window
         UpdateUsageSelection();
         var attribution = new UsageAttribution(_session.Usage.NotAttributedCpuTicks, _session.Usage.MachineBusyTicks);
         UnattributedCpu.Text = attribution.Cpu; UnattributedShare.Text = attribution.Share;
-        UsageStatus.Text = $"{rows.Length} shown · live totals since {_session.Usage.Since:HH:mm:ss zzz}";
-        ToolTip.SetTip(UsageStatus, "Includes exited apps. Busy share uses observed machine CPU time. Missing intervals are excluded; disk I/O excludes network. Capture/chart range does not change these totals.");
+        UsageStatus.Text = UiText.Interpolate($"{rows.Length} shown · live totals since {_session.Usage.Since:HH:mm:ss zzz}");
+        ToolTip.SetTip(UsageStatus,UiText.Get("Includes exited apps. Busy share uses observed machine CPU time. Missing intervals are excluded; disk I/O excludes network. Capture/chart range does not change these totals."));
     }
 
     private void ObserveCaptures(MonitorSample sample)
@@ -386,7 +386,7 @@ public sealed partial class MainWindow : Window
             if (!_reportWriter.Enqueue(record, MacCaptureReports.AutomaticText(fired)))
             {
                 record = record with { State = "Failed" };
-                _operationStatus = "Capture report queue is full; report could not be saved.";
+                _operationStatus = UiText.Get("Capture report queue is full; report could not be saved.");
             }
             _captures.Add(record);
             if (_captures.Count > 200) _captures.RemoveAt(0);
@@ -416,10 +416,10 @@ public sealed partial class MainWindow : Window
 
     private void OpenReport(MacCaptureRecord record)
     {
-        if (!File.Exists(record.ReportPath)) { _operationStatus = "Capture report is unavailable or still saving."; return; }
+        if (!File.Exists(record.ReportPath)) { _operationStatus = UiText.Get("Capture report is unavailable or still saving."); return; }
         try { Process.Start(new ProcessStartInfo("/usr/bin/open") { UseShellExecute = false, ArgumentList = { record.ReportPath } }); }
         catch (Exception ex) when (ex is IOException or System.ComponentModel.Win32Exception)
-        { _operationStatus = $"Could not open report: {ex.Message}"; }
+        { _operationStatus = UiText.Interpolate($"Could not open report: {ex.Message}"); }
     }
 
     private async Task CopySelectedCapture()
@@ -428,7 +428,7 @@ public sealed partial class MainWindow : Window
         if (sample is null || CapturesList.SelectedItem is MacCaptureRecord record && !record.Peak.Matches(sample))
         { _operationStatus = UiText.Get("Selected capture has expired."); Update(); return; }
         var text = CaptureText(sample);
-        if (Clipboard is { } clipboard) { await clipboard.SetTextAsync(text); _operationStatus = "Capture copied."; }
+        if (Clipboard is { } clipboard) { await clipboard.SetTextAsync(text); _operationStatus = UiText.Get("Capture copied."); }
     }
 
     private PinnedProcess? ResolveSelection()
@@ -452,17 +452,17 @@ public sealed partial class MainWindow : Window
         var (selected, sample) = SelectedProcess();
         if (selected is null || sample is null || Clipboard is not { } clipboard) return;
         await clipboard.SetTextAsync(ProcessDetails.Text(selected, sample, Grouped, _inspection.IsHistorical));
-        _operationStatus = "Process details copied.";
+        _operationStatus = UiText.Get("Process details copied.");
     }
 
     private void RevealSelectedExecutable()
     {
         var (selected, _) = SelectedProcess();
-        if (selected is null || !File.Exists(selected.Usage.ImagePath)) { _operationStatus = "Executable path is unavailable."; return; }
+        if (selected is null || !File.Exists(selected.Usage.ImagePath)) { _operationStatus = UiText.Get("Executable path is unavailable."); return; }
         try { using var reveal = Process.Start(new ProcessStartInfo("/usr/bin/open")
             { UseShellExecute = false, ArgumentList = { "-R", selected.Usage.ImagePath } }); }
         catch (Exception ex) when (ex is IOException or System.ComponentModel.Win32Exception)
-        { _operationStatus = $"Could not reveal executable: {ex.Message}"; }
+        { _operationStatus = UiText.Interpolate($"Could not reveal executable: {ex.Message}"); }
     }
 
     private async Task EndSelectedProcesses()
@@ -474,13 +474,12 @@ public sealed partial class MainWindow : Window
         var members = latest.Processes.Where(process => Grouped
             ? policy.Comparer.Equals(policy.ExecutableKey(process), policy.ExecutableKey(usage))
             : process.Identity == usage.Identity).ToArray();
-        if (members.Length == 0) { _operationStatus = "The selected process is no longer observed."; return; }
+        if (members.Length == 0) { _operationStatus = UiText.Get("The selected process is no longer observed."); return; }
         var actions = new MacProcessActions();
         var targets = members.Select(actions.Prepare).ToArray();
         if (targets.Any(target => target is null))
-        { _operationStatus = "Could not prepare every target. System, other-user, MacMon, changed or inaccessible processes are protected."; return; }
-        var details = "Request SIGTERM for exactly these observed process lifetimes? Unsaved work can be lost.\n" +
-            "Processes started after this dialog opens are excluded. macOS may deny the request, and a process may ignore SIGTERM.\n\n" +
+        { _operationStatus = UiText.Get("Could not prepare every target. System, other-user, MacMon, changed or inaccessible processes are protected."); return; }
+        var details = UiText.Get("Request SIGTERM for exactly these observed process lifetimes? Unsaved work can be lost.\nProcesses started after this dialog opens are excluded. macOS may deny the request, and a process may ignore SIGTERM.\n\n") +
             string.Join("\n", targets.Select(target => $"{target!.Process.Name} · PID {target.Process.ProcessId}\n{target.Process.ImagePath}"));
         _processActionPending = true;
         try
@@ -489,7 +488,7 @@ public sealed partial class MainWindow : Window
             _termination = Task.Run(() => targets.Select(target => actions.Terminate(target!)).ToArray());
             var results = await _termination;
             var errors = results.Where(error => error is not null).ToArray();
-            _operationStatus = $"Termination requested for {results.Length - errors.Length} of {results.Length} captured targets." +
+            _operationStatus = UiText.Interpolate($"Termination requested for {results.Length - errors.Length} of {results.Length} captured targets.") +
                 (errors.Length > 0 ? $" {errors[0]}" : "");
         }
         finally { _processActionPending = false; if (!_closing) UpdateSelection(); }
@@ -503,7 +502,7 @@ public sealed partial class MainWindow : Window
         var networks = new[] { new MacNetworkChoice("", "Automatic · active Ethernet/Wi-Fi") }
             .Concat(_source.NetworkInterfaces).ToList();
         if (_source.NetworkInterfaceId is { Length: > 0 } id && networks.All(choice => choice.Id != id))
-            networks.Add(new(id, $"{id} · disconnected"));
+            networks.Add(new(id, UiText.Interpolate($"{id} · disconnected")));
         var window = new SettingsWindow(PreferencesSnapshot(), networks, section ?? _settingsSection,
             _preferencesWritable, SaveSettings, _source.DiskChoices);
         if (CompactMode) window.WindowStartupLocation = WindowStartupLocation.CenterScreen;
@@ -643,7 +642,7 @@ public sealed partial class MainWindow : Window
         if (restored.Entries.LastOrDefault() is { } latest)
         {
             _inspection.Select(latest.Sample);
-            _operationStatus = restart is null ? $"Restored {restored.Entries.Count} history samples; Usage starts fresh."
+            _operationStatus = restart is null ? UiText.Interpolate($"Restored {restored.Entries.Count} history samples; Usage starts fresh.")
                 : UiText.Get("Restored history and session usage after updating.");
         }
         if (restored.Error is not null) _operationStatus = restored.Error;
@@ -712,7 +711,7 @@ public sealed partial class MainWindow : Window
                 });
             }
             catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
-            { await new ProcessDialog("Settings or history could not be saved", $"{ex.Message}\nThe app will close without saving these settings.").ShowDialog<bool>(this); }
+            { await new ProcessDialog("Settings or history could not be saved", UiText.Interpolate($"{ex.Message}\nThe app will close without saving these settings.")).ShowDialog<bool>(this); }
         }
         _shutdown.Dispose();
         _shutdownComplete = true;

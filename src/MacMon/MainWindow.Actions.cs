@@ -22,21 +22,9 @@ public sealed partial class MainWindow
     }
     private async Task ShowHardwareInfo()
     {
-        var dialog = new HardwareInfoWindow(() =>
-        {
-            var r = _session.HasLiveSample ? _session.Latest?.Resources : null;
-            HardwareEntry Entry(string label, string value) => new(UiText.Get(label), value);
-            return new HardwareSection[]
-            {
-                new(UiText.Get("System"), [Entry("Computer", Environment.MachineName), Entry("macOS", Environment.OSVersion.Version.ToString()),
-                    Entry("Architecture", System.Runtime.InteropServices.RuntimeInformation.OSArchitecture.ToString())]),
-                new(UiText.Get("Processor and memory"), [Entry("Logical CPU cores", Environment.ProcessorCount.ToString()), Entry("Installed memory", GiB(r?.TotalMemoryBytes)),
-                    Entry("GPU", r?.GpuName ?? "—")]),
-                new(UiText.Get("Disk"), [Entry("Data volume", _session.HasLiveSample ? _source.Volume.Path : "—"),
-                    Entry("Available", GiB(_session.HasLiveSample ? _source.Volume.FreeBytes : null)), Entry("Capacity", GiB(_session.HasLiveSample ? _source.Volume.TotalBytes : null))]),
-                new(UiText.Get("Network interfaces"), _source.NetworkInterfaces.Select(n => new HardwareEntry(n.Id, n.Name)).ToArray())
-            };
-        });
+        var reader = new MonCore.MacOS.MacHardwareInventoryReader();
+        var dialog = new HardwareInfoWindow(async cancellationToken =>
+            HardwarePresentation.Create(await reader.Read(cancellationToken)));
         if (CompactMode) dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
         await dialog.ShowDialog(this);
     }
@@ -78,11 +66,11 @@ public sealed partial class MainWindow
             try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("/usr/bin/open")
                 { UseShellExecute = false, ArgumentList = { "-R", row.Path } }); }
             catch (Exception ex) when (ex is IOException or System.ComponentModel.Win32Exception)
-            { _operationStatus = $"Could not reveal executable: {ex.Message}"; }
+            { _operationStatus = UiText.Interpolate($"Could not reveal executable: {ex.Message}"); }
         };
     }
-    private static string UsageDetails(UsageRow row) => $"{row.Name}\nCPU time: {row.Cpu}\nBusy share: {row.Share}\nI/O: {row.DiskIo}\n" +
-        $"Seen (running): {row.Processes}\nLast active: {row.LastActive}\nExecutable: {row.Path}";
+    private static string UsageDetails(UsageRow row) => UiText.Interpolate($"{row.Name}\nCPU time: {row.Cpu}\nBusy share: {row.Share}\nI/O: {row.DiskIo}\n") +
+        UiText.Interpolate($"Seen (running): {row.Processes}\nLast active: {row.LastActive}\nExecutable: {row.Path}");
     private void UpdateUsageSelection()
     {
         var row = UsageList.SelectedItem as UsageRow;
@@ -90,16 +78,16 @@ public sealed partial class MainWindow
         UsageShowProcesses.IsEnabled = row is not null && row.Path.Length > 0;
         RevealUsageApp.IsEnabled = row is not null && File.Exists(row.Path);
         UsageSelectionName.Text = row?.Name ?? UiText.Get("Select an app");
-        ToolTip.SetTip(UsageSelectionName, row?.Name);
+        ToolTip.SetTip(UsageSelectionName,row?.Name);
         UsageSelectionIcon.IsVisible = row is not null; UsageSelectionIcon.Source = row?.Icon;
         UsageSelection.Text = row is null ? "" : UiText.Get(TablePresentation.ApplicationBundle(row.Path) is null ? "Background" : "App") + " · " + row.Path;
-        ToolTip.SetTip(UsageSelection, row?.Path);
+        ToolTip.SetTip(UsageSelection,row?.Path);
     }
     private async Task CopyUsageRows()
     {
         if (Clipboard is not { } clipboard) return;
         var rows = (UsageList.ItemsSource as IEnumerable<UsageRow> ?? []).ToArray();
         var text = UsagePresentation.Report(rows, _session.Usage.Since, new(_session.Usage.NotAttributedCpuTicks, _session.Usage.MachineBusyTicks));
-        await clipboard.SetTextAsync(text); _operationStatus = $"Copied {rows.Length} usage rows"; Update();
+        await clipboard.SetTextAsync(text); _operationStatus = UiText.Interpolate($"Copied {rows.Length} usage rows"); Update();
     }
 }

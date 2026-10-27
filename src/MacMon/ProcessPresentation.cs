@@ -95,16 +95,16 @@ public sealed record ProcessRow(ProcessUsage Process, bool Pinned = false,
     public Avalonia.Media.IImage Icon => ApplicationIcons.For(Process.ImagePath);
     public bool CanPin { get; init; } = true;
     public string PinAction => Pinned ? "★" : "☆";
-    public string PinActionName => $"{(Pinned ? "Unpin" : "Pin")} {Process.Name}";
+    public string PinActionName => UiText.Interpolate($"{UiText.Get(Pinned ? "Unpin" : "Pin")} {Process.Name}");
     public string Pin => Pinned ? "★" : "";
-    public string Name => State == PinnedProcessState.Present ? Process.Name : $"{Process.Name} · {State}";
-    public string Pid => Grouped ? $"{Process.MemberCount} procs" : Process.ProcessId.ToString();
+    public string Name => State == PinnedProcessState.Present ? Process.Name : $"{Process.Name} · {ProcessDetails.State(State)}";
+    public string Pid => Grouped ? UiText.Interpolate($"{Process.MemberCount} procs") : Process.ProcessId.ToString();
     public string Cpu => State == PinnedProcessState.Present && Process.ObservedCpuPercent is { } value ? $"{value:F1}%" : "—";
     public string Resident => State == PinnedProcessState.Present && Process.WorkingSetBytes is { } bytes ? TableUnits.Memory(bytes) : "—";
     public string Io => State == PinnedProcessState.Present && Process.IoBytesPerSecond is { } bytes ? TableUnits.IoRate(bytes) : "—";
     public string Threads => State == PinnedProcessState.Present ? Process.ThreadCount?.ToString() ?? "—" : "—";
-    public string Path => (Process.ImagePath.Length > 0 ? Process.ImagePath : "Executable path unavailable") +
-        (Grouped ? "\nResident sum may count shared pages more than once." : "") +
-        (State != PinnedProcessState.Present ? $"\n{State}" : "");
-    public override string ToString() => $"{Name}, {Pid}, CPU {Cpu}, resident memory {Resident}, {Threads} threads, {State}";
+    public string Path => (Process.ImagePath.Length > 0 ? Process.ImagePath : UiText.Get("Executable path unavailable")) +
+        (Grouped ? UiText.Get("\nResident sum may count shared pages more than once.") : "") +
+        (State != PinnedProcessState.Present ? $"\n{ProcessDetails.State(State)}" : "");
+    public override string ToString() => UiText.Interpolate($"{Name}, {Pid}, CPU {Cpu}, resident memory {Resident}, {Threads} threads, {ProcessDetails.State(State)}");
 }

@@ -9,6 +9,7 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.Contains("--hardware-smoke")) return HardwareSmoke().GetAwaiter().GetResult();
         if (args.Contains("--launchd-smoke")) return LaunchdSmoke().GetAwaiter().GetResult();
         if (args.Contains("--history-benchmark")) return HistoryBenchmark.Run();
         if (args.Length == 3 && args[0] == "--measure-process" && int.TryParse(args[1], out var pid) &&
@@ -18,6 +19,17 @@ internal static class Program
         if (args.Contains("--presentation-benchmark")) return PresentationBenchmark.Run();
         if (args.Contains("--smoke")) return Smoke();
         return AppBuilder.Configure<App>().UsePlatformDetect().StartWithClassicDesktopLifetime(args);
+    }
+
+    private static async Task<int> HardwareSmoke()
+    {
+        var inventory = await new MacHardwareInventoryReader().Read();
+        Console.WriteLine($"Model={inventory.Model}; processor={inventory.Processor}; cores={inventory.PhysicalCores}/{inventory.LogicalCores}; " +
+            $"memory={inventory.MemoryBytes}; memory devices={inventory.Memory.Count}; GPUs={inventory.Graphics.Count}; " +
+            $"disks={inventory.Disks.Count}; volumes={inventory.Volumes.Count}; adapters={inventory.Networks.Count}; " +
+            $"unavailable={string.Join(", ", inventory.UnavailableSections)}");
+        return inventory.PhysicalCores is > 0 && inventory.LogicalCores >= inventory.PhysicalCores &&
+            inventory.MemoryBytes is > 0 && inventory.Processor is { Length: > 0 } ? 0 : 1;
     }
 
     private static async Task<int> LaunchdSmoke()

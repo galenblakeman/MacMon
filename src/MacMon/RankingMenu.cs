@@ -62,7 +62,7 @@ public sealed class RankingMenu
         try
         {
             _box.SelectedItem = _box.Items.OfType<ComboBoxItem>().FirstOrDefault(c => c.Tag is int id && id == _sort);
-            _box.PlaceholderText = UiText.Get(_choices.Concat(_headerChoices).FirstOrDefault(c => c.Id == _sort).Label ?? "");
+            _box[!ComboBox.PlaceholderTextProperty] = UiText.Bind(_choices.Concat(_headerChoices).FirstOrDefault(c => c.Id == _sort).Label ?? "");
         }
         finally { _updating = false; }
     }

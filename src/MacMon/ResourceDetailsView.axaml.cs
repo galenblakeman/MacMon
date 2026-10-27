@@ -13,8 +13,8 @@ public sealed partial class ResourceDetailsView : UserControl
     }
     public void Update(ResourceDetailSnapshot snapshot)
     {
-        DetailTitle.Text = UiText.Get(snapshot.Title); DetailStatus.Text = snapshot.Status; Definition.Text = UiText.Get(snapshot.Definition);
+        DetailTitle.Text = UiText.Get(snapshot.Title); DetailStatus.Text = UiText.Get(snapshot.Status); Definition.Text = UiText.Get(snapshot.Definition);
         DetailRows.ItemsSource = snapshot.Rows.Select(row => row with { Label = UiText.Get(row.Label) }).ToArray();
-        AutomationProperties.SetName(this, snapshot.Title);
+        AutomationProperties.SetName(this, UiText.Get(snapshot.Title));
     }
 }

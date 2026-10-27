@@ -1438,3 +1438,55 @@ exhaustive compact rendering matrix, and ten final focused parity regressions
 and native collector/launchd smokes pass. Colorblind and High-Contrast chart PNGs
 were visually inspected. Actual signed two-version Sparkle installation still
 requires the release credentials and native release validation.
+
+
+## Hardware inventory parity slice
+
+Info now reads an independent, on-demand inventory through
+`MacHardwareInventoryReader` in the macOS adapter. A fixed `system_profiler -json
+-detailLevel mini` request supplies whitelisted hardware, memory-device, graphics
+and mounted-volume specifications. `sysctlbyname` supplies model/build, CPU counts,
+processor fallback and installed bytes; existing block-driver discovery supplies
+whole disks; .NET interfaces supply adapter type, state, reported link speed and
+unicast addresses. Discovery does not change selected monitoring sources or run
+on the sampler. Profiler output is bounded to two million characters, 16 JSON
+levels and 256 devices per category, with a 15-second timeout and cancellation.
+Serial numbers, platform UUIDs and volume UUIDs are not retained in the inventory.
+
+Hardware/processor/memory summaries open expanded; detailed categories collapse.
+Copy includes all categories regardless of expansion and records observation time.
+Unavailable sources are explicit and do not discard readable CPU/RAM/disk/network
+metadata. A failed refresh retains the last snapshot with a warning. Close cancels
+discovery and suppresses late UI updates. English and Spanish labels wrap at the
+existing 480 by 350 minimum. GPU memory is a reported specification, and no shared
+RAM is presented as dedicated VRAM. APFS volume capacities/free space are not
+summed; disk images are distinguished by their reported device names and scope.
+
+`--hardware-smoke` reads native inventory without opening a window and prints
+specification/count summaries. `tools/verify.sh --smoke` includes it. Native
+validation on the M2 Pro finds the model/chip, 10 physical/logical cores, 16 GiB RAM,
+one GPU, whole disks, mounted volumes and network adapters. Intel DIMM and multiple
+GPU schemas have fixture coverage; native Intel validation remains outstanding.
+
+
+## Localization completeness — English and Spanish
+
+The explicit embedded `en.json` and `es.json` catalogs cover 597 keys. Dynamic
+status messages, process/Usage properties, launchd state/details/worker trees,
+resource explanations, capture reports and accessibility descriptions use
+`UiText.Get`, `Format` or `Interpolate`. Interpolated templates retain numeric and
+date format specifiers. Data identities, executable paths, units and OS diagnostic
+text keep their original values. CSV column names/UTC numbers and capture ownership
+markers/JSON metadata remain invariant. Saved report bodies remain snapshots in
+the language used when they were written. Capture-card text caches invalidate on
+language changes; bound ranking placeholders and chart help/choices refresh.
+
+`tools/LocalizationAudit` uses the SDK's Roslyn assemblies without a NuGet package
+to find literal/conditional/interpolated UI keys and XAML localization markup.
+It checks source coverage, duplicate keys, catalog parity, nonempty translations
+and exact format placeholders/specifiers. `tools/verify.sh` builds and runs it.
+Negative tooling tests prove missing keys and changed placeholders fail the audit.
+Runtime regressions cover reports, unchanged CSV bytes, metadata reload, language
+switching and narrow Spanish dialogs. Native/process names are never translated
+as labels. Additional WinMon languages remain a subsequent translation slice;
+the exposed language IDs stay System, en and es.

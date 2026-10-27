@@ -19,13 +19,13 @@ public sealed record UsageRow(AppUsage App, long MachineBusyTicks)
         get
         {
             if (App.LastActive is not { } active) return "—";
-            if (LatestObservation is { } now && (now - active.Timestamp).TotalSeconds is >= 0 and <= 5) return "now";
+            if (LatestObservation is { } now && (now - active.Timestamp).TotalSeconds is >= 0 and <= 5) return UiText.Get("now");
             var local = active.Timestamp.ToLocalTime();
             return local.ToString(local.Date == DateTimeOffset.Now.Date ? "T" : "g", CultureInfo.CurrentCulture);
         }
     }
     public string Path => App.ImagePath;
-    public override string ToString() => $"{Name}, CPU {Cpu}, I/O {DiskIo}, running/seen {Processes}";
+    public override string ToString() => UiText.Interpolate($"{Name}, CPU {Cpu}, I/O {DiskIo}, running/seen {Processes}");
 }
 
 public sealed record UsageAttribution(long CpuTicks, long MachineBusyTicks)
@@ -44,8 +44,8 @@ public static class UsagePresentation
     public static string Report(IEnumerable<UsageRow> rows, DateTimeOffset since, UsageAttribution? attribution = null)
     {
         static string Cell(string value) => value.Replace('\t', ' ').Replace('\r', ' ').Replace('\n', ' ');
-        return $"MacMon session usage since {since:O}\n" +
-            "App\tCPU time\tBusy share\tI/O\tSeen (running)\tLast active\tExecutable\n" +
+        return UiText.Interpolate($"MacMon session usage since {since:O}\n") +
+            UiText.Get("App\tCPU time\tBusy share\tI/O\tSeen (running)\tLast active\tExecutable\n") +
             string.Join("\n", rows.Select(r => string.Join('\t', new[] { r.Name, r.Cpu, r.Share, r.DiskIo, r.Processes, r.LastActive, r.Path }.Select(Cell)))) + (attribution is null ? "" : $"\n{UiText.Get("Not attributed")}\t{attribution.Cpu}\t{attribution.Share}\t—\t—\t—\t—");
     }
     public static UsageRow[] Rows(UsageLedger ledger, string search, UsageSort sort, int limit = 0, bool appsOnly = false, bool ascending = false, DateTimeOffset? latest = null)

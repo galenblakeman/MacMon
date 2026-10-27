@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Controls.Templates;
 using Avalonia.Input.Platform;
 
 namespace MacMon;
@@ -8,6 +9,7 @@ public sealed partial class MainWindow
     private readonly CaptureCard _captureCard = new();
     private WinMon.Monitoring.SampleKey? _cardSampleKey;
     private string? _cardText;
+    private string? _cardLanguage;
     private bool _restoringCharts;
     private int _historyRange;
     private CheckBox CpuVisible => CpuGauge.SeriesToggle;
@@ -40,6 +42,7 @@ public sealed partial class MainWindow
     }
     private void InitializeCharts()
     {
+        ChartModeBox.ItemTemplate = new FuncDataTemplate<ChartChoice>((choice, _) => choice is null ? null : UiText.Label(choice.Label));
         _captureCard.CopyRequested += async text =>
         {
             if (Clipboard is { } clipboard) { await clipboard.SetTextAsync(text); _operationStatus = UiText.Get("Capture copied."); Update(); }
@@ -85,7 +88,7 @@ public sealed partial class MainWindow
     private void ApplyChartChoices(bool choseLayout)
     {
         if (_restoringCharts || ChartModeBox.SelectedItem is not ChartChoice choice) return;
-        ToolTip.SetTip(ChartModeBox, choice.ToString());
+        ToolTip.SetTip(ChartModeBox,choice.ToString());
         if (choseLayout && choice.Mode == ResourceChartMode.Focus)
         {
             _restoringCharts = true;
@@ -110,17 +113,18 @@ public sealed partial class MainWindow
         LiveMode.Classes.Set("active", !_inspection.IsHistorical);
         CaptureMode.Classes.Set("active", _inspection.IsHistorical);
         CaptureMode.IsEnabled = _session.Latest is not null;
-        ToolTip.SetTip(LiveMode, "Return to current readings; sampling continues during inspection");
-        ToolTip.SetTip(CaptureMode, "Inspect the latest retained sample; click the plot or use arrow keys to select another");
+        ToolTip.SetTip(LiveMode,UiText.Get("Return to current readings; sampling continues during inspection"));
+        ToolTip.SetTip(CaptureMode,UiText.Get("Inspect the latest retained sample; click the plot or use arrow keys to select another"));
     }
     private void UpdateCaptureCard()
     {
         var sample = TrailHistory().LastOrDefault();
         var report = _captures.LastOrDefault(c => c.Peak == _inspection.SelectedKey && c.State == "Saved");
         var key = sample is null ? (WinMon.Monitoring.SampleKey?)null : WinMon.Monitoring.SampleKey.Of(sample);
-        if (!_captureCard.IsOpen || key != _cardSampleKey)
+        if (!_captureCard.IsOpen || key != _cardSampleKey || _cardLanguage != UiText.Language)
         {
             _cardSampleKey = key;
+            _cardLanguage = UiText.Language;
             _cardText = sample is null ? null : CaptureText(sample);
         }
         _captureCard.Update(sample, _cardText, report);
@@ -128,7 +132,7 @@ public sealed partial class MainWindow
     private string CaptureText(WinMon.Monitoring.MonitorSample sample)
     {
         var rows = PresentedProcesses(sample).Select(row => row.Process).ToArray();
-        var note = $"Displayed {(Grouped ? "grouped" : "individual")} rows: CPU and disk I/O averaged over five observed seconds; resident and threads are latest observations. Filter: {ProcessSearchBox.Text}";
+        var note = UiText.Format("Displayed {0} rows: CPU and disk I/O averaged over five observed seconds; resident and threads are latest observations. Filter: {1}", UiText.Get(Grouped ? "grouped" : "individual"), ProcessSearchBox.Text);
         return MacCaptureReports.Text(sample, rows, note);
     }
     private void ReturnToLive()

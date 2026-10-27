@@ -134,7 +134,7 @@ public sealed class ResourceGauge : UserControl
         _detail.Text = (Title is "Memory" or "CPU" ? _description.Split('\n').FirstOrDefault() : _description.Split('\n').LastOrDefault()) ?? "";
         if (Title == "CPU") _detail.Text = _detail.Text.Split(" · ").Last();
         var peak = _reading.Peak is { } p ? (_reading.Scale == "0–100%" ? $"{p:F1}%" : Title == "Network" ? ResourceGaugeHistory.NetworkRate(p) : ResourceGaugeHistory.Rate(p)) : "—";
-        var accessible = $"{Title}: {_reading.Text}. {_description}. Scale {_reading.Scale}. Peak over the last two minutes: {peak}.";
+        var accessible = UiText.Interpolate($"{UiText.Get(Title)}: {_reading.Text}. {_description}. Scale {_reading.Scale}. Peak over the last two minutes: {peak}.");
         AutomationProperties.SetName(this, accessible);
         if (_detailsProvider is null) ToolTip.SetTip(this, accessible);
         else if (ToolTip.GetIsOpen(this)) RefreshTooltip();

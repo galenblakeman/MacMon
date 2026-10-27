@@ -14,13 +14,15 @@ public static class UiText
     // Avalonia observes binding sources weakly. Retain one source per resource key so
     // labels created before a collection still refresh after a language change.
     private static readonly Dictionary<string, LocalizedValue> Values = [];
-    private static readonly Dictionary<string, string> Spanish = LoadSpanish();
+    private static readonly Dictionary<string, string> English = LoadCatalog("en");
+    private static readonly Dictionary<string, string> Spanish = LoadCatalog("es");
     public static IReadOnlyList<LanguageChoice> Languages { get; } = [new("System", "System language"), new("en", "English"), new("es", "Español")];
     public static string Language { get; private set; } = "System";
     private static bool IsSpanish => Language == "es" || Language == "System" && SystemCulture.TwoLetterISOLanguageName == "es";
     public static string NormalizeLanguage(string? language) => language is "en" or "es" ? language : "System";
-    public static string Get(string english) => IsSpanish && Spanish.TryGetValue(english, out var value) ? value : english;
+    public static string Get(string english) => IsSpanish && Spanish.TryGetValue(english, out var value) ? value : English.GetValueOrDefault(english, english);
     public static string Format(string english, params object?[] args) => string.Format(CultureInfo.CurrentCulture, Get(english), args);
+    public static string Interpolate(FormattableString text) => Format(text.Format, text.GetArguments());
     public static void Apply(string language)
     {
         Language = NormalizeLanguage(language);
@@ -34,9 +36,9 @@ public static class UiText
         return new(nameof(LocalizedValue.Value)) { Source = value };
     }
     public static Avalonia.Controls.TextBlock Label(string english) => new() { [!Avalonia.Controls.TextBlock.TextProperty] = Bind(english) };
-    private static Dictionary<string, string> LoadSpanish()
+    private static Dictionary<string, string> LoadCatalog(string language)
     {
-        using var stream = typeof(UiText).Assembly.GetManifestResourceStream("MacMon.Localization.es.json");
+        using var stream = typeof(UiText).Assembly.GetManifestResourceStream($"MacMon.Localization.{language}.json");
         return stream is null ? [] : JsonSerializer.Deserialize<Dictionary<string, string>>(stream) ?? [];
     }
     public sealed class LocalizedValue(string english) : INotifyPropertyChanged

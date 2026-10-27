@@ -15,7 +15,7 @@
     <ProjectReference Include="../MonCore.MacOS/MonCore.MacOS.csproj" />
   </ItemGroup>
   <ItemGroup><AvaloniaResource Include="Assets/MacMon.png" /></ItemGroup>
-  <ItemGroup><EmbeddedResource Include="Localization/es.json" /></ItemGroup>
+  <ItemGroup><EmbeddedResource Include="Localization/*.json" /></ItemGroup>
   <Target Name="BuildMacDesktopIntegration" BeforeTargets="CoreCompile" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
     <Exec Command="bash &quot;$(MSBuildProjectDirectory)/../../tools/build-native.sh&quot; &quot;$(TargetDir)&quot; &quot;$(RuntimeIdentifier)&quot;" />
   </Target>

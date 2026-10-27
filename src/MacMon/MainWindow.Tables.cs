@@ -97,8 +97,8 @@ public sealed partial class MainWindow
         var selected = button.Tag?.ToString() == sort.ToString();
         button.Classes.Set("sorted", selected);
         button.Content = label + (selected ? ascending ? " ▴" : " ▾" : "");
-        AutomationProperties.SetName(button, $"Sort {table} by {label}" + (selected ? ascending ? ", ascending" : ", descending" : ""));
-        ToolTip.SetTip(button, "Click to sort; click again to reverse. Unavailable values remain last.");
+        AutomationProperties.SetName(button,UiText.Interpolate($"Sort {UiText.Get(table)} by {label}") + (selected ? ascending ? UiText.Get(", ascending") : UiText.Get(", descending") : ""));
+        ToolTip.SetTip(button,UiText.Get("Click to sort; click again to reverse. Unavailable values remain last."));
     }
     private void UpdateProcessHeaders()
     {

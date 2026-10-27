@@ -1,21 +1,21 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:MacMon"
         x:Class="MacMon.HardwareInfoWindow" Title="{local:Loc &quot;About MacMon and hardware&quot;}" Width="640" Height="620" MinWidth="480" MinHeight="350" WindowStartupLocation="CenterOwner">
   <Grid Margin="24" RowDefinitions="Auto,*,Auto" RowSpacing="18">
-    <StackPanel Spacing="6"><TextBlock x:Name="ProductVersion" FontSize="22" FontWeight="SemiBold" /><TextBlock Text="{local:Loc &quot;System and process monitoring for macOS&quot;}" Classes="label" /></StackPanel>
+    <StackPanel Spacing="6"><TextBlock x:Name="ProductVersion" FontSize="22" FontWeight="SemiBold" /><TextBlock Text="{local:Loc &quot;System and process monitoring for macOS&quot;}" Classes="label" TextWrapping="Wrap" /></StackPanel>
     <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
       <ItemsControl x:Name="InfoSections">
         <ItemsControl.ItemTemplate><DataTemplate x:DataType="local:HardwareSection">
-          <StackPanel Spacing="8" Margin="0,0,0,18">
-            <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" />
+          <Expander Header="{Binding Title}" IsExpanded="{Binding Expanded}" HorizontalAlignment="Stretch" Margin="0,0,0,10" Background="{DynamicResource MacCardBrush}" BorderBrush="{DynamicResource MacGridBrush}">
+          <StackPanel Spacing="8">
             <ItemsControl ItemsSource="{Binding Entries}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="local:HardwareEntry">
-              <Grid ColumnDefinitions="155,*" ColumnSpacing="12" Margin="0,3"><TextBlock Text="{Binding Label}" Classes="label" /><SelectableTextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" /></Grid>
+              <Grid ColumnDefinitions="155,*" ColumnSpacing="12" Margin="0,3"><TextBlock Text="{Binding Label}" Classes="label" TextWrapping="Wrap" /><SelectableTextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap" /></Grid>
             </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-          </StackPanel>
+          </StackPanel></Expander>
         </DataTemplate></ItemsControl.ItemTemplate>
       </ItemsControl>
     </ScrollViewer>
     <Grid Grid.Row="2" RowDefinitions="Auto,Auto" RowSpacing="10">
-      <TextBlock Text="{local:Loc &quot;Snapshot taken when opened or refreshed.&quot;}" Classes="label" />
+      <TextBlock x:Name="InventoryStatus" Text="{local:Loc &quot;Snapshot taken when opened or refreshed.&quot;}" Classes="label" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
       <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8"><Button x:Name="RefreshInfo" local:ButtonIcon.Kind="Live" Content="{local:Loc &quot;Refresh&quot;}" /><Button x:Name="CopyDetails" local:ButtonIcon.Kind="Copy" Content="{local:Loc &quot;Copy details&quot;}" /><Button x:Name="CancelAction" local:ButtonIcon.Kind="Cancel" Content="{local:Loc &quot;Close&quot;}" IsCancel="True" /></StackPanel>
     </Grid>
   </Grid>

@@ -17,16 +17,16 @@ public sealed record JobWorkerTree(JobWorkerNode? Root, bool Truncated)
 {
     public string Text()
     {
-        var text = new StringBuilder("Observed process tree · read only\n");
+        var text = new StringBuilder(UiText.Get("Observed process tree · read only\n"));
         void Append(JobWorkerNode node, int depth)
         {
-            text.Append(' ', depth * 2).AppendLine($"{node.Name} · {node.Pid} · CPU {node.Cpu} · Memory {node.Memory} · I/O {node.Io}");
+            text.Append(' ', depth * 2).AppendLine(UiText.Interpolate($"{node.Name} · {node.Pid} · CPU {node.Cpu} · Memory {node.Memory} · I/O {node.Io}"));
             foreach (var child in node.Children) Append(child, depth + 1);
         }
         if (Root is not null) Append(Root, 0);
-        else text.AppendLine("No verified process lifetime is available.");
-        text.AppendLine("Only observed parent-child lifetimes are shown. Reparented workers and other loaded jobs are excluded; values are not added to the job's direct-process readings.");
-        if (Truncated) text.AppendLine("Tree truncated at the node/depth limit.");
+        else text.AppendLine(UiText.Get("No verified process lifetime is available."));
+        text.AppendLine(UiText.Get("Only observed parent-child lifetimes are shown. Reparented workers and other loaded jobs are excluded; values are not added to the job's direct-process readings."));
+        if (Truncated) text.AppendLine(UiText.Get("Tree truncated at the node/depth limit."));
         return text.ToString();
     }
 }

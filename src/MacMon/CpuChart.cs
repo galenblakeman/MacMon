@@ -68,8 +68,8 @@ public sealed class CpuChart : Control
     public CpuChart()
     {
         Focusable = true;
-        AutomationProperties.SetName(this, "Resource history");
-        AutomationProperties.SetHelpText(this, "Left and Right inspect samples; Home selects the oldest sample; End and Escape return to Live; Option+Left/Right select automatic captures. Hover previews readings; click captures a moment.");
+        AutomationProperties.SetName(this,UiText.Get("Resource history"));
+        this.Bind(AutomationProperties.HelpTextProperty, UiText.Bind("Left and Right inspect samples; Home selects the oldest sample; End and Escape return to Live; Option+Left/Right select automatic captures. Hover previews readings; click captures a moment."));
         ToolTip.SetShowDelay(this, 100);
         ToolTip.SetPlacement(this, PlacementMode.Pointer);
     }
@@ -91,8 +91,8 @@ public sealed class CpuChart : Control
         var sample = _hoverPoint is { } position && plot.Width > 0
             ? HistoryInspection.Nearest(_samples, RangeSeconds, (position.X - plot.X) / plot.Width) : null;
         HoveredSample = sample;
-        ToolTip.SetTip(this, SelectedTimestamp is not null || sample is null ? null : ResourceCharts.Describe(sample) + "\nHistory scales: " +
-            string.Join(" · ", ResourceCharts.Metrics(VisibleMetrics).Select(i => $"{ResourceCharts.Names[i]} {ResourceCharts.Scale(i, Maximum(i))}")));
+        ToolTip.SetTip(this,SelectedTimestamp is not null || sample is null ? null : ResourceCharts.Describe(sample) + UiText.Get("\nHistory scales: ") +
+            string.Join(" · ", ResourceCharts.Metrics(VisibleMetrics).Select(i => $"{UiText.Get(ResourceCharts.Names[i])} {ResourceCharts.Scale(i, Maximum(i))}")));
         if (SelectedTimestamp is not null || sample is null) ToolTip.SetIsOpen(this, false);
         SampleHovered?.Invoke(sample);
         InvalidateVisual();
@@ -120,7 +120,7 @@ public sealed class CpuChart : Control
         {
             SampleSelected?.Invoke(sample);
             RefreshHover();
-            AutomationProperties.SetName(this, $"Resource history. Captured {ResourceCharts.Describe(sample)}");
+            AutomationProperties.SetName(this,UiText.Interpolate($"Resource history. Captured {ResourceCharts.Describe(sample)}"));
         }
         e.Handled = true;
     }
@@ -174,8 +174,8 @@ public sealed class CpuChart : Control
         _visible = HistoryInspection.VisibleSamples(samples, RangeSeconds);
         _maxima = Enumerable.Range(0, ResourceCharts.Names.Length).Select(i => ResourceCharts.Maximum(_visible, RangeSeconds, i)).ToArray();
         var captured = _visible.FirstOrDefault(s => s.MonotonicTimestamp == SelectedTimestamp);
-        AutomationProperties.SetName(this, SelectedTimestamp is null ? UiText.Get("Resource history. Live") : captured is null
-            ? "Resource history. Captured sample is outside the visible range" : $"Resource history. Captured {ResourceCharts.Describe(captured)}");
+        AutomationProperties.SetName(this,SelectedTimestamp is null ? UiText.Get("Resource history. Live") : captured is null
+            ? UiText.Get("Resource history. Captured sample is outside the visible range") : UiText.Interpolate($"Resource history. Captured {ResourceCharts.Describe(captured)}"));
         RefreshHover();
     }
     private FormattedText Text(string text, IBrush brush)
