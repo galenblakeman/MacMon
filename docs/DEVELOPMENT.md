@@ -1522,3 +1522,24 @@ slightly higher; its benefit is reduced allocation, while sparse selections also
 improve latency. Timing varies with JIT and desktop activity. These synthetic
 measurements exclude Avalonia rendering and do not establish sustained whole-app
 CPU usage or resident-memory reductions.
+
+
+## Compact View rendering matrix — October 27, 2026
+
+The exhaustive Compact View rendering test previously created a new window for
+all 1,064 combinations inside one test case. That long silent case exceeded a
+30-second test-run inactivity guard; earlier full-suite measurements recorded
+that it accounted for most of a roughly five-minute run.
+
+The matrix now reports 266 independent theme/palette/gauge-style cases. Each
+case reuses one window across both widths (720 and 1000) and both second-disk
+states, retaining every rendering, gauge-style, bounds and text-fit assertion.
+A `finally` block closes the window and resets appearance even on assertion
+failure. The isolated matrix passed in 8.4 seconds with the same 30-second
+inactivity guard, without reducing the combinations or raising the timeout.
+
+Full `bash tools/verify.sh --smoke` validation passed: 525 ordinary .NET tests
+(including all 266 rendering cases), 15 release-tool tests, the localization
+audit, and native collector, launchd and hardware smoke checks. The .NET suite
+completed in 30 seconds; the Release build had zero warnings or errors. The
+opt-in documentation gallery renderer remains excluded from ordinary runs.
