@@ -54,7 +54,18 @@ public sealed class ChromeLayoutTests
                 toggle.IsChecked = true; Dispatcher.UIThread.RunJobs();
                 Assert.That(details.IsEffectivelyVisible, Is.True);
                 Assert.That(bar.Bounds.Height, Is.GreaterThanOrEqualTo(54));
-                var headers = shell.GetVisualDescendants().OfType<Border>().Where(b => b.IsEffectivelyVisible && b.Classes.Contains("sectionHeader")).ToArray();
+                var tabBackground = main.FindControl<Border>("TabBarBackground")!;
+                var sectionHeaders = shell.GetVisualDescendants().OfType<Border>().Where(b => b.IsEffectivelyVisible && b.Classes.Contains("sectionHeader")).ToArray();
+                Assert.That(tabBackground.Background, Is.EqualTo(sectionHeaders[0].Background), "Tabs share the table toolbar surface");
+                if (tab == 2)
+                {
+                    var actions = main.FindControl<WrapPanel>("UsageActionsPanel")!;
+                    var layout = (ActionBarLayout)actions.Parent!;
+                    Assert.That(actions.Bounds.Right, Is.EqualTo(layout.Bounds.Width).Within(1));
+                    foreach (var line in actions.Children.OfType<Button>().GroupBy(b => b.Bounds.Y))
+                        Assert.That(line.Max(b => b.Bounds.Right + b.Margin.Right), Is.EqualTo(actions.Bounds.Width).Within(1), "Every Usage action row ends at the right edge");
+                }
+                Border[] headers = [.. sectionHeaders, tabBackground];
                 foreach (var header in headers) header.Background = Brushes.Magenta;
                 Dispatcher.UIThread.RunJobs();
                 AvaloniaHeadlessPlatform.ForceRenderTimerTick();

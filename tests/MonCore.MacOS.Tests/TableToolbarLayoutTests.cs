@@ -33,6 +33,14 @@ public sealed class TableToolbarLayoutTests
                 foreach (var width in new[] { 800, 1100, 1400, 800 })
                 {
                     window.Width = width; Dispatcher.UIThread.RunJobs();
+                    var ranking = toolbar.Children[0];
+                    foreach (var choice in ranking.GetVisualDescendants().OfType<ComboBox>())
+                    {
+                        Assert.That(choice.FontSize, Is.EqualTo(13));
+                        Assert.That(choice.FontWeight, Is.EqualTo(Avalonia.Media.FontWeight.SemiBold));
+                        var center = choice.TranslatePoint(new Point(0, choice.Bounds.Height / 2), ranking)!.Value.Y;
+                        Assert.That(center, Is.EqualTo(ranking.Bounds.Height / 2).Within(1), "Ranking dropdowns center with the toolbar labels");
+                    }
                     Assert.That(search.Bounds.Width, Is.GreaterThanOrEqualTo(search.MinWidth));
                     if (language == "en" && tab == 0 && width == 800)
                     {

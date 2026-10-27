@@ -1,7 +1,10 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
 using Avalonia.Headless.NUnit;
+using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Layout;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -12,6 +15,38 @@ namespace MonCore.MacOS.Tests;
 
 public sealed class ButtonLayoutTests
 {
+    [AvaloniaTest]
+    public void ButtonFeedbackKeepsGeometryStableAndSelectedChipsReadableAcrossThemes()
+    {
+        var button = new Button { Content = "Properties", Width = 160, Height = 40 };
+        var window = new Window { Width = 240, Height = 100, Content = button };
+        try
+        {
+            window.Show();
+            foreach (var theme in Appearance.Themes.Where(t => t != "System"))
+            {
+                ((App)Application.Current!).ApplyAppearance(theme, "Classic");
+                button.IsEnabled = true; Dispatcher.UIThread.RunJobs();
+                var body = button.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "ButtonBody");
+                var bounds = button.Bounds;
+                var point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
+                window.MouseMove(point); Dispatcher.UIThread.RunJobs();
+                Assert.That(body.BorderBrush, Is.EqualTo(Application.Current.Resources["MacAccentBrush"]), theme);
+                button.Focus(NavigationMethod.Tab); Dispatcher.UIThread.RunJobs();
+                Assert.That(body.BorderThickness, Is.EqualTo(new Thickness(2)), theme);
+                Assert.That(button.Bounds, Is.EqualTo(bounds), "Focus must not move neighboring controls");
+                var content = button.GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>().Single(c => c.Name == "PART_ContentPresenter");
+                Assert.That(content.BorderThickness, Is.EqualTo(default(Thickness)), "Only the outer button border draws focus");
+                button.IsEnabled = false; Dispatcher.UIThread.RunJobs();
+                Assert.That(body.Opacity, Is.EqualTo(0.45));
+                var text = ((ISolidColorBrush)Application.Current.Resources["MacChipSelectedTextBrush"]!).Color;
+                var fill = ((ISolidColorBrush)Application.Current.Resources["MacSegmentSelectedBrush"]!).Color;
+                Assert.That(Appearance.Contrast(text, fill), Is.GreaterThanOrEqualTo(4.5), theme);
+            }
+        }
+        finally { window.Close(); }
+    }
+
     [AvaloniaTest]
     public void ActualShellUsesWinMonMappingsAndKeepsExcludedControlsTextOnly()
     {
@@ -36,10 +71,12 @@ public sealed class ButtonLayoutTests
                 Assert.That(icon.StrokeLineCap, Is.EqualTo(Avalonia.Media.PenLineCap.Round));
                 Assert.That(icon.StrokeJoin, Is.EqualTo(Avalonia.Media.PenLineJoin.Round));
             }
+            Assert.That(main.FindControl<Button>("AutomaticCaptures")!.GetVisualDescendants()
+                .OfType<Avalonia.Controls.Shapes.Path>().Single().Data, Is.SameAs(ButtonIcon.GeometryFor("AutomaticCapture")));
             var capture = main.FindControl<Button>("CaptureMode")!;
             var dot = capture.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>().Single();
             Assert.That(dot.Width, Is.EqualTo(3)); Assert.That(dot.Fill, Is.Not.Null);
-            foreach (var name in new[] { "AutomaticCaptures", "Range2", "Range10", "Range30", "Range60", "IndividualProcesses", "GroupProcesses", "ProcessCpuHeader" })
+            foreach (var name in new[] { "Range2", "Range10", "Range30", "Range60", "IndividualProcesses", "GroupProcesses", "ProcessCpuHeader" })
                 Assert.That(main.FindControl<Button>(name)!.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().Any(), Is.False, name);
             var collapse = main.FindControl<ToggleButton>("ShowProcessActions")!;
             collapse.IsChecked = false; Dispatcher.UIThread.RunJobs();

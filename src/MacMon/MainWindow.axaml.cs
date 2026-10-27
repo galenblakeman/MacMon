@@ -17,6 +17,7 @@ public sealed partial class MainWindow : Window
     private readonly MacFrameSource _source = new();
     private Task? _sampling;
     private Task? _startup;
+    private readonly string _updateRestartPath = Path.Combine(MacPaths.AppSupport, "UpdateRestart");
     private readonly string _historyPath = Path.Combine(MacPaths.AppSupport, "history.mmh.gz");
     private readonly HistoryProvenance _historyOrigins;
     private bool _historyWritable = true;
@@ -214,7 +215,6 @@ public sealed partial class MainWindow : Window
             StatusLabel.Text = "Restored history · waiting for live readings…";
         }
         if (_operationStatus.Length > 0) StatusLabel.Text = _operationStatus;
-        StatusLabel.IsVisible = _session.Error is not null || _operationStatus.Length > 0;
     }
 
     private ResourceGauge[] VisibleGauges => CompactMode ? CompactPanel.Gauges : [CpuGauge, MemoryGauge, NetworkGauge, StorageGauge, GpuGauge, SecondDiskGauge];
@@ -241,7 +241,7 @@ public sealed partial class MainWindow : Window
 
     private static string Rate(double? value) => TableUnits.IoRate(value);
 
-    private ProcessSort Sort => ProcessSortBox.SelectedIndex switch
+    private ProcessSort Sort => _processRanking.Sort switch
     {
         1 => ProcessSort.Memory,
         2 => ProcessSort.Threads,
@@ -260,7 +260,7 @@ public sealed partial class MainWindow : Window
             _refreshingRows = false;
             EmptyProcessLabel.IsVisible = true;
             EmptyProcessLabel.Text = "Selected capture is no longer retained";
-            ProcessSelectionName.Text = UiText.Get("Select a process"); SelectionIcon.IsVisible = false;
+            ProcessSelectionName.Text = UiText.Get("Select a process"); SelectionIcon.IsVisible = false; ProcessSelectionStatus.IsVisible = false;
             PinSelection.IsEnabled = false;
             ProcessCountLabel.Text = "Capture expired";
             SelectionLabel.Text = "Return to Live or select another moment.";
@@ -300,12 +300,13 @@ public sealed partial class MainWindow : Window
         ToolTip.SetTip(SelectionLabel, selected?.Usage.ImagePath);
         PinSelection.IsEnabled = selected is not null && _historyOrigins.CanPin(TrailHistory().LastOrDefault(), Grouped, _inspection.IsHistorical);
         PinSelection.Content = selected is not null && _pins.Contains(selected.Usage, Grouped) ? "Unpin selected" : "Pin selected";
-        SelectionLabel.Text = selected is null ? ""
-            : selected.State != PinnedProcessState.Present
-                ? $"PID {selected.Usage.ProcessId} · no longer observed or unavailable"
-                : $"PID {selected.Usage.ProcessId} · started " +
-                  $"{selected.Usage.StartedAtUtc?.ToLocalTime().ToString("g") ?? "unavailable"}\n" +
-                  (selected.Usage.ImagePath.Length > 0 ? selected.Usage.ImagePath : "Executable path unavailable");
+        SelectionLabel.Text = selected is null ? "" : Grouped
+            ? UiText.Format("{0} processes", selected.Usage.MemberCount)
+            : $"PID {selected.Usage.ProcessId}";
+        if (selected is not null && !string.IsNullOrWhiteSpace(selected.Usage.AppName)) SelectionLabel.Text += " · " + selected.Usage.AppName;
+        ProcessSelectionStatus.IsVisible = selected is not null;
+        ProcessSelectionStatusText.Text = selected is null ? "" : selected.State != PinnedProcessState.Present
+            ? selected.State.ToString() : UiText.Get(_inspection.IsHistorical ? "Captured" : "Live");
     }
 
     private void UpdateRetention()
@@ -358,7 +359,7 @@ public sealed partial class MainWindow : Window
     {
         if (_session is null || CompactMode || DataTabs.SelectedIndex != 2) return;
         UpdateUsageHeaders();
-        var rows = UsagePresentation.Rows(_session.Usage, UsageSearch.Text ?? "", (UsageSort)Math.Max(0, UsageSortBox.SelectedIndex),
+        var rows = UsagePresentation.Rows(_session.Usage, UsageSearch.Text ?? "", (UsageSort)Math.Max(0, _usageRanking.Sort),
             SelectedLimit(UsageLimitBox), UsageAppsOnly.IsChecked == true, _usageAscending, _session.Latest?.Timestamp);
         _refreshingUsage = true;
         try
@@ -516,7 +517,7 @@ public sealed partial class MainWindow : Window
     {
         if (!_preferencesWritable) return "The existing settings file is protected from replacement.";
         var snapshot = values.ApplyTo(PreferencesSnapshot(), _bootId);
-        var nativeError = await SettingsEffects.Save(_preferences, snapshot, values.OpenAtLogin, new NativeDesktopSettingsServices(),
+        var nativeError = await SettingsEffects.Save(_preferences, snapshot, new NativeDesktopSettingsServices(),
             () => Task.Run(() => MacPreferenceStore.Save(_preferencesPath, snapshot)));
         if (nativeError is not null) return UiText.Get(nativeError);
         var previousFolder = _captureOptions.ReportFolder;
@@ -550,7 +551,7 @@ public sealed partial class MainWindow : Window
         UiText.Apply(snapshot.Language);
         CaptureToolbar.Update(AutomaticCaptures, _captureOptions.Enabled, _captures.Count);
         (Application.Current as App)?.ApplyAppearance(snapshot.Theme, snapshot.Palette, snapshot.GaugeStyle);
-        _operationStatus = UiText.Get(MacDesktopIntegration.LoginStatus == 2 ? "Settings saved · approve Open at login in Login Items." : "Settings saved");
+        _operationStatus = UiText.Get("Settings saved");
         Update();
         return null;
     }
@@ -572,7 +573,7 @@ public sealed partial class MainWindow : Window
         MainLayout.RowDefinitions[3].Height = new GridLength(1, GridUnitType.Star);
         _pins.Restore(_preferences.Pins);
         GroupProcesses.IsChecked = _preferences.Grouped; PinnedOnly.IsChecked = _preferences.PinnedOnly;
-        ProcessSortBox.SelectedIndex = _preferences.ProcessSort; UsageSortBox.SelectedIndex = _preferences.UsageSort;
+        _processRanking.Sort = _preferences.ProcessSort == 5 ? 0 : _preferences.ProcessSort; _usageRanking.Sort = _preferences.UsageSort is 3 or 4 ? 0 : _preferences.UsageSort;
         IndividualProcesses.IsChecked = !Grouped;
         RestoreTables();
         JobsView.SortIndex = _preferences.JobSort; JobsView.SortAscending = _preferences.JobAscending ?? _preferences.JobSort < 3; JobsView.FilterIndex = _preferences.JobFilter; JobsView.RowLimit = _preferences.JobLimit;
@@ -605,7 +606,7 @@ public sealed partial class MainWindow : Window
             ActionsHidden = _actionBars.Hidden, ProcessActionsHidden = _actionBars.Hidden,
             ChartMode = Chart.Mode, VisibleMetrics = Chart.VisibleMetrics, FocusMetric = Chart.FocusMetric,
             BootId = _bootId, Grouped = Grouped, PinnedOnly = PinnedOnly.IsChecked == true,
-            Pins = _pins.Snapshot(), ProcessSort = ProcessSortBox.SelectedIndex, UsageSort = UsageSortBox.SelectedIndex,
+            Pins = _pins.Snapshot(), ProcessSort = _processRanking.Sort, UsageSort = _usageRanking.Sort,
             DataTab = DataTabs.SelectedIndex, JobSort = JobsView.SortIndex, JobAscending = JobsView.SortAscending, JobFilter = JobsView.FilterIndex, JobLimit = JobsView.RowLimit, HistoryRange = _historyRange, NetworkId = _source.NetworkInterfaceId,
             AlwaysOnTop = Topmost, Captures = _captureOptions, KeepHistory = _keepHistory,
             DashboardRatio = MainLayout.RowDefinitions[1].Height.Value / Math.Max(0.01, MainLayout.RowDefinitions[3].Height.Value)
@@ -625,21 +626,25 @@ public sealed partial class MainWindow : Window
         if (shortcutError is not null) _operationStatus = UiText.Get(shortcutError);
         var keep = _keepHistory;
         var range = RangeSeconds;
-        var restored = await Task.Run(() => keep
+        var restart = await Task.Run(() => MacUpdateRestart.Consume(_updateRestartPath, _bootId, range, DateTimeOffset.UtcNow, Stopwatch.GetTimestamp()));
+        var ordinaryHistory = await Task.Run(() => keep
             ? MacHistoryStore.Load(_historyPath, range, DateTimeOffset.UtcNow, Stopwatch.GetTimestamp()) : new HistoryLoadResult([]));
+        var restored = restart?.History ?? ordinaryHistory;
         var reports = await Task.Run(() => MacCaptureReports.LoadRecords(_captureOptions.ReportFolder));
         if (_closing) return;
-        _historyWritable = restored.CanSave;
+        _historyWritable = ordinaryHistory.CanSave;
         _historyOrigins.Restore(restored.Entries);
         _session.SetHistoryClockOffset(restored.ClockOffset);
         // Restore the bounded history as a batch; redraw once instead of rebuilding every intermediate view.
         _session.Recorded -= Update;
         try { foreach (var entry in restored.Entries) _session.Record(entry.Sample); }
         finally { _session.Recorded += Update; }
+        if (restart is not null) _session.Usage.Restore(restart.Usage);
         if (restored.Entries.LastOrDefault() is { } latest)
         {
             _inspection.Select(latest.Sample);
-            _operationStatus = $"Restored {restored.Entries.Count} history samples; Usage starts fresh.";
+            _operationStatus = restart is null ? $"Restored {restored.Entries.Count} history samples; Usage starts fresh."
+                : UiText.Get("Restored history and session usage after updating.");
         }
         if (restored.Error is not null) _operationStatus = restored.Error;
         _captures.AddRange(reports.Select(record => record with { Peak = restored.ResolvePeak(record.Peak) }));
@@ -682,6 +687,14 @@ public sealed partial class MainWindow : Window
         await _reportWriter.Complete();
         if (_termination is not null) await _termination;
         if (_settingsSave is not null) await _settingsSave;
+        if (MacUpdater.RestartRequested)
+        {
+            var updateHistory = _historyOrigins.Snapshot(_session.History.Samples);
+            var usage = _session.Usage.Export();
+            try { await Task.Run(() => MacUpdateRestart.Save(_updateRestartPath, _bootId, DateTimeOffset.UtcNow, updateHistory, usage)); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            { await new ProcessDialog("Update session could not be saved", ex.Message).ShowDialog<bool>(this); }
+        }
         if (_preferencesWritable)
         {
             var snapshot = PreferencesSnapshot().Normalized(_bootId);
@@ -703,6 +716,7 @@ public sealed partial class MainWindow : Window
         }
         _shutdown.Dispose();
         _shutdownComplete = true;
+        MacUpdater.CompleteShutdown();
         Close();
     }
 }

@@ -92,7 +92,7 @@ public sealed partial class MainWindow
         UsageSelectionName.Text = row?.Name ?? UiText.Get("Select an app");
         ToolTip.SetTip(UsageSelectionName, row?.Name);
         UsageSelectionIcon.IsVisible = row is not null; UsageSelectionIcon.Source = row?.Icon;
-        UsageSelection.Text = row?.Path ?? "";
+        UsageSelection.Text = row is null ? "" : UiText.Get(TablePresentation.ApplicationBundle(row.Path) is null ? "Background" : "App") + " · " + row.Path;
         ToolTip.SetTip(UsageSelection, row?.Path);
     }
     private async Task CopyUsageRows()

@@ -11,9 +11,9 @@ public sealed record ResourceDetailSnapshot(string Title, string Status, string 
 public static class ResourceDetails
 {
     public static ResourceDetailSnapshot Create(ResourceMetric metric, MonitorSample? sample, MacMemorySnapshot? memory,
-        GaugeReading reading, int logicalCores)
+        GaugeReading reading, int logicalCores, MacVolumeSnapshot? volume = null)
     {
-        if (sample is null) { memory = null; reading = GaugeReading.Empty; }
+        if (sample is null) { volume = null; memory = null; reading = GaugeReading.Empty; }
         var r = sample?.Resources;
         var rows = new List<ResourceDetailRow> { new("Current", reading.Value is null ? "—" : reading.Text) };
         string definition;
@@ -66,7 +66,15 @@ public static class ResourceDetails
                     definition += " Data-volume capacity is a separate filesystem reading.";
                     rows.AddRange([new("Capacity volume", Text(r?.DiskName)), new("Available capacity", Bytes(r?.DiskFreeBytes)), new("Total capacity", Bytes(r?.DiskTotalBytes))]);
                 }
-                else rows.Add(new("Device capacity", Bytes(second ? r?.SecondaryDiskTotalBytes : r?.DiskTotalBytes)));
+                else
+                {
+                    rows.Add(new("Device capacity", Bytes(second ? r?.SecondaryDiskTotalBytes : r?.DiskTotalBytes)));
+                    if (!second && volume is not null)
+                    {
+                        definition += " Data-volume capacity is a separate filesystem reading.";
+                        rows.AddRange([new("Capacity volume", Text(volume.Path)), new("Available capacity", Bytes(volume.FreeBytes)), new("Total capacity", Bytes(volume.TotalBytes))]);
+                    }
+                }
                 break;
             default: throw new ArgumentOutOfRangeException(nameof(metric));
         }

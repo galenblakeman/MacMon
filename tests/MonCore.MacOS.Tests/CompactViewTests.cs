@@ -70,6 +70,35 @@ public sealed class CompactViewTests
     }
 
     [AvaloniaTest]
+    public void FullViewRestoresUnscaledLayoutAfterRepeatedCompactTransitions()
+    {
+        var main = new MainWindow();
+        foreach (var field in new[] { "_preferencesWritable", "_historyWritable" })
+            typeof(MainWindow).GetField(field, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.SetValue(main, false);
+        try
+        {
+            main.Show(); Dispatcher.UIThread.RunJobs();
+            if (main.FindControl<CompactView>("CompactPanel")!.IsVisible)
+                main.FindControl<CompactView>("CompactPanel")!.FindControl<Button>("ExpandView")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            main.Width = 1000; main.Height = 900; Dispatcher.UIThread.RunJobs();
+            for (var cycle = 0; cycle < 3; cycle++)
+            {
+                main.FindControl<Button>("EnterCompactView")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Dispatcher.UIThread.RunJobs();
+                Assert.That(main.ClientSize.Height, Is.EqualTo(WindowViewState.CompactHeight));
+                main.FindControl<CompactView>("CompactPanel")!.FindControl<Button>("ExpandView")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Dispatcher.UIThread.RunJobs();
+                Assert.That(main.ClientSize, Is.EqualTo(new Size(1000, 900)));
+                Assert.That(main.FindControl<Grid>("TitleActions")!.Bounds.Height, Is.EqualTo(36));
+                Assert.That(main.FindControl<ResourceGauge>("CpuGauge")!.Bounds.Height, Is.EqualTo(98));
+                Assert.That(main.FindControl<Grid>("MainLayout")!.IsVisible, Is.True);
+            }
+        }
+        finally { main.Close(); }
+    }
+
+    [AvaloniaTest]
     public void CompactActionsForwardAndUnavailableValuesNeverRetainOldMarks()
     {
         var view = new CompactView();

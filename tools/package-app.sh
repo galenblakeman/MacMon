@@ -9,13 +9,20 @@ if [[ $# -gt 0 ]]; then
     identity="$2"
 fi
 python3 tools/sign-app.py --check-identity "$identity"
+if [[ "${MACMON_ENABLE_UPDATES:-0}" == "1" ]]; then
+    : "${SPARKLE_PUBLIC_ED_KEY:?Set the Sparkle public update key}"
+    if [[ ! -d artifacts/sparkle/2.10.1/Sparkle.framework ]]; then
+        echo "Run bash tools/bootstrap-sparkle.sh first." >&2; exit 1
+    fi
+fi
 case "$runtime" in
     osx-arm64|osx-x64) ;;
     *) echo "Expected osx-arm64 or osx-x64." >&2; exit 1 ;;
 esac
-destination_bundle="artifacts/$runtime/MacMon.app"
-mkdir -p "artifacts/$runtime"
-stage_root="$(mktemp -d "artifacts/$runtime/.macmon-package.XXXXXX")"
+output_directory="${MACMON_PACKAGE_ROOT:-artifacts}/$runtime"
+destination_bundle="$output_directory/MacMon.app"
+mkdir -p "$output_directory"
+stage_root="$(mktemp -d "$output_directory/.macmon-package.XXXXXX")"
 trap 'rm -rf "$stage_root"' EXIT
 # Publish into a fresh directory: reused output can retain a newer-dated DLL from an older local package.
 bundle="$stage_root/MacMon.app"
@@ -34,6 +41,12 @@ with open(sys.argv[1], "wb") as stream:
         CFBundlePackageType="APPL", CFBundleShortVersionString=sys.argv[2],
         CFBundleVersion=sys.argv[3], NSHighResolutionCapable=True, LSMinimumSystemVersion="13.0"), stream)
 PY
+if [[ "${MACMON_ENABLE_UPDATES:-0}" == "1" ]]; then
+    mkdir -p "$bundle/Contents/Frameworks"
+    ditto artifacts/sparkle/2.10.1/Sparkle.framework "$bundle/Contents/Frameworks/Sparkle.framework"
+    cp artifacts/sparkle/2.10.1/LICENSE "$bundle/Contents/Resources/Sparkle.LICENSE"
+    python3 tools/configure-updates.py "$bundle" "$runtime"
+fi
 python3 tools/sign-app.py "$bundle" "$identity" packaging/MacMon.entitlements
 host_arch="$(uname -m)"
 if [[ "$runtime" == "osx-arm64" && "$host_arch" == "arm64" ]] || \
@@ -50,7 +63,7 @@ ditto -c -k --sequesterRsrc --keepParent "$bundle" "$stage_root/$archive"
 (cd "$stage_root" && shasum -a 256 "$archive" > "$archive.sha256")
 rm -rf "$destination_bundle"
 mv "$bundle" "$destination_bundle"
-mv "$stage_root/$archive" "artifacts/$runtime/$archive"
-mv "$stage_root/$archive.sha256" "artifacts/$runtime/$archive.sha256"
-echo "Packaged app: $PWD/$destination_bundle (identity: $identity)"
-echo "Archive: $PWD/artifacts/$runtime/$archive"
+mv "$stage_root/$archive" "$output_directory/$archive"
+mv "$stage_root/$archive.sha256" "$output_directory/$archive.sha256"
+echo "Packaged app: $destination_bundle (identity: $identity)"
+echo "Archive: $output_directory/$archive"

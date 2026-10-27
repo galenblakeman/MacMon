@@ -30,29 +30,20 @@
       <Setter Property="Foreground" Value="{DynamicResource MacTextBrush}" />
     </Style>
     <Style Selector="TextBlock.toolbarLabel"><Setter Property="FontSize" Value="13" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
-    <Style Selector="TextBlock.columnLabel"><Setter Property="FontSize" Value="11" /><Setter Property="Foreground" Value="{DynamicResource MacMutedBrush}" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+    <Style Selector="TextBlock.columnLabel"><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource MacMutedBrush}" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
     <Style Selector="ComboBox"><Setter Property="VerticalContentAlignment" Value="Center" /><Setter Property="MinHeight" Value="28" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="6,3" /></Style>
     <Style Selector="TextBox"><Setter Property="VerticalContentAlignment" Value="Center" /><Setter Property="MinHeight" Value="28" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="6,3" /></Style>
     <Style Selector="TextBox[AcceptsReturn=True]"><Setter Property="VerticalContentAlignment" Value="Top" /></Style>
     <Style Selector="NumericUpDown"><Setter Property="FormatString" Value="F1" /><Setter Property="VerticalContentAlignment" Value="Center" /><Setter Property="MinHeight" Value="28" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="6,3" /></Style>
     <Style Selector="ComboBoxItem"><Setter Property="VerticalContentAlignment" Value="Center" /></Style>
-    <Style Selector="ComboBox.rankingChoice"><Setter Property="MinWidth" Value="0" /><Setter Property="Padding" Value="3,2" /></Style>
-    <Style Selector="Button.titleAction, ToggleButton.titleAction"><Setter Property="chrome:WindowDecorationProperties.ElementRole" Value="User" /><Setter Property="Background" Value="Transparent" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="6,4" /></Style>
-    <Style Selector="Button.chip, RadioButton.chip"><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="7,3" /><Setter Property="MinHeight" Value="26" /><Setter Property="Background" Value="Transparent" /></Style>
-    <Style Selector="RadioButton.chip"><Setter Property="Template"><ControlTemplate><Border Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}"><ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border></ControlTemplate></Setter></Style>
-    <Style Selector="RadioButton.chip:checked, Button.chip.active, ToggleButton.titleAction:checked"><Setter Property="Background" Value="{DynamicResource MacGridBrush}" /></Style>
+    <Style Selector="ComboBox.rankingChoice"><Setter Property="FontSize" Value="13" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="VerticalAlignment" Value="Center" /><Setter Property="MinWidth" Value="0" /><Setter Property="Padding" Value="3,2" /></Style>
     <Style Selector="Border.sectionHeader"><Setter Property="Margin" Value="-20,0" /><Setter Property="Background" Value="{DynamicResource MacHeaderBrush}" /><Setter Property="Padding" Value="26,5,26,1" /></Style>
     <Style Selector="TabControl#DataTabs Border.sectionHeader"><Setter Property="Margin" Value="-32,0" /><Setter Property="Padding" Value="38,5,38,1" /></Style>
     <Style Selector="Border.actionBar.collapsed Image"><Setter Property="Width" Value="16" /><Setter Property="Height" Value="16" /><Setter Property="MaxHeight" Value="16" /><Setter Property="MaxWidth" Value="16" /></Style>
     <Style Selector="FlyoutPresenter.captureCard"><Setter Property="Background" Value="{DynamicResource MacCardBrush}" /><Setter Property="Foreground" Value="{DynamicResource MacTextBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource MacGridBrush}" /></Style>
     <Style Selector="Border.actionBar"><Setter Property="Background" Value="{DynamicResource MacHeaderBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource MacGridBrush}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="4" /><Setter Property="MinHeight" Value="54" /></Style>
     <Style Selector="Border.actionBar.collapsed"><Setter Property="MinHeight" Value="32" /></Style>
-    <Style Selector="Border.actionBar Button"><Setter Property="Margin" Value="0,0,8,0" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="12,2" /><Setter Property="MinWidth" Value="80" /><Setter Property="Height" Value="28" /></Style>
     <Style Selector="Border.actionDivider"><Setter Property="Width" Value="1" /><Setter Property="Height" Value="24" /><Setter Property="Margin" Value="4,0,12,0" /><Setter Property="Background" Value="{DynamicResource MacGridBrush}" /></Style>
-    <Style Selector="ToggleButton.actionCollapse"><Setter Property="Template"><ControlTemplate><Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="4"><Path Width="16" Height="16" Data="{Binding (local:ButtonIcon.Data), RelativeSource={RelativeSource TemplatedParent}}" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.5" StrokeLineCap="Round" StrokeJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border></ControlTemplate></Setter><Setter Property="ContentTemplate" Value="{x:Null}" /><Setter Property="Width" Value="28" /><Setter Property="Height" Value="28" /><Setter Property="Padding" Value="0" /><Setter Property="Margin" Value="4,0,8,0" /><Setter Property="FontSize" Value="18" /><Setter Property="VerticalAlignment" Value="Center" /><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="AutomationProperties.Name" Value="{local:Loc &quot;Show or hide actions&quot;}" /></Style>
-    <Style Selector="ToggleButton.actionCollapse, ToggleButton.actionCollapse:checked"><Setter Property="Background" Value="{DynamicResource MacCardBrush}" /><Setter Property="Foreground" Value="{DynamicResource MacTextBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource MacGridBrush}" /></Style>
-    <Style Selector="ToggleButton.actionCollapse:pointerover"><Setter Property="Background" Value="{DynamicResource MacChromeBrush}" /></Style>
-    <Style Selector="ToggleButton.actionCollapse:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource MacTextBrush}" /></Style>
     <Style Selector="Button.dangerAction"><Setter Property="BorderBrush" Value="#964E4E" /></Style>
     <Style Selector="Border.dataRow"><Setter Property="BorderBrush" Value="{DynamicResource MacGridBrush}" /><Setter Property="BorderThickness" Value="0,0,0,1" /><Setter Property="Padding" Value="6,3" /><Setter Property="MinHeight" Value="42" /></Style>
     <Style Selector="Button.rowPin"><Setter Property="local:ButtonIcon.Kind" Value="Pin" /><Setter Property="MinWidth" Value="0" /><Setter Property="MaxWidth" Value="28" /><Setter Property="Background" Value="Transparent" /><Setter Property="Padding" Value="2" /><Setter Property="MinHeight" Value="24" /><Setter Property="FontSize" Value="16" /></Style>
@@ -61,11 +52,11 @@
       <Setter Property="ContentTemplate"><local:ButtonLabelTemplate /></Setter>
     </Style>
     <Style Selector="RadioButton.chip"><Setter Property="ContentTemplate" Value="{x:Null}" /></Style>
-    <Style Selector="Button"><Setter Property="Padding" Value="8,4" /><Setter Property="MinHeight" Value="28" /></Style>
     <Style Selector="Button.tableHeader"><Setter Property="ContentTemplate" Value="{x:Null}" />
       <Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource MacMutedBrush}" />
-      <Setter Property="FontSize" Value="11" /><Setter Property="Padding" Value="0" /><Setter Property="MinHeight" Value="24" />
+      <Setter Property="FontSize" Value="12" /><Setter Property="FontWeight" Value="Normal" /><Setter Property="Padding" Value="0" /><Setter Property="MinHeight" Value="24" />
     </Style>
+    <Style Selector="Button.tableHeader.sorted"><Setter Property="Foreground" Value="{DynamicResource MacTextBrush}" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
     <Style Selector="ListBox.dataRows"><Setter Property="FontSize" Value="12" /><Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Visible" /><Setter Property="ScrollViewer.AllowAutoHide" Value="False" /></Style>
     <Style Selector="ListBox.dataRows ScrollBar:vertical"><Setter Property="Width" Value="12" /><Setter Property="MinWidth" Value="12" /></Style>
     <Style Selector="Button.numericHeader"><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Right" /></Style>
@@ -74,7 +65,6 @@
     <Style Selector="TabControl#DataTabs TabItem:not(:selected)"><Setter Property="Foreground" Value="{DynamicResource MacInactiveTabBrush}" /></Style>
     <Style Selector="TabControl#DataTabs TabItem:selected"><Setter Property="Foreground" Value="{DynamicResource MacTextBrush}" /></Style>
     <Style Selector="TextBlock.label"><Setter Property="Foreground" Value="{DynamicResource MacMutedBrush}" /></Style>
-    <Style Selector="TextBlock.cpuMetric"><Setter Property="Foreground" Value="{DynamicResource CpuText}" /></Style>
     <Style Selector="TextBlock.pinMetric"><Setter Property="Foreground" Value="{DynamicResource MemoryText}" /></Style>
     <Style Selector="ListBoxItem:selected TextBlock.cpuMetric, ListBoxItem:selected TextBlock.pinMetric">
       <Setter Property="Foreground" Value="{DynamicResource MacTextBrush}" />
@@ -91,6 +81,7 @@
       <Setter Property="Marker" Value="{DynamicResource MacMarkerBrush}" />
     </Style>
     <Style Selector="local|CpuChart">
+      <Setter Property="UseSeriesPatterns" Value="{DynamicResource MacSeriesPatterns}" />
       <Setter Property="PlotBrush" Value="{DynamicResource MacPlotBrush}" />
       <Setter Property="CpuBrush" Value="{DynamicResource CpuStroke}" />
       <Setter Property="MemoryBrush" Value="{DynamicResource MemoryStroke}" />
@@ -99,8 +90,11 @@
       <Setter Property="GpuBrush" Value="{DynamicResource GpuStroke}" />
       <Setter Property="StorageBrush" Value="{DynamicResource StorageStroke}" />
       <Setter Property="GridBrush" Value="{DynamicResource MacGridBrush}" />
+      <Setter Property="AxisBrush" Value="{DynamicResource MacMutedBrush}" />
+      <Setter Property="SelectionFill" Value="{DynamicResource MacCardBrush}" />
       <Setter Property="MarkerBrush" Value="{DynamicResource MacMarkerBrush}" />
     </Style>
     <Style Selector="local|ProcessSparkline"><Setter Property="Stroke" Value="{DynamicResource CpuStroke}" /></Style>
+    <StyleInclude Source="/ButtonStyles.axaml" />
   </Application.Styles>
 </Application>

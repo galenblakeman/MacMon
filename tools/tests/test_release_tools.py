@@ -30,7 +30,8 @@ class ReleaseWorkflowTests(unittest.TestCase):
         self.bin.mkdir()
         self.log = self.root / "commands.log"
         self.environment = dict(os.environ, PATH=str(self.bin) + os.pathsep + os.environ["PATH"],
-                                MACMON_TEST_LOG=str(self.log), PYTHONDONTWRITEBYTECODE="1")
+                                MACMON_TEST_LOG=str(self.log), PYTHONDONTWRITEBYTECODE="1", MACMON_ENABLE_UPDATES="0",
+                                MACMON_RELEASE_TAG="", MACMON_PACKAGE_ROOT="")
         self.script("security", 'echo \'1) AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA "Developer ID Application: Test (TEST)"\'')
         self.script("uname", 'echo arm64')
         self.script("git", 'if [[ "$1" == "rev-parse" ]]; then echo aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; fi')

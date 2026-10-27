@@ -31,7 +31,7 @@ public sealed class GpuMonitoringTests
         Assert.That(history.Readings[4].Value, Is.Null);
         history.Observe(Sample(4, "two", 0));
         Assert.That(history.Readings[4].Peak, Is.Zero);
-        Assert.That(ResourceCharts.Metrics(31), Is.EqualTo(new[] { 0, 4, 1, 3, 2 }));
+        Assert.That(ResourceCharts.Metrics(31), Is.EqualTo(new[] { 0, 1, 3, 2, 4 }));
         Assert.That(ResourceCharts.Maximum([Sample(1, "one", 20)], 120, 4), Is.EqualTo(100));
         var model = ResourceDetails.Create(ResourceMetric.Gpu, Sample(1, "one", 20), null, history.Readings[4], 4);
         Assert.That(model.Title, Is.EqualTo("GPU details"));

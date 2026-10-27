@@ -15,13 +15,22 @@
             <TextBlock Text="{local:Loc &quot;General&quot;}" FontSize="21" FontWeight="SemiBold" />
             <Grid ColumnDefinitions="150,*" ColumnSpacing="12"><TextBlock Text="{local:Loc &quot;Language&quot;}" Classes="label" VerticalAlignment="Center" /><ComboBox Grid.Column="1" x:Name="LanguageChoice" AutomationProperties.Name="{local:Loc &quot;Language&quot;}" /></Grid>
             <TextBlock Text="{local:Loc &quot;Startup&quot;}" FontWeight="SemiBold" />
-            <CheckBox x:Name="OpenAtLogin" Content="{local:Loc &quot;Open at login&quot;}" />
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBlock x:Name="StartupStatus" Classes="label" TextWrapping="Wrap" /><Button Grid.Column="1" x:Name="LoginItems" local:ButtonIcon.Kind="Settings" Content="{local:Loc &quot;Login Items…&quot;}" /></Grid>
+            <StackPanel Spacing="6">
+              <ToggleSwitch x:Name="OpenAtLogin" Content="{local:Loc &quot;Open MacMon at login&quot;}" OnContent="" OffContent="" />
+              <TextBlock Classes="label" TextWrapping="Wrap" Text="{local:Loc &quot;Starts MacMon when you sign in. Changes apply immediately.&quot;}" />
+              <TextBlock x:Name="StartupStatus" Classes="label" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+              <TextBlock x:Name="StartupError" Classes="label" TextWrapping="Wrap" IsVisible="False" AutomationProperties.LiveSetting="Polite" />
+              <Button x:Name="LoginItems" local:ButtonIcon.Kind="Settings" Content="{local:Loc &quot;Open System Settings…&quot;}" HorizontalAlignment="Left" IsVisible="False" />
+            </StackPanel>
             <Grid ColumnDefinitions="150,*" ColumnSpacing="12"><TextBlock Text="{local:Loc &quot;Startup view&quot;}" Classes="label" VerticalAlignment="Center" /><ComboBox Grid.Column="1" x:Name="StartupViewChoice" AutomationProperties.Name="{local:Loc &quot;Startup view&quot;}" /></Grid>
             <Grid ColumnDefinitions="150,*" ColumnSpacing="12"><TextBlock Text="{local:Loc &quot;Keyboard shortcut&quot;}" Classes="label" VerticalAlignment="Center" />
             <Grid Grid.Column="1" ColumnDefinitions="*,Auto" ColumnSpacing="8"><ComboBox x:Name="ShortcutChoice" Width="NaN" MinWidth="140" AutomationProperties.Name="{local:Loc &quot;Show MacMon&quot;}" /><Button Grid.Column="1" x:Name="DefaultShortcut" local:ButtonIcon.Kind="Live" Content="{local:Loc &quot;Default&quot;}" /></Grid></Grid>
             <TextBlock Classes="label" TextWrapping="Wrap" Text="{local:Loc &quot;Show MacMon from another app. ⌘, opens Settings; ⌘⇧M switches compact view.&quot;}" />
             <CheckBox x:Name="TopmostSetting" Content="{local:Loc &quot;Always on top&quot;}" />
+            <TextBlock Text="{local:Loc &quot;Updates&quot;}" FontWeight="SemiBold" />
+            <CheckBox x:Name="AutomaticUpdateChecks" Content="{local:Loc &quot;Automatically check for updates&quot;}" />
+            <Button x:Name="CheckForUpdates" Content="{local:Loc &quot;Check for updates…&quot;}" HorizontalAlignment="Left" />
+            <TextBlock x:Name="UpdateStatus" Classes="label" TextWrapping="Wrap" />
 
           </StackPanel>
           <StackPanel x:Name="AppearancePage" Spacing="14" IsVisible="False">

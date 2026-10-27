@@ -11,7 +11,7 @@ public static class ResourceCharts
 {
     public static readonly string[] Names = ["CPU", "Memory", "Network", "Disk", "GPU", "Disk 2"];
     public static bool IsPercent(int metric) => metric is 0 or 1 or 4;
-    public static int[] Metrics(int mask) => new[] { 0, 4, 1, 3, 5, 2 }.Where(i => (mask & (1 << i)) != 0).ToArray();
+    public static int[] Metrics(int mask) => new[] { 0, 1, 3, 5, 2, 4 }.Where(i => (mask & (1 << i)) != 0).ToArray();
     public static int Focus(int mask, int focus) => Metrics(mask).Contains(focus) ? focus : Metrics(mask).FirstOrDefault();
     public static double? Value(MonitorSample sample, int metric)
     {

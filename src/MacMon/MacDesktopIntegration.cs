@@ -2,6 +2,23 @@ using System.Runtime.InteropServices;
 
 namespace MacMon;
 
+// Values match SMAppService.Status; unknown native values remain unavailable in the UI.
+public enum LoginItemStatus { Unavailable = -1, NotRegistered = 0, Enabled = 1, RequiresApproval = 2, NotFound = 3 }
+
+public interface ILoginItemService
+{
+    LoginItemStatus Status { get; }
+    string? SetEnabled(bool enabled);
+    void OpenSettings();
+}
+
+public sealed class NativeLoginItemService : ILoginItemService
+{
+    public LoginItemStatus Status => (LoginItemStatus)MacDesktopIntegration.LoginStatus;
+    public string? SetEnabled(bool enabled) => MacDesktopIntegration.SetLogin(enabled);
+    public void OpenSettings() => MacDesktopIntegration.OpenLoginSettings();
+}
+
 public sealed record ShortcutChoice(string Id, string Label, uint Key = uint.MaxValue, uint Modifiers = 0)
 {
     public override string ToString() => Label;

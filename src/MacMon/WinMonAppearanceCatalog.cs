@@ -7,21 +7,22 @@ namespace MacMon;
 internal static class WinMonAppearanceCatalog
 {
     internal sealed record Finish(string Surface, string Card, string Chrome, string Header, string Plot,
-        string Text, string Muted, string Line, string Track, bool Light);
+        string Text, string Muted, string Line, string Track, bool Light,
+        string? Selected = null, string? SelectedText = null, string? SegmentSelected = null, string? ChipSelectedText = null, string? UiAccent = null);
     internal static readonly Dictionary<string, Finish> Finishes = new()
     {
-        ["Candy"] = new("#FFF8F1", "#FFFFFF", "#F7A6C7", "#F7A6C7", "#FFFCF9", "#2E2134", "#655369", "#D3C6CE", "#D9D2D2", true),
-        ["Copper"] = new("#574033", "#71503E", "#A67556", "#77513C", "#171D24", "#FFF1E6", "#E0BEAA", "#956E59", "#A47D68", false),
-        ["Gunmetal"] = new("#1D252C", "#2A343D", "#3A454D", "#303B43", "#151D26", "#ECF3F5", "#B6C5CB", "#53626B", "#667985", false),
-        ["Porcelain"] = new("#F5F2EB", "#FFFEFA", "#E8E2D8", "#EEE9E0", "#FFFEFA", "#242B31", "#59636A", "#CCC5B9", "#D5D0C7", true),
-        ["MidnightInk"] = new("#101A28", "#1B2A3D", "#23364C", "#1D3045", "#0D1724", "#EAF1F7", "#B9C9D8", "#43566A", "#52677D", false),
-        ["EvergreenInstrument"] = new("#172522", "#23352F", "#30463D", "#273C34", "#111E1B", "#EFF3EA", "#BFCCBE", "#52665A", "#627968", false),
-        ["FrostedPorcelain"] = new("#F2F4F6", "#FFFFFF", "#EDF2F8", "#F1F5FA", "#FFFFFF", "#202B39", "#536476", "#B9C8D5", "#C4D0DA", true),
-        ["SmokedSapphire"] = new("#10213C", "#1B3050", "#19395F", "#1A3658", "#0B1930", "#F1F6FF", "#C2D2E5", "#496787", "#56718E", false),
-        ["Crystal"] = new("#1C2938", "#344B61", "#537399", "#435E7D", "#121B27", "#EDF5FC", "#C5D3E0", "#5A7894", "#5C7185", false),
-        ["Slate"] = new("#2B3A48", "#3D5061", "#526878", "#4D6374", "#111A23", "#F1F6F9", "#CAD6DD", "#647986", "#718591", false),
-        ["Prism"] = new("#1A2031", "#303A53", "#332F5C", "#303A63", "#101624", "#F1F2FF", "#C0C3E0", "#5467A0", "#636F93", false),
-        ["Wildberry"] = new("#211629", "#38203F", "#492447", "#4A2549", "#1D1424", "#FFF1FA", "#D0AFC8", "#69405F", "#796878", false),
+        ["Candy"] = new("#FFF8F1", "#FFFFFF", "#F7A6C7", "#F7A6C7", "#FFFCF9", "#2E2134", "#655369", "#D3C6CE", "#D9D2D2", true, Selected: "#C71D68", SelectedText: "#FFFFFF", SegmentSelected: "#A9EFE3", UiAccent: "#BF155D"),
+        ["Copper"] = new("#574033", "#71503E", "#A67556", "#77513C", "#171D24", "#FFF1E6", "#E0BEAA", "#956E59", "#A47D68", false, Selected: "#B77A4D", SelectedText: "#15191E", SegmentSelected: "#96664B", ChipSelectedText: "#FFFFFF"),
+        ["Gunmetal"] = new("#1D252C", "#2A343D", "#3A454D", "#303B43", "#151D26", "#ECF3F5", "#B6C5CB", "#53626B", "#667985", false, Selected: "#49687C", SelectedText: "#FFFFFF", SegmentSelected: "#465B68"),
+        ["Porcelain"] = new("#F5F2EB", "#FFFEFA", "#E8E2D8", "#EEE9E0", "#FFFEFA", "#242B31", "#59636A", "#CCC5B9", "#D5D0C7", true, Selected: "#365F85", SelectedText: "#FFFFFF", SegmentSelected: "#D6E4EF", UiAccent: "#365F85"),
+        ["MidnightInk"] = new("#101A28", "#1B2A3D", "#23364C", "#1D3045", "#0D1724", "#EAF1F7", "#B9C9D8", "#43566A", "#52677D", false, Selected: "#315A82", SelectedText: "#FFFFFF", SegmentSelected: "#294766", UiAccent: "#477DAE"),
+        ["EvergreenInstrument"] = new("#172522", "#23352F", "#30463D", "#273C34", "#111E1B", "#EFF3EA", "#BFCCBE", "#52665A", "#627968", false, Selected: "#456C4B", SelectedText: "#FFFFFF", SegmentSelected: "#345540", UiAccent: "#87B782"),
+        ["FrostedPorcelain"] = new("#F2F4F6", "#FFFFFF", "#EDF2F8", "#F1F5FA", "#FFFFFF", "#202B39", "#536476", "#B9C8D5", "#C4D0DA", true, Selected: "#38698E", SelectedText: "#FFFFFF", SegmentSelected: "#DCE9F3", UiAccent: "#38698E"),
+        ["SmokedSapphire"] = new("#10213C", "#1B3050", "#19395F", "#1A3658", "#0B1930", "#F1F6FF", "#C2D2E5", "#496787", "#56718E", false, Selected: "#315D90", SelectedText: "#FFFFFF", SegmentSelected: "#2B527F", UiAccent: "#5C9BE0"),
+        ["Crystal"] = new("#1C2938", "#344B61", "#537399", "#435E7D", "#121B27", "#EDF5FC", "#C5D3E0", "#5A7894", "#5C7185", false, Selected: "#426992", SelectedText: "#FFFFFF", SegmentSelected: "#516C89", UiAccent: "#A5D0F2"),
+        ["Slate"] = new("#2B3A48", "#3D5061", "#526878", "#4D6374", "#111A23", "#F1F6F9", "#CAD6DD", "#647986", "#718591", false, Selected: "#56768C", SelectedText: "#FFFFFF", SegmentSelected: "#566E80", UiAccent: "#B6CAD7"),
+        ["Prism"] = new("#1A2031", "#303A53", "#332F5C", "#303A63", "#101624", "#F1F2FF", "#C0C3E0", "#5467A0", "#636F93", false, Selected: "#455A91", SelectedText: "#FFFFFF", SegmentSelected: "#43527A", UiAccent: "#8DCAFF"),
+        ["Wildberry"] = new("#211629", "#38203F", "#492447", "#4A2549", "#1D1424", "#FFF1FA", "#D0AFC8", "#69405F", "#796878", false, Selected: "#753259", SelectedText: "#FFF3F9", SegmentSelected: "#5C2B4F", UiAccent: "#E36B9D"),
     };
     internal static IReadOnlyList<string> Palettes { get; } = [
         "Classic", "Ocean", "Colorblind",

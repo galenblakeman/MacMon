@@ -9,6 +9,7 @@ if [[ $# -ne 3 ]]; then echo "Expected runtime, Developer ID Application identit
 runtime="$1"
 identity="$2"
 profile="$3"
+if [[ -n "${MACMON_PACKAGE_ROOT:-}" ]]; then echo "Release builds use the default package output directory." >&2; exit 1; fi
 case "$runtime" in osx-arm64|osx-x64) ;; *) echo "Unsupported runtime." >&2; exit 1 ;; esac
 if [[ "$identity" == "-" ]]; then echo "A release requires a Developer ID Application identity." >&2; exit 1; fi
 python3 tools/sign-app.py --check-identity "$identity"
@@ -22,6 +23,10 @@ if [[ -n "$(git status --porcelain)" ]]; then echo "Commit the source changes be
 bash tools/verify.sh --smoke
 bash tools/package-app.sh "$runtime" --identity "$identity"
 version="$(dotnet msbuild src/MacMon/MacMon.csproj -getProperty:Version -nologo)"
+bundle_build="$(dotnet msbuild src/MacMon/MacMon.csproj -getProperty:MacMonBundleBuild -nologo)"
+if [[ -n "${MACMON_RELEASE_TAG:-}" && "$MACMON_RELEASE_TAG" != "v$version" ]]; then
+    echo "Release tag must match project version v$version." >&2; exit 1
+fi
 destination="artifacts/releases/$version/$runtime"
 if [[ -e "$destination" ]]; then echo "Release output already exists: $destination" >&2; exit 1; fi
 mkdir -p "$(dirname "$destination")"
@@ -46,10 +51,10 @@ spctl --assess --type execute --verbose=4 "$bundle"
 archive="MacMon-$version-$runtime.zip"
 ditto -c -k --sequesterRsrc --keepParent "$bundle" "$stage/$archive"
 (cd "$stage" && shasum -a 256 "$archive" > "$archive.sha256")
-python3 - "$stage/release.json" "$version" "$runtime" "$(git rev-parse HEAD)" <<'PY'
+python3 - "$stage/release.json" "$version" "$runtime" "$(git rev-parse HEAD)" "$bundle_build" <<'PY'
 import json, sys
 with open(sys.argv[1], "w") as stream:
-    json.dump(dict(version=sys.argv[2], runtime=sys.argv[3], commit=sys.argv[4], notarized=True), stream, indent=2)
+    json.dump(dict(version=sys.argv[2], runtime=sys.argv[3], commit=sys.argv[4], build=int(sys.argv[5]), notarized=True), stream, indent=2)
 PY
 rm "$submission"
 mv "$stage" "$destination"

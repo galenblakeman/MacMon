@@ -1,0 +1,115 @@
+name: Publish MacMon
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: macmon-stable-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment: release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runtime: osx-arm64
+            runner: macos-15
+          - runtime: osx-x64
+            runner: macos-15-intel
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    env:
+      MACMON_ENABLE_UPDATES: '1'
+      MACMON_RELEASE_TAG: ${{ github.ref_name }}
+      MACMON_UPDATE_REPOSITORY: ${{ github.repository }}
+      SPARKLE_PUBLIC_ED_KEY: ${{ vars.SPARKLE_PUBLIC_ED_KEY }}
+      DEVELOPER_ID_APPLICATION: ${{ vars.DEVELOPER_ID_APPLICATION }}
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Validate tag and configuration
+        id: version
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os, re, xml.etree.ElementTree as ET
+          version = ET.parse('src/MacMon/MacMon.csproj').findtext('PropertyGroup/Version')
+          assert re.fullmatch(r'v\d+\.\d+\.\d+', os.environ['MACMON_RELEASE_TAG']), 'Use a stable vMAJOR.MINOR.PATCH tag'
+          assert os.environ['MACMON_RELEASE_TAG'] == 'v' + version, 'Tag must match project Version'
+          assert os.environ['SPARKLE_PUBLIC_ED_KEY'], 'Configure SPARKLE_PUBLIC_ED_KEY'
+          assert os.environ['DEVELOPER_ID_APPLICATION'], 'Configure DEVELOPER_ID_APPLICATION'
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('version=' + version + '\n')
+          PY
+      - name: Prepare dependencies
+        run: |
+          bash tools/bootstrap-sparkle.sh
+          bash tools/bootstrap-moncore.sh
+      - name: Configure signing
+        env:
+          APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+          APPLE_NOTARY_PRIVATE_KEY: ${{ secrets.APPLE_NOTARY_PRIVATE_KEY }}
+          SPARKLE_PRIVATE_ED_KEY: ${{ secrets.SPARKLE_PRIVATE_ED_KEY }}
+        run: bash tools/ci-signing.sh
+      - name: Verify, sign and notarize
+        run: bash tools/package-release.sh '${{ matrix.runtime }}' "$DEVELOPER_ID_APPLICATION" MacMon-CI
+      - name: Sign update archive and generate feed
+        env:
+          SPARKLE_PRIVATE_KEY_FILE: ${{ runner.temp }}/macmon-sparkle.key
+        run: python3 tools/create-appcast.py "artifacts/releases/${MACMON_RELEASE_TAG#v}/${{ matrix.runtime }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.runtime }}
+          path: |
+            artifacts/releases/${{ steps.version.outputs.version }}/${{ matrix.runtime }}/*.zip
+            artifacts/releases/${{ steps.version.outputs.version }}/${{ matrix.runtime }}/*.sha256
+            artifacts/releases/${{ steps.version.outputs.version }}/${{ matrix.runtime }}/appcast-*.xml
+            artifacts/releases/${{ steps.version.outputs.version }}/${{ matrix.runtime }}/release.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Remove signing material
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/macmon-release.keychain-db" || true
+          rm -f "$RUNNER_TEMP/macmon-certificate.p12" "$RUNNER_TEMP/macmon-notary.p8" "$RUNNER_TEMP/macmon-sparkle.key"
+
+  publish:
+    needs: build
+    runs-on: macos-15
+    environment: release
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      MACMON_RELEASE_TAG: ${{ github.ref_name }}
+      SPARKLE_PUBLIC_ED_KEY: ${{ vars.SPARKLE_PUBLIC_ED_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-osx-arm64
+          path: artifacts/publish/osx-arm64
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-osx-x64
+          path: artifacts/publish/osx-x64
+      - name: Validate both architectures and publish complete release
+        run: python3 tools/publish-release.py artifacts/publish

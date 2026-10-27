@@ -7,11 +7,9 @@ public sealed class SettingsIntegrationTests
 {
     private sealed class Services : IDesktopSettingsServices
     {
-        public int LoginStatus => 0;
         public List<string> Calls { get; } = [];
         public bool AllowNotifications;
         public string? ShortcutError;
-        public string? SetLogin(bool enabled) { Calls.Add("login:" + enabled); return null; }
         public string? SetShortcut(string id) { Calls.Add("key:" + id); return ShortcutError; }
         public Task<bool> RequestNotifications() { Calls.Add("permission"); return Task.FromResult(AllowNotifications); }
     }
@@ -20,9 +18,9 @@ public sealed class SettingsIntegrationTests
     {
         var current = new MacPreferences(); var services = new Services { AllowNotifications = true }; var saves = 0;
         var draft = current with { Captures = current.Captures with { Notify = true } };
-        Assert.That(await SettingsEffects.Save(current, draft, null, services,
+        Assert.That(await SettingsEffects.Save(current, draft, services,
             () => { saves++; return Task.CompletedTask; }), Is.Null);
-        Assert.That(await SettingsEffects.Save(draft, draft, null, services,
+        Assert.That(await SettingsEffects.Save(draft, draft, services,
             () => { saves++; return Task.CompletedTask; }), Is.Null);
         Assert.That(saves, Is.EqualTo(2));
         Assert.That(services.Calls, Is.EqualTo(new[] { "permission" }));
@@ -31,21 +29,21 @@ public sealed class SettingsIntegrationTests
     public async Task NativeSettingsRollBackIfAtomicPersistenceFails()
     {
         var current = new MacPreferences(); var services = new Services();
-        var error = await SettingsEffects.Save(current, current with { ShowShortcut = "ControlAltM" }, true, services,
+        var error = await SettingsEffects.Save(current, current with { ShowShortcut = "ControlAltM" }, services,
             () => throw new IOException("Disk full"));
         Assert.That(error, Does.Contain("Disk full"));
-        Assert.That(services.Calls, Is.EqualTo(new[] { "key:ControlAltM", "login:True", "login:False", "key:Off" }));
+        Assert.That(services.Calls, Is.EqualTo(new[] { "key:ControlAltM", "key:Off" }));
     }
     [Test]
     public async Task DeniedNotificationPermissionAndShortcutConflictsDoNotPersistDrafts()
     {
         var current = new MacPreferences(); var services = new Services(); var saved = false;
         var draft = current with { Captures = current.Captures with { Notify = true } };
-        var error = await SettingsEffects.Save(current, draft, true, services, () => { saved = true; return Task.CompletedTask; });
+        var error = await SettingsEffects.Save(current, draft, services, () => { saved = true; return Task.CompletedTask; });
         Assert.That(error, Does.Contain("not allowed")); Assert.That(saved, Is.False);
         Assert.That(services.Calls, Is.EqualTo(new[] { "permission" }));
         services.Calls.Clear(); services.ShortcutError = "In use";
-        error = await SettingsEffects.Save(current, current with { ShowShortcut = "ControlAltM" }, null, services, () => { saved = true; return Task.CompletedTask; });
+        error = await SettingsEffects.Save(current, current with { ShowShortcut = "ControlAltM" }, services, () => { saved = true; return Task.CompletedTask; });
         Assert.That(error, Is.EqualTo("In use")); Assert.That(saved, Is.False);
         Assert.That(services.Calls, Is.EqualTo(new[] { "key:ControlAltM" }));
     }
@@ -53,7 +51,7 @@ public sealed class SettingsIntegrationTests
     public async Task OrdinarySaveDoesNotRequestPermissionOrChangeNativeRegistration()
     {
         var current = new MacPreferences(); var services = new Services(); var saved = false;
-        Assert.That(await SettingsEffects.Save(current, current with { Theme = "Copper" }, false, services,
+        Assert.That(await SettingsEffects.Save(current, current with { Theme = "Copper" }, services,
             () => { saved = true; return Task.CompletedTask; }), Is.Null);
         Assert.That(saved, Is.True); Assert.That(services.Calls, Is.Empty);
         var prefs = (current with { Language = "es", StartupView = "Compact", ShowShortcut = "ControlAltM",

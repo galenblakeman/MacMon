@@ -37,7 +37,18 @@ public sealed class CpuChart : Control
     public static readonly StyledProperty<IBrush> MarkerBrushProperty =
         AvaloniaProperty.Register<CpuChart, IBrush>(nameof(MarkerBrush), new SolidColorBrush(Color.Parse("#FFFFFF")));
     public IBrush MarkerBrush { get => GetValue(MarkerBrushProperty); set => SetValue(MarkerBrushProperty, value); }
-    static CpuChart() => AffectsRender<CpuChart>(CpuBrushProperty, MemoryBrushProperty, NetworkBrushProperty, StorageBrushProperty, PlotBrushProperty, GridBrushProperty, MarkerBrushProperty, GpuBrushProperty, SecondDiskBrushProperty);
+    public static readonly StyledProperty<IBrush> AxisBrushProperty = AvaloniaProperty.Register<CpuChart, IBrush>(nameof(AxisBrush), Brushes.Gray);
+    public IBrush AxisBrush { get => GetValue(AxisBrushProperty); set => SetValue(AxisBrushProperty, value); }
+    public static readonly StyledProperty<IBrush> SelectionFillProperty = AvaloniaProperty.Register<CpuChart, IBrush>(nameof(SelectionFill), Brushes.Black);
+    public IBrush SelectionFill { get => GetValue(SelectionFillProperty); set => SetValue(SelectionFillProperty, value); }
+    public static readonly StyledProperty<bool> UseSeriesPatternsProperty = AvaloniaProperty.Register<CpuChart, bool>(nameof(UseSeriesPatterns));
+    public bool UseSeriesPatterns { get => GetValue(UseSeriesPatternsProperty); set => SetValue(UseSeriesPatternsProperty, value); }
+    public static IDashStyle? SeriesPattern(int metric, bool patterns, bool overlay) => patterns
+        ? metric switch { 1 => DashStyle.Dash, 2 => DashStyle.Dot, 3 => DashStyle.DashDot,
+            4 => DashStyle.DashDotDot, 5 => LongDash, _ => null }
+        : overlay && metric == 5 ? DashStyle.Dash : null;
+    private static readonly DashStyle LongDash = new(new double[] { 6, 2 }, 0);
+    static CpuChart() => AffectsRender<CpuChart>(UseSeriesPatternsProperty, CpuBrushProperty, MemoryBrushProperty, NetworkBrushProperty, StorageBrushProperty, PlotBrushProperty, GridBrushProperty, MarkerBrushProperty, AxisBrushProperty, SelectionFillProperty, GpuBrushProperty, SecondDiskBrushProperty);
     private IReadOnlyList<MonitorSample> _samples = [];
     private readonly Dictionary<(string, IBrush), FormattedText> _labels = [];
     private IReadOnlyList<MonitorSample> _visible = [];
@@ -196,27 +207,50 @@ public sealed class CpuChart : Control
             var plot = ResourceCharts.Plot(panel);
             if (plot.Height <= 0 || plot.Width <= 0) continue;
             var metric = panel.Metrics[0];
-            for (var i = 0; i <= 4; i++) context.DrawLine(new Pen(GridBrush, 1),
-                new(plot.X, plot.Y + plot.Height * i / 4), new(plot.Right, plot.Y + plot.Height * i / 4));
-            for (var i = 0; i <= 4; i++) context.DrawLine(new Pen(GridBrush, 1),
-                new(plot.X + plot.Width * i / 4, plot.Y), new(plot.X + plot.Width * i / 4, plot.Bottom));
+            if (panel.SideLabel)
+                context.DrawLine(new Pen(GridBrush, .6), new(plot.X, panel.Bounds.Top), new(plot.Right, panel.Bounds.Top));
+            else
+            {
+                for (var i = 0; i <= 4; i++) context.DrawLine(new Pen(GridBrush, .7),
+                    new(plot.X, plot.Y + plot.Height * i / 4), new(plot.Right, plot.Y + plot.Height * i / 4));
+                for (var i = 0; i <= 4; i++) context.DrawLine(new Pen(GridBrush, .5),
+                    new(plot.X + plot.Width * i / 4, plot.Y), new(plot.X + plot.Width * i / 4, plot.Bottom));
+            }
             using (context.PushClip(plot))
             {
-                foreach (var series in panel.Metrics)
-                    if (Mode == ResourceChartMode.Heatmap) DrawHeatmap(context, plot, series);
-                    else DrawSeries(context, plot, series);
+                if (Mode == ResourceChartMode.Heatmap)
+                    foreach (var series in panel.Metrics) DrawHeatmap(context, plot, series);
+                else
+                {
+                    // Draw every wash before any trace so crossing lines keep their own color.
+                    if (!panel.SideLabel)
+                        foreach (var series in panel.Metrics) DrawSeries(context, plot, series, true);
+                    foreach (var series in panel.Metrics) DrawSeries(context, plot, series);
+                }
                 foreach (var capture in Captures.Where(c => MarkerVisible(c, panel)))
                 {
                     var x = X(capture.Peak.MonotonicTimestamp, plot);
                     var geometry = new StreamGeometry();
                     using (var path = geometry.Open())
                     { path.BeginFigure(new(x, plot.Y + 9), true); path.LineTo(new(x - 5, plot.Y)); path.LineTo(new(x + 5, plot.Y)); path.EndFigure(true); }
-                    context.DrawGeometry(MarkerBrush, null, geometry);
+                    var selectedMarker = SelectedTimestamp == capture.Peak.MonotonicTimestamp;
+                    context.DrawGeometry(Brush(CaptureMetricIndex(capture)), new Pen(selectedMarker ? MarkerBrush : PlotBrush, selectedMarker ? 2 : 1), geometry);
                 }
                 if ((SelectedTimestamp ?? HoveredSample?.MonotonicTimestamp) is { } selected)
                 {
                     var x = X(selected, plot);
-                    if (x >= plot.X && x <= plot.Right) context.DrawLine(new Pen(MarkerBrush, 1), new(x, plot.Y), new(x, plot.Bottom));
+                    if (x >= plot.X && x <= plot.Right)
+                    {
+                        context.DrawLine(new Pen(AxisBrush, 1, SelectedTimestamp is not null ? DashStyle.Dash : null), new(x, plot.Y), new(x, plot.Bottom));
+                        if (SelectedTimestamp is not null && Mode != ResourceChartMode.Heatmap &&
+                            _visible.FirstOrDefault(sample => sample.MonotonicTimestamp == selected) is { } sample)
+                            foreach (var series in panel.Metrics)
+                                if (ResourceCharts.Value(sample, series) is { } value)
+                                {
+                                    var y = plot.Bottom - plot.Height * Math.Clamp(value / Maximum(series), 0, 1);
+                                    context.DrawEllipse(SelectionFill, new Pen(Brush(series), 2), new(x, y), 3.5, 3.5);
+                                }
+                    }
                 }
             }
             if (panel.SideLabel)
@@ -224,7 +258,7 @@ public sealed class CpuChart : Control
                 var compact = Mode == ResourceChartMode.Focus || panel.Bounds.Height < 32;
                 var center = panel.Bounds.Y + panel.Bounds.Height / 2;
                 Label(context, UiText.Get(ResourceCharts.Names[metric]), new(plot.X - 8, center - (compact ? 7 : 12)), Brush(metric), true);
-                if (!compact) Label(context, ResourceCharts.AxisLabel(metric, Maximum(metric)), new(plot.X - 8, center + 2), MarkerBrush, true);
+                if (!compact) Label(context, ResourceCharts.AxisLabel(metric, Maximum(metric)), new(plot.X - 8, center + 2), AxisBrush, true);
             }
             else
             {
@@ -232,14 +266,14 @@ public sealed class CpuChart : Control
                 for (var tick = 0; tick < labels.Length; tick++)
                 {
                     var y = plot.Y + plot.Height * tick / (labels.Length - 1);
-                    Label(context, labels[tick], new(plot.X - 8, Math.Max(panel.Bounds.Y, y - 7)), MarkerBrush, true);
+                    Label(context, labels[tick], new(plot.X - 8, Math.Max(panel.Bounds.Y, y - 7)), AxisBrush, true);
                 }
                 if (panel.Metrics.Length == 1) Label(context, UiText.Get(ResourceCharts.Names[metric]), plot.TopLeft + new Vector(5, 4), Brush(metric));
                 else
                 {
                     var rates = panel.Metrics.Where(i => i != metric && !ResourceCharts.IsPercent(i));
                     var legend = string.Join(" · ", rates.Select(i => $"{UiText.Get(ResourceCharts.Names[i])}: {ResourceCharts.AxisLabel(i, Maximum(i))}"));
-                    if (legend.Length > 0) Label(context, legend, new(plot.Right - 4, plot.Top + 2), MarkerBrush, true);
+                    if (legend.Length > 0) Label(context, legend, new(plot.Right - 4, plot.Top + 2), AxisBrush, true);
                 }
             }
         }
@@ -251,48 +285,60 @@ public sealed class CpuChart : Control
             for (var i = 0; i < labels.Length; i += step)
             {
                 var text = new FormattedText(labels[i], System.Globalization.CultureInfo.CurrentCulture,
-                    FlowDirection.LeftToRight, new Typeface("Inter, Arial"), LabelSize, MarkerBrush);
+                    FlowDirection.LeftToRight, new Typeface("Inter, Arial"), LabelSize, AxisBrush);
                 var x = plot.X + plot.Width * i / 4 - text.Width / 2;
                 context.DrawText(text, new(Math.Clamp(x, 0, Math.Max(0, Bounds.Width - text.Width)), Bounds.Height - 17));
             }
         }
     }
 
-    private void DrawSeries(DrawingContext context, Rect plot, int metric)
+    private void DrawSeries(DrawingContext context, Rect plot, int metric, bool fillOnly = false)
     {
         var brush = Brush(metric);
         var area = new StreamGeometry();
         var trace = new StreamGeometry();
+        var isolated = new List<Point>();
         var maximum = Maximum(metric);
         using (var fillPath = area.Open())
         using (var linePath = trace.Open())
         {
-            Point? previous = null;
+            var segment = new List<Point>();
+            void Flush()
+            {
+                if (segment.Count == 1) isolated.Add(segment[0]);
+                else if (segment.Count > 1)
+                {
+                    fillPath.BeginFigure(new(segment[0].X, plot.Bottom), true);
+                    linePath.BeginFigure(segment[0], false);
+                    foreach (var point in segment) fillPath.LineTo(point);
+                    foreach (var point in segment.Skip(1)) linePath.LineTo(point);
+                    fillPath.LineTo(new(segment[^1].X, plot.Bottom));
+                    fillPath.EndFigure(true); linePath.EndFigure(false);
+                }
+                segment.Clear();
+            }
             MonitorSample? prior = null;
             foreach (var sample in _visible)
             {
-                if (ResourceCharts.Value(sample, metric) is not { } value) { previous = null; continue; }
-                var point = new Point(X(sample.MonotonicTimestamp, plot), plot.Bottom - plot.Height * Math.Clamp(value / maximum, 0, 1));
-                if (previous is { } start && prior is not null &&
-                    (sample.MonotonicTimestamp - prior.MonotonicTimestamp) / (double)Stopwatch.Frequency <= 2.5 &&
-                    (metric != 2 || sample.Resources.NetworkId == prior.Resources.NetworkId) &&
-                    (metric != 4 || sample.Resources.GpuId == prior.Resources.GpuId) &&
-                    (metric != 3 || sample.Resources.DiskName == prior.Resources.DiskName) &&
-                    (metric != 5 || sample.Resources.SecondaryDiskName == prior.Resources.SecondaryDiskName))
-                {
-                    fillPath.BeginFigure(new(start.X, plot.Bottom), true);
-                    fillPath.LineTo(start); fillPath.LineTo(point); fillPath.LineTo(new(point.X, plot.Bottom));
-                    fillPath.EndFigure(true);
-                    linePath.BeginFigure(start, false); linePath.LineTo(point); linePath.EndFigure(false);
-                }
-                // A single observation remains visible without bridging unavailable intervals.
-                context.DrawEllipse(brush, null, point, 1, 1);
-                previous = point; prior = sample;
+                if (ResourceCharts.Value(sample, metric) is not { } value) { Flush(); prior = null; continue; }
+                if (prior is not null &&
+                    ((sample.MonotonicTimestamp - prior.MonotonicTimestamp) / (double)Stopwatch.Frequency > 2.5 ||
+                    metric == 2 && sample.Resources.NetworkId != prior.Resources.NetworkId ||
+                    metric == 4 && sample.Resources.GpuId != prior.Resources.GpuId ||
+                    metric == 3 && sample.Resources.DiskName != prior.Resources.DiskName ||
+                    metric == 5 && sample.Resources.SecondaryDiskName != prior.Resources.SecondaryDiskName)) Flush();
+                segment.Add(new Point(X(sample.MonotonicTimestamp, plot), plot.Bottom - plot.Height * Math.Clamp(value / maximum, 0, 1)));
+                prior = sample;
             }
+            Flush();
         }
-        using (context.PushOpacity(Mode == ResourceChartMode.Overlay ? .08 : .14))
-            context.DrawGeometry(brush, null, area);
-        context.DrawGeometry(null, new Pen(brush, 2), trace);
+        if (fillOnly)
+        {
+            using (context.PushOpacity(.08)) context.DrawGeometry(brush, null, area);
+            return;
+        }
+        context.DrawGeometry(null, new Pen(brush, 1.7, SeriesPattern(metric, UseSeriesPatterns, Mode == ResourceChartMode.Overlay)), trace);
+        foreach (var point in isolated) context.DrawEllipse(brush, null, point, 1.5, 1.5);
     }
     private void DrawHeatmap(DrawingContext context, Rect plot, int metric)
     {
@@ -305,7 +351,7 @@ public sealed class CpuChart : Control
             var x = X(sample.MonotonicTimestamp, plot);
             // Do not paint across a missing interval, source change or wake gap.
             var end = i + 1 < samples.Count ? Math.Min(samples[i + 1].MonotonicTimestamp, sample.MonotonicTimestamp + Stopwatch.Frequency) : sample.MonotonicTimestamp + Stopwatch.Frequency;
-            using (context.PushOpacity(.08 + .075 * Math.Clamp(value / maximum, 0, 1)))
+            using (context.PushOpacity(.08 + .075 * Math.Ceiling(12 * Math.Clamp(value / maximum, 0, 1))))
                 context.DrawRectangle(Brush(metric), null, new Rect(x, plot.Y, Math.Max(1, X(end, plot) - x), plot.Height));
         }
     }

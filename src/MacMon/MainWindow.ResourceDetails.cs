@@ -10,7 +10,7 @@ public sealed partial class MainWindow
             gauge.DetailsOpening += HideResourceDetails;
             var metric = (ResourceMetric)(index % ResourceCharts.Names.Length);
             gauge.EnableDetails(() => ResourceDetails.Create(metric, _session.HasLiveSample ? _session.Latest : null,
-                _source.Memory, _gaugeHistory.Readings[(int)metric], Environment.ProcessorCount));
+                _source.Memory, _gaugeHistory.Readings[(int)metric], Environment.ProcessorCount, _source.Volume));
         }
     }
     private void HideResourceDetails()

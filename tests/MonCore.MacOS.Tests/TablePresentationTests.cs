@@ -128,6 +128,7 @@ public sealed class TablePresentationTests
     public void HeaderActionsReverseDirectionAndKeepSortCombosSynchronized()
     {
         var main = new MainWindow();
+        main.FindControl<ComboBox>("ProcessLimitBox")!.SelectedIndex = 0;
         foreach (var header in new[] { "ProcessIoHeader", "UsageIoHeader" })
             Assert.That(main.FindControl<Button>(header)!.Content?.ToString(), Does.Not.Contain("MiB"));
         foreach (var prefix in new[] { "Process", "Usage" })
@@ -137,14 +138,17 @@ public sealed class TablePresentationTests
             var cpu = main.FindControl<Button>(prefix + "CpuHeader")!;
             combo.SelectedIndex = 0;
             name.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Assert.That(combo.SelectedIndex, Is.EqualTo(prefix == "Process" ? 4 : 3));
-            Assert.That(name.Content?.ToString(), Does.EndWith("↑"));
+            Assert.That(combo.SelectedIndex, Is.EqualTo(prefix == "Process" ? 4 : -1));
+            Assert.That(name.Content?.ToString(), Does.EndWith("▴"));
+            Assert.That(name.Classes.Contains("sorted"), Is.True);
             name.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Assert.That(name.Content?.ToString(), Does.EndWith("↓"));
+            Assert.That(name.Content?.ToString(), Does.EndWith("▾"));
             Assert.That(AutomationProperties.GetName(name), Does.Contain("descending"));
             cpu.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Assert.That(combo.SelectedIndex, Is.Zero);
-            Assert.That(cpu.Content?.ToString(), Does.EndWith("↓"));
+            Assert.That(cpu.Content?.ToString(), Does.EndWith("▾"));
+            Assert.That(name.Classes.Contains("sorted"), Is.False);
+            Assert.That(cpu.Classes.Contains("sorted"), Is.True);
         }
     }
 
@@ -174,6 +178,7 @@ public sealed class TablePresentationTests
             main.FindControl<CompactView>("CompactPanel")!.IsVisible = false;
             main.FindControl<TabControl>("DataTabs")!.SelectedIndex = 1;
             var view = main.FindControl<LaunchdView>("JobsView")!;
+            view.RowLimit = 0;
             view.SetActive(false); // This is a presentation fixture, not live launchctl discovery.
             var sample = Sample();
             var context = new LaunchdContext(Guid.Empty, 501, "Aqua");
@@ -233,7 +238,18 @@ public sealed class TablePresentationTests
             Assert.That(items.Length, Is.GreaterThanOrEqualTo(3));
             Assert.That(items.All(item => item.Bounds.Height <= 44), Is.True);
             var cpuCell = items[0].GetVisualDescendants().OfType<TextBlock>().Single(t => t.Classes.Contains("cpuMetric"));
+            Assert.That(cpuCell.Foreground, Is.EqualTo(items[0].Foreground), "CPU numbers use the ordinary table text color");
+            var grip = main.FindControl<GridSplitter>("ChartProcessDivider")!.GetVisualDescendants()
+                .OfType<Border>().Single(b => b.Name == "DividerGrip");
+            Assert.That(grip.IsEffectivelyVisible && grip.Bounds.Width == 32 && grip.Bounds.Height == 3, Is.True,
+                "Divider handle remains visible without hover");
             var cpuHeader = main.FindControl<Button>(tab == 0 ? "ProcessCpuHeader" : "UsageCpuHeader")!;
+            foreach (var header in main.GetVisualDescendants().OfType<Button>().Where(b => b.IsEffectivelyVisible && b.Classes.Contains("tableHeader")))
+            {
+                Assert.That(header.FontSize, Is.EqualTo(12));
+                Assert.That(header.FontWeight, Is.EqualTo(header.Classes.Contains("sorted") ? Avalonia.Media.FontWeight.SemiBold : Avalonia.Media.FontWeight.Normal));
+                Assert.That(header.Foreground, Is.EqualTo(Application.Current!.Resources[header.Classes.Contains("sorted") ? "MacTextBrush" : "MacMutedBrush"]));
+            }
             Assert.That(cpuHeader.TranslatePoint(new(cpuHeader.Bounds.Width, 0), window)!.Value.X,
                 Is.EqualTo(cpuCell.TranslatePoint(new(cpuCell.Bounds.Width, 0), window)!.Value.X).Within(1), "Numeric header and row alignment");
             foreach (var item in items)

@@ -11,6 +11,7 @@ namespace MacMon;
 public sealed partial class LaunchdView : UserControl
 {
     private readonly LaunchdMonitor _monitor;
+    private RankingMenu _ranking = null!;
     private readonly DispatcherTimer _heartbeat = new() { Interval = TimeSpan.FromSeconds(1) };
     private LaunchdInventory Inventory => _monitor.Inventory;
     private bool _active;
@@ -25,6 +26,14 @@ public sealed partial class LaunchdView : UserControl
     private MonitorSample[] _inspectionTrail = [];
     private bool _historical;
     private LaunchdSnapshot? DisplaySnapshot => _historical ? _jobHistory.At(_inspection?.MonotonicTimestamp ?? 0) : Inventory.LastSuccess;
+    private LaunchdRow? SelectedJob { get; set; }
+    private LaunchdRow? ResolveSelectedJob()
+    {
+        var snapshot = DisplaySnapshot;
+        var job = snapshot?.Jobs.FirstOrDefault(job => job.Id == _selected);
+        return job is null ? null : LaunchdPresentation.Rows(snapshot! with { Jobs = [job] },
+            DisplaySample, DisplayFresh, "", 0, 0).Single();
+    }
     private MonitorSample? DisplaySample => _historical ? _inspection : _live;
     private bool DisplayFresh => _historical ? DisplaySnapshot is not null : Fresh && !Inventory.IsStale;
     public void SetInspection(MonitorSample? sample, bool historical)
@@ -61,19 +70,21 @@ public sealed partial class LaunchdView : UserControl
         TableInteractions.AddSearchClear(JobSearch);
         JobSearch.TextChanged += (_, _) => Rebuild();
         JobFilter.SelectionChanged += (_, _) => Rebuild();
-        JobSort.SelectionChanged += (_, _) => { if (!_changingSort) _ascending = JobSort.SelectedIndex < 3; UpdateHeaders(); Rebuild(); };
+        _ranking = new(JobSort, [(3, "CPU"), (4, "Memory"), (5, "I/O"), (0, "Name")], 3, 0, [(1, "Status"), (2, "PID")]);
+        _ranking.Changed += () => { if (!_changingSort) _ascending = SortIndex < 3; UpdateHeaders(); Rebuild(); };
         JobLimit.ItemsSource = TablePresentation.Limits.Select(n => n == 0 ? "All" : n.ToString()).ToArray();
         JobLimit.SelectedIndex = 0;
-        JobLimit.SelectionChanged += (_, _) => Rebuild();
+        JobLimit.SelectionChanged += (_, _) => { _ranking.All = RowLimit == 0; Rebuild(); };
         JobList.SelectionChanged += (_, _) =>
         {
             if (_updating) return;
             _selected = (JobList.SelectedItem as LaunchdRow)?.Job.Id;
-            JobDetails.IsEnabled = CopyJob.IsEnabled = JobList.SelectedItem is LaunchdRow;
-            ShowWorkers.IsEnabled = JobList.SelectedItem is LaunchdRow { Process: not null };
-            JobSelectionName.Text = (JobList.SelectedItem as LaunchdRow)?.Name ?? UiText.Get("Select a job");
-            ToolTip.SetTip(JobSelectionName, (JobList.SelectedItem as LaunchdRow)?.Label);
-            JobScope.Text = JobList.SelectedItem is LaunchdRow selected ? $"{selected.State} · {selected.ProcessDescription} · read only" : _historical ? UiText.Get("Captured launchd inventory") : "Current bootstrap context · read only";
+            SelectedJob = ResolveSelectedJob();
+            JobDetails.IsEnabled = CopyJob.IsEnabled = SelectedJob is not null;
+            ShowWorkers.IsEnabled = SelectedJob is { Process: not null };
+            JobSelectionName.Text = SelectedJob?.Name ?? UiText.Get("Select a job");
+            ToolTip.SetTip(JobSelectionName, SelectedJob?.Label);
+            JobScope.Text = SelectedJob is { } selected ? $"{selected.State} · {selected.ProcessDescription} · read only" : _historical ? UiText.Get("Captured launchd inventory") : "Current bootstrap context · read only";
         };
         ShowWorkers.Click += async (_, _) => await ShowWorkerTree();
         JobDetails.Click += async (_, _) =>
@@ -109,7 +120,7 @@ public sealed partial class LaunchdView : UserControl
         if (_monitor.IsDue(VisibleForPolling)) _ = Refresh();
         if (active) Rebuild();
     }
-    public int SortIndex { get => JobSort.SelectedIndex; set => JobSort.SelectedIndex = Math.Clamp(value, 0, 5); }
+    public int SortIndex { get => _ranking.Sort; set => _ranking.Sort = Math.Clamp(value, 0, 5); }
     public int RowLimit { get => TablePresentation.Limits[Math.Clamp(JobLimit.SelectedIndex, 0, TablePresentation.Limits.Length - 1)]; set => JobLimit.SelectedIndex = Array.IndexOf(TablePresentation.Limits, TablePresentation.NormalizeLimit(value)); }
     public int FilterIndex { get => JobFilter.SelectedIndex; set => JobFilter.SelectedIndex = Math.Clamp(value, 0, 2); }
     public Task Refresh()
@@ -141,7 +152,7 @@ public sealed partial class LaunchdView : UserControl
         UpdateHeaders();
         var snapshot = DisplaySnapshot;
         var rows = LaunchdPresentation.Rows(snapshot, DisplaySample, DisplayFresh,
-            JobSearch.Text, JobFilter.SelectedIndex, JobSort.SelectedIndex, RowLimit, _historical ? _inspectionTrail : _history.ToArray(), _ascending);
+            JobSearch.Text, JobFilter.SelectedIndex, SortIndex, RowLimit, _historical ? _inspectionTrail : _history.ToArray(), _ascending);
         var scroller = JobList.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
         var offset = scroller?.Offset;
         _updating = true;
@@ -152,10 +163,11 @@ public sealed partial class LaunchdView : UserControl
         }
         finally { _updating = false; }
         if (scroller is not null && offset is { } position) scroller.Offset = position;
-        JobDetails.IsEnabled = CopyJob.IsEnabled = JobList.SelectedItem is LaunchdRow;
-        ShowWorkers.IsEnabled = JobList.SelectedItem is LaunchdRow { Process: not null };
-        JobSelectionName.Text = (JobList.SelectedItem as LaunchdRow)?.Name ?? UiText.Get("Select a job");
-        ToolTip.SetTip(JobSelectionName, (JobList.SelectedItem as LaunchdRow)?.Label);
+        SelectedJob = ResolveSelectedJob();
+        JobDetails.IsEnabled = CopyJob.IsEnabled = SelectedJob is not null;
+        ShowWorkers.IsEnabled = SelectedJob is { Process: not null };
+        JobSelectionName.Text = SelectedJob?.Name ?? UiText.Get("Select a job");
+        ToolTip.SetTip(JobSelectionName, SelectedJob?.Label);
         JobEmpty.IsVisible = rows.Count == 0;
         JobEmpty.Text = snapshot is not null ? "No loaded jobs match this view." : Inventory.Error is null
             ? "Waiting for loaded jobs…" : "Job inventory unavailable · choose Refresh to retry.";
@@ -167,7 +179,7 @@ public sealed partial class LaunchdView : UserControl
             : $"{(Inventory.IsStale ? "STALE · " : "")}{rows.Count} shown / {snapshot.Jobs.Count} loaded · {snapshot.Jobs.Count(job => job.ReportedPid is not null)} running at {snapshot.ObservedAt:HH:mm:ss zzz}. Not running ≠ disabled. Refreshes every 5s while visible; captures use bounded session inventory.";
         SummaryChanged?.Invoke(snapshot is null ? Inventory.Error ?? "Waiting for discovery" :
             $"{(Inventory.IsStale ? "STALE · " : "")}{rows.Count} shown · {snapshot.Jobs.Count} jobs · {snapshot.Jobs.Count(job => job.ReportedPid is not null)} running");
-        JobScope.Text = JobList.SelectedItem is LaunchdRow selected ? $"{selected.State} · {selected.ProcessDescription} · read only" : _historical ? UiText.Get("Captured launchd inventory") : "Current bootstrap context · read only";
+        JobScope.Text = SelectedJob is { } selected ? $"{selected.State} · {selected.ProcessDescription} · read only" : _historical ? UiText.Get("Captured launchd inventory") : "Current bootstrap context · read only";
         if (_historical)
         {
             _scope = UiText.Get("Captured launchd inventory") + (snapshot?.Context is { } context ? " · " + context.Display : "");
@@ -181,14 +193,14 @@ public sealed partial class LaunchdView : UserControl
 
     }
 
-    private string? Details() => JobList.SelectedItem is LaunchdRow row && DisplaySnapshot is { } snapshot
+    private string? Details() => ResolveSelectedJob() is { } row && DisplaySnapshot is { } snapshot
         ? UiText.Get(_historical ? "Captured launchd inventory" : "Live") + "\n" +
           LaunchdPresentation.Details(row.Job, snapshot.ObservedAt, DisplaySample, DisplayFresh, !_historical && Inventory.IsStale) +
           "\n" + LaunchdWorkers.Build(row.Job, snapshot, DisplaySample, DisplayFresh).Text() : null;
 
     private async Task ShowWorkerTree()
     {
-        if (JobList.SelectedItem is not LaunchdRow row || DisplaySnapshot is not { } snapshot ||
+        if (ResolveSelectedJob() is not { } row || DisplaySnapshot is not { } snapshot ||
             TopLevel.GetTopLevel(this) is not Window window) return;
         var tree = LaunchdWorkers.Build(row.Job, snapshot, DisplaySample, DisplayFresh);
         if (tree.Root is null) return;

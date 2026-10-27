@@ -1410,3 +1410,31 @@ targets, expiry, Option arrows and keyboard focus. Native stderr is empty.
 Updater work appeared concurrently in the shared checkout during final checks.
 Those changes are excluded from this slice; an isolated snapshot validates the
 parity patch independently of the ongoing updater implementation.
+
+## Parity behavior follow-up
+
+Pinned process rows retain `ProcessPins.Resolve` order independently of ranking;
+only unpinned rows are sorted. Settings follows a theme's paired palette while
+Classic or the previous pair is selected, preserving custom choices. Colorblind
+and High-Contrast palettes bind distinct resource trace patterns into attached
+charts and the draft Settings preview.
+
+Jobs resolves its action identity from the displayed inventory independently of
+search, status and Top filters. Details and Workers revalidate that identity and
+the displayed sample when invoked; a restarted host needs matching fresh readings.
+Removed jobs and unavailable captured inventories disable actions.
+
+Sparkle's close callback marks an update restart. After sampling stops, MacMon
+writes a separate bounded history/Usage handoff, including counted process
+lifetimes, even when ordinary restart history is off. The next launch claims it
+once, requires the same boot within ten minutes, rebases last-active sample keys,
+and restores accounting before live sampling. Invalid or incomplete handoffs fall
+back to ordinary startup. Ordinary quits keep their existing history preference
+and fresh Usage behavior; protected ordinary history files remain protected.
+
+Verification: zero-warning Release build, 244 ordinary regressions, the isolated
+exhaustive compact rendering matrix, and ten final focused parity regressions
+(including two additional damaged-handoff cases) pass. All 13 release-tool checks
+and native collector/launchd smokes pass. Colorblind and High-Contrast chart PNGs
+were visually inspected. Actual signed two-version Sparkle installation still
+requires the release credentials and native release validation.

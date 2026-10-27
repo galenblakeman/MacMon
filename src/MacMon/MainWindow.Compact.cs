@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Threading;
 
 namespace MacMon;
 
@@ -19,25 +20,44 @@ public sealed partial class MainWindow
         else EnterCompactView.Focus();
     }
 
+    private int _viewLayoutRevision;
+
     private void ApplyViewLayout()
     {
         _switchingView = true;
+        var revision = ++_viewLayoutRevision;
         try
         {
             WindowState = WindowState.Normal;
+            // Release the old native constraints before changing the content and size.
+            // In particular, Full view must never resize with Compact's fixed maximum height.
             MaxHeight = double.PositiveInfinity;
+            MinHeight = 0;
+            MinWidth = 0;
+            MainLayout.IsVisible = !CompactMode;
+            CompactPanel.IsVisible = CompactMode;
+            Width = CompactMode ? _viewState.CompactWidth : _viewState.FullSize.Width;
+            Height = CompactMode ? WindowViewState.CompactHeight : _viewState.FullSize.Height;
             MinWidth = CompactMode ? WindowViewState.CompactMinimumWidth : 800;
             MinHeight = CompactMode ? WindowViewState.CompactHeight : 760;
             MaxHeight = CompactMode ? WindowViewState.CompactHeight : double.PositiveInfinity;
-            Width = CompactMode ? _viewState.CompactWidth : _viewState.FullSize.Width;
-            Height = CompactMode ? WindowViewState.CompactHeight : _viewState.FullSize.Height;
-            MainLayout.IsVisible = !CompactMode;
-            CompactPanel.IsVisible = CompactMode;
             CompactPanel.AlwaysOnTop = Topmost;
             JobsView.SetActive(!CompactMode && DataTabs.SelectedIndex == 1);
             if (IsVisible) FitWindowToScreen();
         }
-        finally { _switchingView = false; }
+        finally
+        {
+            // AppKit delivers native resizes after the setters return. Keep those
+            // intermediate bounds out of the saved view size and relayout afterward.
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (revision != _viewLayoutRevision) return;
+                InvalidateMeasure();
+                UpdateLayout();
+                InvalidateVisual();
+                _switchingView = false;
+            }, DispatcherPriority.Loaded);
+        }
     }
 
     private void FitWindowToScreen()

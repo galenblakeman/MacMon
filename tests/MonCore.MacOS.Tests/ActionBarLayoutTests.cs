@@ -47,7 +47,7 @@ public sealed class ActionBarLayoutTests
                 main.FindControl<CompactView>("CompactPanel")!.IsVisible = compact;
                 Dispatcher.UIThread.RunJobs();
                 var background = main.FindControl<Border>("TitleBackground")!;
-                Assert.That(background.Bounds, Is.EqualTo(new Rect(0, 0, 800, 44)), theme);
+                Assert.That(background.Bounds, Is.EqualTo(new Rect(0, 0, 800, 36)), theme);
                 Assert.That(background.Background, Is.EqualTo(Avalonia.Application.Current.Resources["MacChromeBrush"]));
             }
         }

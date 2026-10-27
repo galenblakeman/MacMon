@@ -1,0 +1,87 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="using:MacMon" xmlns:chrome="using:Avalonia.Controls.Chrome">
+  <Styles.Resources>
+    <ControlTemplate x:Key="ButtonBodyTemplate" TargetType="Button">
+      <Border x:Name="ButtonBody" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+              BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}">
+        <ContentPresenter x:Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                          Background="Transparent" BorderThickness="0" Padding="0" Opacity="1"
+                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+      </Border>
+    </ControlTemplate>
+  </Styles.Resources>
+  <Style Selector="Button, ToggleButton.titleAction">
+    <Setter Property="Template" Value="{StaticResource ButtonBodyTemplate}" />
+    <Setter Property="Background" Value="{DynamicResource MacCardBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource MacTextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource MacGridBrush}" />
+    <Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="5" />
+    <Setter Property="Padding" Value="10,6" /><Setter Property="Margin" Value="3,0" /><Setter Property="MinHeight" Value="32" />
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
+    <Setter Property="Cursor" Value="Hand" /><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button:pointerover /template/ Border#ButtonBody, ToggleButton.titleAction:pointerover /template/ Border#ButtonBody">
+    <Setter Property="BorderBrush" Value="{DynamicResource MacAccentBrush}" />
+  </Style>
+  <Style Selector="Button:focus-visible /template/ Border#ButtonBody, ToggleButton.titleAction:focus-visible /template/ Border#ButtonBody">
+    <Setter Property="BorderBrush" Value="{DynamicResource MacAccentBrush}" /><Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Button:disabled /template/ Border#ButtonBody, ToggleButton.titleAction:disabled /template/ Border#ButtonBody">
+    <Setter Property="Opacity" Value="0.45" />
+  </Style>
+  <Style Selector="Button.titleAction, ToggleButton.titleAction">
+    <Setter Property="chrome:WindowDecorationProperties.ElementRole" Value="User" />
+    <Setter Property="Height" Value="28" /><Setter Property="MinHeight" Value="0" /><Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Padding" Value="8,0" /><Setter Property="Margin" Value="0" /><Setter Property="FontSize" Value="12" />
+  </Style>
+  <Style Selector="ToggleButton.titleAction:checked">
+    <Setter Property="Background" Value="{DynamicResource MacButtonSelectedBrush}" /><Setter Property="Foreground" Value="{DynamicResource MacButtonSelectedTextBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource MacAccentBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.titleAction:pointerover /template/ Border#ButtonBody"><Setter Property="Opacity" Value="0.85" /></Style>
+  <Style Selector="ToggleButton.titleAction:pressed /template/ Border#ButtonBody"><Setter Property="Opacity" Value="0.7" /></Style>
+  <Style Selector="Border.actionBar Button">
+    <Setter Property="Height" Value="28" /><Setter Property="MinHeight" Value="28" /><Setter Property="MinWidth" Value="80" />
+    <Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="12,2" /><Setter Property="Margin" Value="0,0,8,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="ToggleButton.actionCollapse">
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
+    <Setter Property="Template"><ControlTemplate>
+      <Border x:Name="ButtonBody" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="5">
+        <Path Width="16" Height="16" Data="{Binding (local:ButtonIcon.Data), RelativeSource={RelativeSource TemplatedParent}}" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.5" StrokeLineCap="Round" StrokeJoin="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
+    </ControlTemplate></Setter>
+    <Setter Property="ContentTemplate" Value="{x:Null}" /><Setter Property="Width" Value="28" /><Setter Property="Height" Value="28" />
+    <Setter Property="Padding" Value="0" /><Setter Property="Margin" Value="4,0,8,0" /><Setter Property="Cursor" Value="Hand" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Background" Value="{DynamicResource MacCardBrush}" /><Setter Property="Foreground" Value="{DynamicResource MacTextBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource MacGridBrush}" />
+  </Style>
+  <Style Selector="ToggleButton.actionCollapse:pointerover /template/ Border#ButtonBody"><Setter Property="BorderBrush" Value="{DynamicResource MacAccentBrush}" /></Style>
+  <Style Selector="ToggleButton.actionCollapse:focus-visible /template/ Border#ButtonBody"><Setter Property="BorderBrush" Value="{DynamicResource MacAccentBrush}" /><Setter Property="BorderThickness" Value="2" /></Style>
+  <Style Selector="ToggleButton.actionCollapse:disabled /template/ Border#ButtonBody"><Setter Property="Opacity" Value="0.45" /></Style>
+  <Style Selector="Button.chip">
+    <Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="10,4" /><Setter Property="Margin" Value="0" />
+    <Setter Property="MinHeight" Value="26" /><Setter Property="CornerRadius" Value="3" />
+  </Style>
+  <Style Selector="Button.chip.active"><Setter Property="BorderBrush" Value="{DynamicResource MacAccentBrush}" /></Style>
+  <Style Selector="RadioButton.chip">
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
+    <Setter Property="Template"><ControlTemplate>
+      <Border x:Name="ChipBody" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="{TemplateBinding Padding}">
+        <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
+    </ControlTemplate></Setter>
+    <Setter Property="FontSize" Value="11" /><Setter Property="Padding" Value="7,1" /><Setter Property="MinWidth" Value="30" /><Setter Property="MinHeight" Value="24" />
+    <Setter Property="Foreground" Value="{DynamicResource MacTextBrush}" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="{DynamicResource MacGridBrush}" /><Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="RadioButton.chip:pointerover /template/ Border#ChipBody"><Setter Property="BorderBrush" Value="{DynamicResource MacMutedBrush}" /></Style>
+  <Style Selector="RadioButton.chip:checked">
+    <Setter Property="Background" Value="{DynamicResource MacSegmentSelectedBrush}" /><Setter Property="Foreground" Value="{DynamicResource MacChipSelectedTextBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource MacChipSelectedTextBrush}" />
+  </Style>
+  <Style Selector="RadioButton.chip:focus-visible /template/ Border#ChipBody"><Setter Property="BorderBrush" Value="{DynamicResource MacAccentBrush}" /><Setter Property="BorderThickness" Value="2" /></Style>
+  <Style Selector="RadioButton.chip:disabled /template/ Border#ChipBody"><Setter Property="Opacity" Value="0.45" /></Style>
+  <Style Selector="Button.tableHeader, Button.rowPin">
+    <Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Margin" Value="0" />
+  </Style>
+</Styles>

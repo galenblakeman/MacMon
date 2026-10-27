@@ -13,9 +13,9 @@ public sealed partial class LaunchdView
     private void OnJobHeaderClick(object? sender, RoutedEventArgs args)
     {
         if (sender is not Button { Tag: string tag } || !int.TryParse(tag, out var sort)) return;
-        _ascending = JobSort.SelectedIndex == sort ? !_ascending : sort < 3;
+        _ascending = SortIndex == sort ? !_ascending : sort < 3;
         _changingSort = true;
-        try { JobSort.SelectedIndex = sort; }
+        try { SortIndex = sort; }
         finally { _changingSort = false; }
         UpdateHeaders(); Rebuild();
     }
@@ -24,8 +24,9 @@ public sealed partial class LaunchdView
         foreach (var (button, title) in new[] { (JobNameHeader, "Job / process"), (JobStateHeader, "Status"),
             (JobCpuHeader, "CPU"), (JobMemoryHeader, "Memory"), (JobIoHeader, "I/O") })
         {
-            var selected = button.Tag?.ToString() == JobSort.SelectedIndex.ToString();
-            button.Content = UiText.Get(title) + (selected ? _ascending ? " ↑" : " ↓" : "");
+            var selected = button.Tag?.ToString() == SortIndex.ToString();
+            button.Classes.Set("sorted", selected);
+            button.Content = UiText.Get(title) + (selected ? _ascending ? " ▴" : " ▾" : "");
             AutomationProperties.SetName(button, UiText.Get("Sort jobs") + ": " + button.Content);
             ToolTip.SetTip(button, UiText.Get("Click to sort; click again to reverse. Unavailable values remain last."));
         }

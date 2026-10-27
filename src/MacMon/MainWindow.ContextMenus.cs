@@ -62,7 +62,7 @@ public sealed partial class MainWindow
             return Task.CompletedTask;
         }, button.IsEnabled);
         var menu = new ContextMenu { ItemsSource = new[] { Item("Properties", "Info", UsageProperties),
-            Item("Copy details", "Copy", CopyUsageApp), Item("Show processes", "Process", UsageShowProcesses),
+            Item("Copy details", "Copy", CopyUsageApp), Item("Show in Processes", "Process", UsageShowProcesses),
             Item("Reveal in Finder", "Folder", RevealUsageApp) } };
         target.ContextMenu = menu; menu.Open(target); args.Handled = true;
     }

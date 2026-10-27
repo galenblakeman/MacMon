@@ -15,14 +15,23 @@ public sealed partial class SettingsWindow : Window
     public static Avalonia.Data.Converters.FuncValueConverter<double, double> HalfPanelWidth { get; } = new(width => width / 2);
     private readonly Func<SettingsValues, Task<string?>> _save;
     private bool _saving;
+    private readonly ILoginItemService _loginItems;
+    private readonly bool _initialAutomaticUpdateChecks;
     public int Section => Sections.SelectedIndex;
     public SettingsWindow() : this(new MacPreferences(), [], 0, false, _ => Task.FromResult<string?>(null)) { }
     public SettingsWindow(MacPreferences preferences, IReadOnlyList<MacNetworkChoice> networks, int section,
-        bool canSave, Func<SettingsValues, Task<string?>> save, IReadOnlyList<MacDiskChoice>? disks = null)
+        bool canSave, Func<SettingsValues, Task<string?>> save, IReadOnlyList<MacDiskChoice>? disks = null, ILoginItemService? loginItems = null)
     {
         preferences = preferences.Normalized(preferences.BootId);
         _save = save;
+        _loginItems = loginItems ?? new NativeLoginItemService();
         InitializeComponent();
+        AutomaticUpdateChecks.IsEnabled = CheckForUpdates.IsEnabled = MacUpdater.Available;
+        AutomaticUpdateChecks.IsChecked = _initialAutomaticUpdateChecks = MacUpdater.AutomaticChecks;
+        UpdateStatus.Text = UiText.Get(MacUpdater.Available
+            ? "Updates are verified before installation. MacMon will ask before installing."
+            : "Updates are available in release builds of MacMon.");
+        CheckForUpdates.Click += (_, _) => MacUpdater.Check();
         LanguageChoice.ItemsSource = UiText.Languages;
         // Avalonia passes null while clearing/recycling dropdown containers.
         LanguageChoice.ItemTemplate = new FuncDataTemplate<LanguageChoice>((choice, _) => choice is null ? null : UiText.Label(choice.Label));
@@ -34,13 +43,17 @@ public sealed partial class SettingsWindow : Window
         ShortcutChoice.ItemTemplate = new FuncDataTemplate<ShortcutChoice>((choice, _) => choice is null ? null : UiText.Label(choice.Label));
         ShortcutChoice.SelectedItem = MacDesktopIntegration.Shortcuts.First(c => c.Id == preferences.ShowShortcut);
         DefaultShortcut.Click += (_, _) => ShortcutChoice.SelectedItem = MacDesktopIntegration.Shortcuts[1];
-        var loginStatus = MacDesktopIntegration.LoginStatus;
-        OpenAtLogin.IsEnabled = loginStatus >= 0;
-        OpenAtLogin.IsChecked = loginStatus is 1 or 2;
-        StartupStatus.Text = UiText.Get(loginStatus switch { 1 => "Opens at login.", 2 => "Approval required in Login Items.",
-            >= 0 => "Off", _ => "Available in the packaged MacMon app." });
-        LoginItems.IsEnabled = loginStatus >= 0;
-        LoginItems.Click += (_, _) => MacDesktopIntegration.OpenLoginSettings();
+        RefreshLoginStatus();
+        OpenAtLogin.Click += (_, _) =>
+        {
+            var error = _loginItems.SetEnabled(OpenAtLogin.IsChecked == true);
+            RefreshLoginStatus();
+            StartupError.Text = error is null ? null : UiText.Get(error);
+            StartupError.IsVisible = error is not null;
+            if (error is not null) LoginItems.IsVisible = OpenAtLogin.IsEnabled;
+        };
+        Activated += (_, _) => RefreshLoginStatus();
+        LoginItems.Click += (_, _) => _loginItems.OpenSettings();
         TopmostSetting.IsChecked = preferences.AlwaysOnTop;
         KeepHistorySetting.IsChecked = preferences.KeepHistory;
         RangeChoice.SelectedIndex = preferences.HistoryRange;
@@ -62,10 +75,14 @@ public sealed partial class SettingsWindow : Window
         SecondaryDiskChoice.SelectedItem = SecondaryDiskChoice.Items.OfType<MacDiskChoice>().First(d => d.Id == (preferences.SecondaryDiskId ?? ""));
         CaptureEditor.Load(preferences.Captures);
         Sections.SelectionChanged += (_, _) => ShowSection();
+        var previousTheme = ThemeChoice.SelectedItem as string;
         ThemeChoice.SelectionChanged += (_, _) =>
         {
             var theme = ThemeChoice.SelectedItem as string ?? "Dark";
-            PaletteChoice.SelectedItem = Appearance.DefaultPalette(theme);
+            if (PaletteChoice.SelectedItem is "Classic" ||
+                PaletteChoice.SelectedItem as string == Appearance.DefaultPalette(previousTheme))
+                PaletteChoice.SelectedItem = Appearance.DefaultPalette(theme);
+            previousTheme = theme;
             UpdatePreview();
         };
         PaletteChoice.SelectionChanged += (_, _) => UpdatePreview();
@@ -138,6 +155,23 @@ public sealed partial class SettingsWindow : Window
         Grid.SetColumn(swatches, 1); row.Children.Add(swatches); return row;
     }
 
+    private void RefreshLoginStatus()
+    {
+        var status = _loginItems.Status;
+        OpenAtLogin.IsEnabled = status is LoginItemStatus.NotRegistered or LoginItemStatus.Enabled or LoginItemStatus.RequiresApproval or LoginItemStatus.NotFound;
+        OpenAtLogin.IsChecked = status == LoginItemStatus.Enabled;
+        StartupStatus.Text = UiText.Get(status switch
+        {
+            LoginItemStatus.Enabled => "On",
+            LoginItemStatus.NotRegistered => "Off",
+            LoginItemStatus.RequiresApproval => "Approval required. Allow MacMon in Login Items in System Settings.",
+            LoginItemStatus.NotFound => "Login item not found. Turn on to register MacMon.",
+            _ => "Available in the packaged MacMon app."
+        });
+        StartupError.IsVisible = false;
+        LoginItems.IsVisible = status is LoginItemStatus.RequiresApproval or LoginItemStatus.NotFound;
+    }
+
     private async Task Save()
     {
         if (_saving || !SaveSettings.IsEnabled) return;
@@ -156,9 +190,11 @@ public sealed partial class SettingsWindow : Window
                 string.IsNullOrEmpty(primaryId) ? null : primaryId, string.IsNullOrEmpty(secondaryId) ? null : secondaryId,
                 (LanguageChoice.SelectedItem as LanguageChoice)?.Id ?? "System",
                 StartupViewChoice.SelectedIndex switch { 1 => "Full", 2 => "Compact", _ => "Last" },
-                (ShortcutChoice.SelectedItem as ShortcutChoice)?.Id ?? "Off", OpenAtLogin.IsEnabled ? OpenAtLogin.IsChecked == true : null);
+                (ShortcutChoice.SelectedItem as ShortcutChoice)?.Id ?? "Off");
             var error = await _save(values);
             if (error is not null) { SettingsStatus.Text = UiText.Get(error); return; }
+            if (AutomaticUpdateChecks.IsEnabled && (AutomaticUpdateChecks.IsChecked == true) != _initialAutomaticUpdateChecks)
+                MacUpdater.SetAutomaticChecks(AutomaticUpdateChecks.IsChecked == true);
             _saving = false;
             Close();
         }

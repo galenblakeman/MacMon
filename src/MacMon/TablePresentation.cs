@@ -24,16 +24,18 @@ public static class TablePresentation
             ? row.Grouped ? row.Process.MemberCount : row.Process.ProcessId : metric switch
             { ProcessSort.Memory => row.Process.WorkingSetBytes, ProcessSort.Threads => row.Process.ThreadCount,
                 ProcessSort.Io => row.Process.IoBytesPerSecond, _ => row.Process.ObservedCpuPercent };
-        var pinned = rows.OrderByDescending(row => row.Pinned);
+        var snapshot = rows.ToArray();
+        var unpinned = snapshot.Where(row => !row.Pinned);
         IOrderedEnumerable<ProcessRow> sorted;
         if (order == ProcessTableOrder.Name)
-            sorted = ascending ? pinned.ThenBy(row => row.Process.Name, StringComparer.OrdinalIgnoreCase)
-                : pinned.ThenByDescending(row => row.Process.Name, StringComparer.OrdinalIgnoreCase);
+            sorted = ascending ? unpinned.OrderBy(row => row.Process.Name, StringComparer.OrdinalIgnoreCase)
+                : unpinned.OrderByDescending(row => row.Process.Name, StringComparer.OrdinalIgnoreCase);
         else
         {
-            var available = pinned.ThenBy(row => Value(row) is null);
+            var available = unpinned.OrderBy(row => Value(row) is null);
             sorted = ascending ? available.ThenBy(Value) : available.ThenByDescending(Value);
         }
-        return sorted.ThenBy(row => row.Process.Name, StringComparer.Ordinal).ThenBy(row => row.Process.ProcessId);
+        return snapshot.Where(row => row.Pinned).Concat(
+            sorted.ThenBy(row => row.Process.Name, StringComparer.Ordinal).ThenBy(row => row.Process.ProcessId));
     }
 }

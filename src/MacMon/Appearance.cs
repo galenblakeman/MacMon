@@ -87,8 +87,17 @@ public static class Appearance
 
     public static void SetPaletteResources(IResourceDictionary resources, string palette, bool dark, string? theme = null)
     {
+        resources["MacSeriesPatterns"] = palette is "Colorblind" or "High-Contrast & Inclusive";
         var strokes = Colors(palette, dark, false, theme).All;
         var labels = Colors(palette, dark, true, theme).All;
+        var finish = theme is null ? null : WinMonAppearanceCatalog.Finishes.GetValueOrDefault(theme);
+        resources["MacAccentBrush"] = new SolidColorBrush(Color.Parse(finish?.UiAccent ?? (dark ? labels[0].ToString() : "#1469B5")));
+        resources["MacButtonSelectedBrush"] = new SolidColorBrush(Color.Parse(finish?.Selected ?? (dark ? "#20262D" : "#1469B5")));
+        resources["MacButtonSelectedTextBrush"] = new SolidColorBrush(Color.Parse(finish?.SelectedText ?? "#FFFFFF"));
+        var segment = Color.Parse(finish?.SegmentSelected ?? (dark ? "#3D4855" : "#1469B5"));
+        var chipText = Color.Parse(finish?.ChipSelectedText ?? finish?.Text ?? "#FFFFFF");
+        resources["MacSegmentSelectedBrush"] = new SolidColorBrush(segment);
+        resources["MacChipSelectedTextBrush"] = new SolidColorBrush(EnsureContrast(chipText, [segment], 4.5, dark));
         var names = new[] { "Cpu", "Memory", "Network", "Storage", "Gpu", "SecondDisk" };
         for (var i = 0; i < names.Length; i++)
         {
@@ -101,7 +110,7 @@ public static class Appearance
 /// <summary>Only fields edited in Settings are merged; live view, window and pin state stay current.</summary>
 public sealed record SettingsValues(string Theme, string Palette, bool AlwaysOnTop, bool KeepHistory,
     int HistoryRange, string? NetworkId, MacCaptureOptions Captures, string GaugeStyle = "Bowl", string? PrimaryDiskId = null, string? SecondaryDiskId = null,
-    string Language = "System", string StartupView = "Last", string ShowShortcut = "Off", bool? OpenAtLogin = null)
+    string Language = "System", string StartupView = "Last", string ShowShortcut = "Off")
 {
     public static SettingsValues From(MacPreferences preferences) => new(preferences.Theme, preferences.Palette,
         preferences.AlwaysOnTop, preferences.KeepHistory, preferences.HistoryRange, preferences.NetworkId, preferences.Captures, preferences.GaugeStyle, preferences.PrimaryDiskId, preferences.SecondaryDiskId,

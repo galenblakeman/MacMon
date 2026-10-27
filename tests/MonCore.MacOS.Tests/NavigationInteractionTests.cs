@@ -59,12 +59,16 @@ public sealed class NavigationInteractionTests
             main.FindControl<TextBox>("ProcessSearchBox")!.Text = "";
             main.FindControl<CheckBox>("ProcessAppsOnly")!.IsChecked = false;
             main.FindControl<CheckBox>("PinnedOnly")!.IsChecked = false;
+            main.FindControl<ComboBox>("ProcessSortBox")!.SelectedIndex = 0;
+            var cpuHeader = main.FindControl<Button>("ProcessCpuHeader")!;
+            if (cpuHeader.Content!.ToString()!.EndsWith("▴"))
+                cpuHeader.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             var list = main.FindControl<ListBox>("ProcessList")!;
             list.SelectedItem = ((IEnumerable<ProcessRow>)list.ItemsSource!).First();
             var identity = ((ProcessRow)list.SelectedItem).Process.Identity;
             var name = main.FindControl<TextBlock>("ProcessSelectionName")!.Text;
             main.FindControl<ComboBox>("ProcessLimitBox")!.SelectedIndex = Array.IndexOf(TablePresentation.Limits, 5);
-            main.FindControl<ComboBox>("ProcessSortBox")!.SelectedIndex = 4;
+            main.FindControl<Button>("ProcessNameHeader")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
             Assert.That(list.SelectedItem, Is.Null, "The selected high-CPU row is outside the first five names");
             Assert.That(main.FindControl<TextBlock>("ProcessSelectionName")!.Text, Is.EqualTo(name));

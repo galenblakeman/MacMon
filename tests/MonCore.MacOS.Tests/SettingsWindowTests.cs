@@ -24,6 +24,74 @@ public static class AppearanceTestAppBuilder
 
 public sealed class SettingsWindowTests
 {
+    private sealed class LoginItems : ILoginItemService
+    {
+        public LoginItemStatus Status { get; set; }
+        public LoginItemStatus RegisteredStatus = LoginItemStatus.Enabled;
+        public string? Error;
+        public List<bool> Changes { get; } = [];
+        public int Opened;
+        public string? SetEnabled(bool enabled)
+        {
+            Changes.Add(enabled);
+            if (Error is null) Status = enabled ? RegisteredStatus : LoginItemStatus.NotRegistered;
+            return Error;
+        }
+        public void OpenSettings() => Opened++;
+    }
+
+    [AvaloniaTest]
+    public void LoginChangesApplyImmediatelyAndCancelDoesNotUndoThem()
+    {
+        var service = new LoginItems { Status = LoginItemStatus.NotFound };
+        var saved = false;
+        var window = new SettingsWindow(new MacPreferences(), [], 0, true,
+            _ => { saved = true; return Task.FromResult<string?>(null); }, loginItems: service);
+        try
+        {
+            window.Show();
+            var toggle = Get<ToggleSwitch>(window, "OpenAtLogin");
+            Assert.That(service.Changes, Is.Empty);
+            Assert.That(toggle.IsEnabled, Is.True);
+            toggle.IsChecked = true;
+            toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.That(service.Changes, Is.EqualTo(new[] { true }));
+            Assert.That(toggle.IsChecked, Is.True);
+            Assert.That(Get<Button>(window, "LoginItems").IsVisible, Is.False);
+            Click(window, "CancelSettings");
+            Assert.That(service.Status, Is.EqualTo(LoginItemStatus.Enabled));
+            Assert.That(saved, Is.False);
+        }
+        finally { window.Close(); }
+    }
+
+    [AvaloniaTest]
+    public void LoginApprovalAndErrorsReflectActualSystemState()
+    {
+        var service = new LoginItems { RegisteredStatus = LoginItemStatus.RequiresApproval };
+        var window = new SettingsWindow(new MacPreferences(), [], 0, true,
+            _ => Task.FromResult<string?>(null), loginItems: service);
+        try
+        {
+            window.Show();
+            var toggle = Get<ToggleSwitch>(window, "OpenAtLogin");
+            toggle.IsChecked = true;
+            toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.That(toggle.IsChecked, Is.False);
+            Assert.That(Get<TextBlock>(window, "StartupStatus").Text, Does.Contain("Approval required"));
+            Assert.That(Get<Button>(window, "LoginItems").IsVisible, Is.True);
+            Click(window, "LoginItems");
+            Assert.That(service.Opened, Is.EqualTo(1));
+            service.Error = "Registration failed";
+            toggle.IsChecked = true;
+            toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.That(toggle.IsChecked, Is.False);
+            Assert.That(Get<TextBlock>(window, "StartupError").Text, Is.EqualTo(service.Error));
+            Assert.That(Get<TextBlock>(window, "StartupError").IsVisible, Is.True);
+        }
+        finally { window.Close(); }
+    }
+
     [AvaloniaTest]
     public void SpanishSectionsRenderAtMinimumSizeWithLocalizedActions()
     {
@@ -83,16 +151,21 @@ public sealed class SettingsWindowTests
     }
 
     [AvaloniaTest]
-    public void ThemeChangesAlwaysSelectTheirDefaultPalette()
+    public void ThemeChangesFollowPairedPalettesAndPreserveCustomChoices()
     {
         var window = Window();
         Get<ComboBox>(window, "ThemeChoice").SelectedItem = "Copper";
         Assert.That(Get<ComboBox>(window, "PaletteChoice").SelectedItem, Is.EqualTo("Copper"));
         Get<ComboBox>(window, "PaletteChoice").SelectedItem = "Ocean";
         Get<ComboBox>(window, "ThemeChoice").SelectedItem = "Candy";
-        Assert.That(Get<ComboBox>(window, "PaletteChoice").SelectedItem, Is.EqualTo("Candy"));
+        Assert.That(Get<ComboBox>(window, "PaletteChoice").SelectedItem, Is.EqualTo("Ocean"));
         Get<ComboBox>(window, "PaletteChoice").SelectedItem = "Ocean";
         Assert.That(window.FindControl<Button>("DefaultPalette"), Is.Null);
+        Get<ComboBox>(window, "ThemeChoice").SelectedItem = "Crystal";
+        Assert.That(Get<ComboBox>(window, "PaletteChoice").SelectedItem, Is.EqualTo("Ocean"));
+        Get<ComboBox>(window, "PaletteChoice").SelectedItem = "Classic";
+        Get<ComboBox>(window, "ThemeChoice").SelectedItem = "Candy";
+        Assert.That(Get<ComboBox>(window, "PaletteChoice").SelectedItem, Is.EqualTo("Candy"));
         Get<ComboBox>(window, "ThemeChoice").SelectedItem = "Crystal";
         Assert.That(Get<ComboBox>(window, "PaletteChoice").SelectedItem, Is.EqualTo("Cool Tech"));
         window.Close();
@@ -251,7 +324,7 @@ public sealed class SettingsWindowTests
             Assert.That(((ISolidColorBrush)text.Foreground!).Color, Is.EqualTo(Color.Parse(theme == "Dark" ? "#F2F5F8" : "#17222E")));
             list.SelectedIndex = -1;
             Dispatcher.UIThread.RunJobs();
-            Assert.That(((ISolidColorBrush)text.Foreground!).Color, Is.EqualTo(Appearance.Colors("Classic", theme == "Dark", true).Cpu));
+            Assert.That(text.Foreground, Is.EqualTo(item.Foreground), "Unselected CPU numbers inherit ordinary row text");
             window.Close();
         }
     }

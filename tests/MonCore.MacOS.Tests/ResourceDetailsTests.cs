@@ -34,6 +34,22 @@ public sealed class ResourceDetailsTests
     private static string Row(ResourceDetailSnapshot model, string label) => model.Rows.Single(row => row.Label == label).Value;
 
     [Test]
+    public void LiveVolumeCapacityIsSeparateFromDeviceActivityAndDoesNotLeakToSecondDiskOrWaitingState()
+    {
+        var sample = Sample() with { Resources = new() { DiskName = "All block-storage drivers" } };
+        var volume = new MacVolumeSnapshot("/System/Volumes/Data", 30UL << 30, 460UL << 30);
+        var model = ResourceDetails.Create(ResourceMetric.Storage, sample, null, GaugeReading.Empty, 10, volume);
+        Assert.That(Row(model, "Capacity volume"), Is.EqualTo(volume.Path));
+        Assert.That(Row(model, "Available capacity"), Is.EqualTo("30.0 GiB"));
+        Assert.That(Row(model, "Total capacity"), Is.EqualTo("460.0 GiB"));
+        Assert.That(Row(model, "Device capacity"), Is.EqualTo("—"));
+        foreach (var hidden in new[] {
+            ResourceDetails.Create(ResourceMetric.SecondDisk, sample, null, GaugeReading.Empty, 10, volume),
+            ResourceDetails.Create(ResourceMetric.Storage, null, null, GaugeReading.Empty, 10, volume) })
+            Assert.That(hidden.Rows.Any(row => row.Label == "Capacity volume"), Is.False);
+    }
+
+    [Test]
     public void CpuUsesMachineCapacityAndDoesNotInventUserCpuFromInvalidSystemValues()
     {
         var model = Snapshot(ResourceMetric.Cpu);

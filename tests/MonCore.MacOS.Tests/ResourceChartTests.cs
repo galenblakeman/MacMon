@@ -5,7 +5,9 @@ using Avalonia.Input;
 using Avalonia.Input.Raw;
 using Avalonia.Headless;
 using Avalonia.Headless.NUnit;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using SkiaSharp;
 using Avalonia.Threading;
 using MacMon;
 using NUnit.Framework;
@@ -213,6 +215,61 @@ public sealed class ResourceChartTests
         Assert.That(focus[0].Metrics, Is.EqualTo(new[] { 2 }));
         Assert.That(focus[0].Bounds.Height, Is.GreaterThan(focus[1].Bounds.Height));
         Assert.That(focus.Skip(1).Select(p => p.Metrics.Single()), Is.EqualTo(new[] { 0, 1, 3 }));
+        int[] gaugeOrder = [0, 1, 3, 5, 2, 4];
+        foreach (var selected in gaugeOrder)
+        {
+            var panels = ResourceCharts.Panels(new(800, 300), 63, ResourceChartMode.Focus, selected);
+            Assert.That(panels[0].Metrics.Single(), Is.EqualTo(selected));
+            Assert.That(panels.Skip(1).Select(panel => panel.Metrics.Single()), Is.EqualTo(gaugeOrder.Where(metric => metric != selected)));
+        }
+        Assert.That(ResourceCharts.Metrics(31), Is.EqualTo(new[] { 0, 1, 3, 2, 4 }), "GPU remains last with Disk 2 off");
+    }
+
+    private static SKBitmap Pixels(Window window)
+    {
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        using var frame = window.CaptureRenderedFrame();
+        using var stream = new MemoryStream();
+        frame!.Save(stream, PngBitmapEncoderOptions.Default); stream.Position = 0;
+        return SKBitmap.Decode(stream);
+    }
+
+    [AvaloniaTest]
+    public void HeatmapSeparatesIdleAndBusyReadingsAndSelectionKeepsMetricColoredMarkers()
+    {
+        var samples = Samples().Select((sample, index) => sample with { TotalCpuPercent = index < 60 ? 0 : 100, IsGap = false }).ToArray();
+        var chart = new CpuChart { VisibleMetrics = 1, Mode = ResourceChartMode.Heatmap,
+            CpuBrush = Brushes.Red, PlotBrush = Brushes.Black, GridBrush = Brushes.Black,
+            MarkerBrush = Brushes.White, AxisBrush = Brushes.Gray, SelectionFill = Brushes.Black };
+        chart.Update(samples);
+        var window = new Window { Width = 720, Height = 300, Content = chart };
+        try
+        {
+            window.Show(); Dispatcher.UIThread.RunJobs();
+            var plot = ResourceCharts.Plot(chart.Panels[0]);
+            using (var pixels = Pixels(window))
+            {
+                var idle = pixels.GetPixel((int)(plot.X + plot.Width * (30.5 / 120)), (int)plot.Center.Y);
+                var busy = pixels.GetPixel((int)(plot.X + plot.Width * (90.5 / 120)), (int)plot.Center.Y);
+                Assert.That(idle.Red, Is.LessThan(30));
+                Assert.That(busy.Red, Is.GreaterThan(230), "Busy heatmap cells should be visually distinct from idle cells");
+            }
+            samples = Samples().Select(sample => sample with { TotalCpuPercent = 50, IsGap = false }).ToArray();
+            var selected = samples[60];
+            chart.Mode = ResourceChartMode.Overlay;
+            chart.SelectedTimestamp = selected.MonotonicTimestamp;
+            chart.Captures = [new(Guid.NewGuid(), SampleKey.Of(selected), CaptureMetric.Cpu, "CPU", "unused")];
+            chart.Update(samples); Dispatcher.UIThread.RunJobs();
+            plot = ResourceCharts.Plot(chart.Panels[0]);
+            using var frame = Pixels(window);
+            var x = (int)plot.Center.X;
+            var markerColors = Enumerable.Range(x - 6, 13).SelectMany(px => Enumerable.Range((int)plot.Top, 11).Select(py => frame.GetPixel(px, py))).ToArray();
+            Assert.That(markerColors.Count(color => color.Red > 200 && color.Green < 60), Is.GreaterThan(10), "Capture triangle uses the metric color");
+            Assert.That(markerColors.Any(color => color.Red > 220 && color.Green > 220 && color.Blue > 220), Is.True, "Selected capture has a contrasting outline");
+            var center = frame.GetPixel(x, (int)plot.Center.Y);
+            Assert.That(center.Red, Is.LessThan(30), "Selected reading is hollow rather than a solid point");
+        }
+        finally { window.Close(); }
     }
 
     [AvaloniaTest]
