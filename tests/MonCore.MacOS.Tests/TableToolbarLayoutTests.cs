@@ -33,7 +33,16 @@ public sealed class TableToolbarLayoutTests
                 foreach (var width in new[] { 800, 1100, 1400, 800 })
                 {
                     window.Width = width; Dispatcher.UIThread.RunJobs();
-                    Assert.That(search.Bounds.Width, Is.GreaterThanOrEqualTo(140));
+                    Assert.That(search.Bounds.Width, Is.GreaterThanOrEqualTo(search.MinWidth));
+                    if (language == "en" && tab == 0 && width == 800)
+                    {
+                        Assert.That(Grid.GetRow(search), Is.Zero, "Processes stays on one row at minimum window width");
+                        Assert.That(search.Bounds.Width, Is.LessThan(140), "Search gives space back to the filters");
+                        var fittedWidth = search.Bounds.Width;
+                        search.Text = new string('p', 200); Dispatcher.UIThread.RunJobs();
+                        Assert.That(search.Bounds.Width, Is.EqualTo(fittedWidth).Within(1), "Long queries scroll inside the fitted box");
+                        search.Text = ""; Dispatcher.UIThread.RunJobs();
+                    }
                     Assert.That(actions.Bounds.Right, Is.EqualTo(toolbar.Bounds.Width).Within(1), $"{language}, tab {tab}, width {width}");
                     Assert.That(search.Bounds.Right + search.Margin.Right, Is.EqualTo(actions.Bounds.Left).Within(1));
                     Assert.That(search.Bounds.Bottom, Is.LessThanOrEqualTo(toolbar.Bounds.Height));
