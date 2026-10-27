@@ -58,7 +58,7 @@ public sealed class CpuChart : Control
     {
         Focusable = true;
         AutomationProperties.SetName(this, "Resource history");
-        AutomationProperties.SetHelpText(this, "Left and Right inspect samples; Home and End select boundaries; Escape returns to Live. Hover previews readings; click captures a moment.");
+        AutomationProperties.SetHelpText(this, "Left and Right inspect samples; Home selects the oldest sample; End and Escape return to Live; Option+Left/Right select automatic captures. Hover previews readings; click captures a moment.");
         ToolTip.SetShowDelay(this, 100);
         ToolTip.SetPlacement(this, PlacementMode.Pointer);
     }
@@ -80,21 +80,29 @@ public sealed class CpuChart : Control
         var sample = _hoverPoint is { } position && plot.Width > 0
             ? HistoryInspection.Nearest(_samples, RangeSeconds, (position.X - plot.X) / plot.Width) : null;
         HoveredSample = sample;
-        var captured = _visible.FirstOrDefault(s => s.MonotonicTimestamp == SelectedTimestamp);
-        var tipSample = captured ?? sample;
-        ToolTip.SetTip(this, tipSample is null ? null : (captured is null ? "" : "Captured · ") + ResourceCharts.Describe(tipSample) + "\nHistory scales: " +
+        ToolTip.SetTip(this, SelectedTimestamp is not null || sample is null ? null : ResourceCharts.Describe(sample) + "\nHistory scales: " +
             string.Join(" · ", ResourceCharts.Metrics(VisibleMetrics).Select(i => $"{ResourceCharts.Names[i]} {ResourceCharts.Scale(i, Maximum(i))}")));
-        if (captured is not null && IsFocused) ToolTip.SetIsOpen(this, true);
-        else if (tipSample is null) ToolTip.SetIsOpen(this, false);
+        if (SelectedTimestamp is not null || sample is null) ToolTip.SetIsOpen(this, false);
         SampleHovered?.Invoke(sample);
         InvalidateVisual();
     }
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
+        Navigate(e);
+    }
+    public void Navigate(KeyEventArgs e)
+    {
+        if (e.Handled) return;
+        if (e.KeyModifiers == KeyModifiers.Alt && e.Key is Key.Left or Key.Right)
+        {
+            if (CaptureNavigation.Next(Captures, _samples, SelectedTimestamp, e.Key == Key.Right) is { } capture)
+                CaptureSelected?.Invoke(capture);
+            e.Handled = true; return;
+        }
         if (e.KeyModifiers != KeyModifiers.None) return;
-        if (e.Key == Key.Escape) { ClearHover(); LiveRequested?.Invoke(); ToolTip.SetIsOpen(this, false); e.Handled = true; return; }
-        var offset = e.Key switch { Key.Left => -1, Key.Right => 1, Key.Home => int.MinValue, Key.End => int.MaxValue, _ => 0 };
+        if (e.Key is Key.Escape or Key.End) { ClearHover(); LiveRequested?.Invoke(); ToolTip.SetIsOpen(this, false); e.Handled = true; return; }
+        var offset = e.Key switch { Key.Left => -1, Key.Right => 1, Key.Home => int.MinValue, _ => 0 };
         if (offset == 0 || Panels.Length == 0) return;
         ClearHover();
         if (HistoryInspection.Navigate(_samples, RangeSeconds, SelectedTimestamp, offset) is { } sample)
@@ -145,12 +153,6 @@ public sealed class CpuChart : Control
             if (HistoryInspection.Nearest(_samples, RangeSeconds, (point.X - plot.X) / plot.Width) is { } sample)
             {
                 SampleSelected?.Invoke(sample); RefreshHover(); e.Handled = true;
-                // The tooltip service dismisses tips during pointer press routing.
-                // Reopen the captured reading after that input has completed.
-                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
-                {
-                    if (SelectedTimestamp is not null && IsFocused) RefreshHover();
-                });
             }
         }
     }

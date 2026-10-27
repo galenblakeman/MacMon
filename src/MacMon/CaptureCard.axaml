@@ -1,0 +1,13 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:local="using:MacMon" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="MacMon.CaptureCard" MaxWidth="440">
+  <StackPanel Spacing="8">
+    <TextBlock Text="{local:Loc &quot;Captured&quot;}" FontWeight="SemiBold" FontSize="15" />
+    <TextBlock x:Name="CaptureReading" TextWrapping="Wrap" />
+    <WrapPanel>
+      <Button x:Name="CopyReading" local:ButtonIcon.Kind="Copy" Content="{local:Loc &quot;Copy&quot;}" Margin="0,0,6,4" />
+      <Button x:Name="ResumeLive" local:ButtonIcon.Kind="Start" Content="{local:Loc &quot;Return to Live&quot;}" Margin="0,0,6,4" />
+      <Button x:Name="ViewReport" local:ButtonIcon.Kind="Folder" Content="{local:Loc &quot;Open report&quot;}" Margin="0,0,0,4" />
+    </WrapPanel>
+    <TextBlock Text="{local:Loc &quot;←/→ samples · Home oldest · End/Esc Live · ⌥←/→ Auto&quot;}" Classes="label" FontSize="11" TextWrapping="Wrap" />
+  </StackPanel>
+</UserControl>

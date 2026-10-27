@@ -8,6 +8,7 @@ public sealed partial class MainWindow
     private void SetCompactView(bool compact)
     {
         if (_closing || CompactMode == compact) return;
+        _captureCard.Hide();
         Chart.ClearHover();
         HideResourceDetails();
         _viewState.ObserveSize(ClientSize, WindowState == WindowState.Normal);

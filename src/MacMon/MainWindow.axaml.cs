@@ -198,6 +198,7 @@ public sealed partial class MainWindow : Window
 
         Chart.Update(_session.History.Samples);
         UpdateChartLabels();
+        if (_captureCard.IsOpen) UpdateCaptureCard();
 
         CaptureStatus.Text = !_inspection.IsHistorical ? $"Live · recording · {_session.History.Samples.Count} retained samples" : captured is null
             ? "Capture expired from retained history · return to Live or select another moment"
@@ -423,10 +424,9 @@ public sealed partial class MainWindow : Window
     private async Task CopySelectedCapture()
     {
         var sample = TrailHistory().LastOrDefault();
-        if (sample is null) { _operationStatus = "Selected capture has expired."; return; }
-        var rows = PresentedProcesses(sample).Select(row => row.Process).ToArray();
-        var note = $"Displayed {(Grouped ? "grouped" : "individual")} rows: CPU and disk I/O averaged over five observed seconds; resident and threads are latest observations. Filter: {ProcessSearchBox.Text}";
-        var text = MacCaptureReports.Text(sample, rows, note);
+        if (sample is null || CapturesList.SelectedItem is MacCaptureRecord record && !record.Peak.Matches(sample))
+        { _operationStatus = UiText.Get("Selected capture has expired."); Update(); return; }
+        var text = CaptureText(sample);
         if (Clipboard is { } clipboard) { await clipboard.SetTextAsync(text); _operationStatus = "Capture copied."; }
     }
 
@@ -658,6 +658,7 @@ public sealed partial class MainWindow : Window
     {
         if (!_historyOrigins.SameBoot(TrailHistory().LastOrDefault(), sample)) ClearSelection();
         _inspection.Select(sample); Update();
+        UpdateCaptureCard(); Chart.Focus(); _captureCard.ShowAt(Chart);
     }
 
     private async void OnClosing(object? sender, WindowClosingEventArgs args)

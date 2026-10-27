@@ -44,6 +44,7 @@
     <Style Selector="Border.sectionHeader"><Setter Property="Margin" Value="-20,0" /><Setter Property="Background" Value="{DynamicResource MacHeaderBrush}" /><Setter Property="Padding" Value="26,5,26,1" /></Style>
     <Style Selector="TabControl#DataTabs Border.sectionHeader"><Setter Property="Margin" Value="-32,0" /><Setter Property="Padding" Value="38,5,38,1" /></Style>
     <Style Selector="Border.actionBar.collapsed Image"><Setter Property="Width" Value="16" /><Setter Property="Height" Value="16" /><Setter Property="MaxHeight" Value="16" /><Setter Property="MaxWidth" Value="16" /></Style>
+    <Style Selector="FlyoutPresenter.captureCard"><Setter Property="Background" Value="{DynamicResource MacCardBrush}" /><Setter Property="Foreground" Value="{DynamicResource MacTextBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource MacGridBrush}" /></Style>
     <Style Selector="Border.actionBar"><Setter Property="Background" Value="{DynamicResource MacHeaderBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource MacGridBrush}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="4" /><Setter Property="MinHeight" Value="54" /></Style>
     <Style Selector="Border.actionBar.collapsed"><Setter Property="MinHeight" Value="32" /></Style>
     <Style Selector="Border.actionBar Button"><Setter Property="Margin" Value="0,0,8,0" /><Setter Property="FontSize" Value="12" /><Setter Property="Padding" Value="12,2" /><Setter Property="MinWidth" Value="80" /><Setter Property="Height" Value="28" /></Style>

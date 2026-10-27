@@ -1381,3 +1381,32 @@ Top limits, PID reuse, live/exited navigation and expired captures.
 
 Validation: three focused navigation tests and all 225 ordinary regressions pass
 with zero build warnings/errors. The compact matrix passed unchanged in slice 9.
+
+## Parity slice 11: interactive capture inspection — 0.13.18/build 41
+
+Capture opens an interactive, themed flyout with Copy, Return to Live and Open
+report when a matching saved file exists. Copy carries the displayed snapshot
+text and keeps the card open; live sampling does not replace that text. Report
+association uses both clocks and survives sample expiry; expired samples disable
+Copy. Report generation is cached while inspecting the same sample. The Auto
+menu also refuses to copy a different moment after its selected peak expires.
+Hover remains a noninteractive tooltip.
+
+Left/Right step samples, Home selects the oldest visible sample, and End/Escape
+return to Live. Option+Left/Right navigate automatic captures, with wall-time
+ordering across boot-clock domains and saved-report fallback for expired peaks.
+Tab focuses card actions; navigation works from those buttons. Compact view,
+Return to Live and chart detachment close the flyout. Auto, time chips and grouping
+chips retain their text-only presentation.
+
+Validation: 229 ordinary tests plus the exhaustive compact matrix pass, including
+17 focused chart/card/navigation tests. Three release-workflow checks, packaged
+collector/launchd smoke, strict ad-hoc signing, ZIP integrity and SHA-256 pass.
+Native 0.13.18 checks confirm chart-click capture, keyboard Copy without leaving
+Capture, Return to Live and End, contextual Processes/Usage export defaults and
+live gauges during inspection. Headless tests cover both languages, exact report
+targets, expiry, Option arrows and keyboard focus. Native stderr is empty.
+
+Updater work appeared concurrently in the shared checkout during final checks.
+Those changes are excluded from this slice; an isolated snapshot validates the
+parity patch independently of the ongoing updater implementation.

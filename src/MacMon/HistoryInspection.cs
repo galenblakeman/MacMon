@@ -7,6 +7,7 @@ public sealed class HistoryInspection
 {
     private MonitorSample? _selected;
     public bool IsHistorical { get; private set; }
+    public SampleKey? SelectedKey => _selected is null ? null : SampleKey.Of(_selected);
     public void Live() { IsHistorical = false; _selected = null; }
     public void Select(MonitorSample sample) { IsHistorical = true; _selected = sample; }
 

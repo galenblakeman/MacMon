@@ -140,9 +140,9 @@ public sealed class ResourceChartTests
             Dispatcher.UIThread.RunJobs();
             Assert.That(selected, Is.SameAs(samples[60]));
             Assert.That(chart.IsFocused, Is.True);
-            Assert.That(ToolTip.GetIsOpen(chart), Is.True, "Click opens the captured reading immediately");
+            Assert.That(ToolTip.GetIsOpen(chart), Is.False, "Capture uses an interactive card instead of a tooltip");
             var capturedTip = ToolTip.GetTip(chart)?.ToString();
-            Assert.That(capturedTip, Does.StartWith("Captured · "));
+            Assert.That(capturedTip, Is.Null);
             window.MouseMove(new Point(plot.Right - 2, point.Y));
             Assert.That(ToolTip.GetTip(chart)?.ToString(), Is.EqualTo(capturedTip), "Moving the pointer keeps the captured reading");
             void Press(Key key)
@@ -155,9 +155,9 @@ public sealed class ResourceChartTests
             Assert.That(chart.HoveredSample, Is.Null);
             Press(Key.Home); Assert.That(selected, Is.SameAs(samples[0]));
             Press(Key.Left); Assert.That(selected, Is.SameAs(samples[0]));
-            Press(Key.End); Assert.That(selected, Is.SameAs(samples[^1]));
+            Press(Key.End); Assert.That(selected, Is.Null); Assert.That(live, Is.EqualTo(1));
             Press(Key.Right); Assert.That(selected, Is.SameAs(samples[^1]));
-            Press(Key.Escape); Assert.That(live, Is.EqualTo(1)); Assert.That(selected, Is.Null);
+            Press(Key.Escape); Assert.That(live, Is.EqualTo(2)); Assert.That(selected, Is.Null);
             Assert.That(ToolTip.GetIsOpen(chart), Is.False);
             window.MouseMove(new Point(-1, -1));
             Assert.That(chart.HoveredSample, Is.Null, "Leaving the chart clears preview");
@@ -241,4 +241,28 @@ public sealed class ResourceChartTests
             window.Close();
         }
     }
+    [AvaloniaTest]
+    public void OptionArrowsNavigateAutomaticCapturesWithoutConflictingWithPlainArrows()
+    {
+        var samples = Samples();
+        var earlier = new MacCaptureRecord(Guid.NewGuid(), SampleKey.Of(samples[10]), CaptureMetric.Cpu, "CPU", "", "Saved");
+        var later = earlier with { Id = Guid.NewGuid(), Peak = SampleKey.Of(samples[90]) };
+        var chart = new CpuChart { Captures = new[] { earlier, later }, SelectedTimestamp = samples[60].MonotonicTimestamp };
+        chart.Update(samples);
+        MacCaptureRecord? selected = null;
+        chart.CaptureSelected += capture => { selected = capture; chart.SelectedTimestamp = capture.Peak.MonotonicTimestamp; };
+        var host = new Window { Width = 800, Height = 300, Content = chart };
+        try
+        {
+            host.Show(); chart.Focus();
+            host.KeyPress(Key.Left, RawInputModifiers.Alt, PhysicalKey.None, null);
+            host.KeyRelease(Key.Left, RawInputModifiers.Alt, PhysicalKey.None, null);
+            Assert.That(selected, Is.SameAs(earlier));
+            host.KeyPress(Key.Right, RawInputModifiers.Alt, PhysicalKey.None, null);
+            host.KeyRelease(Key.Right, RawInputModifiers.Alt, PhysicalKey.None, null);
+            Assert.That(selected, Is.SameAs(later));
+        }
+        finally { host.Close(); }
+    }
+
 }

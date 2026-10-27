@@ -1,9 +1,13 @@
 using Avalonia.Controls;
+using Avalonia.Input.Platform;
 
 namespace MacMon;
 
 public sealed partial class MainWindow
 {
+    private readonly CaptureCard _captureCard = new();
+    private WinMon.Monitoring.SampleKey? _cardSampleKey;
+    private string? _cardText;
     private bool _restoringCharts;
     private int _historyRange;
     private CheckBox CpuVisible => CpuGauge.SeriesToggle;
@@ -36,6 +40,19 @@ public sealed partial class MainWindow
     }
     private void InitializeCharts()
     {
+        _captureCard.CopyRequested += async text =>
+        {
+            if (Clipboard is { } clipboard) { await clipboard.SetTextAsync(text); _operationStatus = UiText.Get("Capture copied."); Update(); }
+        };
+        _captureCard.LiveRequested += ReturnToLive;
+        _captureCard.ReportRequested += OpenReport;
+        _captureCard.KeyDown += (_, args) => Chart.Navigate(args);
+        Chart.KeyDown += (_, args) =>
+        {
+            if (!args.Handled && args.Key == Avalonia.Input.Key.Tab && _captureCard.IsOpen)
+            { _captureCard.FocusActions(); args.Handled = true; }
+        };
+        Chart.DetachedFromVisualTree += (_, _) => _captureCard.Hide();
         Chart.SampleHovered += _ => UpdateChartReadout();
         Chart.LiveRequested += ReturnToLive;
         ChartModeBox.ItemsSource = AvailableChartChoices;
@@ -96,8 +113,27 @@ public sealed partial class MainWindow
         ToolTip.SetTip(LiveMode, "Return to current readings; sampling continues during inspection");
         ToolTip.SetTip(CaptureMode, "Inspect the latest retained sample; click the plot or use arrow keys to select another");
     }
+    private void UpdateCaptureCard()
+    {
+        var sample = TrailHistory().LastOrDefault();
+        var report = _captures.LastOrDefault(c => c.Peak == _inspection.SelectedKey && c.State == "Saved");
+        var key = sample is null ? (WinMon.Monitoring.SampleKey?)null : WinMon.Monitoring.SampleKey.Of(sample);
+        if (!_captureCard.IsOpen || key != _cardSampleKey)
+        {
+            _cardSampleKey = key;
+            _cardText = sample is null ? null : CaptureText(sample);
+        }
+        _captureCard.Update(sample, _cardText, report);
+    }
+    private string CaptureText(WinMon.Monitoring.MonitorSample sample)
+    {
+        var rows = PresentedProcesses(sample).Select(row => row.Process).ToArray();
+        var note = $"Displayed {(Grouped ? "grouped" : "individual")} rows: CPU and disk I/O averaged over five observed seconds; resident and threads are latest observations. Filter: {ProcessSearchBox.Text}";
+        return MacCaptureReports.Text(sample, rows, note);
+    }
     private void ReturnToLive()
     {
+        _captureCard.Hide();
         if (!_historyOrigins.SameBoot(TrailHistory().LastOrDefault(), _session.LatestFull)) ClearSelection();
         _inspection.Live(); Chart.ClearHover(); Update();
     }

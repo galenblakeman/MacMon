@@ -1,5 +1,6 @@
 using System.Reflection;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.NUnit;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
@@ -81,6 +82,34 @@ public sealed class NavigationInteractionTests
             Record(main, sample with { Timestamp = gone.Timestamp.AddSeconds(1), MonotonicTimestamp = gone.MonotonicTimestamp + 1,
                 Processes = [sample.Processes.Single(p => p.Identity == identity) with { CreationTicks = 999999 }] });
             Assert.That(main.FindControl<Button>("EndProcess")!.IsEnabled, Is.False, "A reused PID must not become the selected lifetime");
+        }
+        finally { window.Close(); }
+    }
+    [AvaloniaTest]
+    public void CaptureEntryOpensTheInteractiveCardAndEndReturnsToLive()
+    {
+        var main = new MainWindow(); var window = Host(main);
+        try
+        {
+            UiText.Apply("en");
+            var sample = TablePresentationTests.Sample(); var session = Record(main, sample);
+            main.FindControl<Button>("CaptureMode")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            var card = Field<CaptureCard>(main, "_captureCard");
+            Assert.That(card.IsOpen, Is.True);
+            window.KeyPress(Avalonia.Input.Key.Tab, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.None, null);
+            window.KeyRelease(Avalonia.Input.Key.Tab, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.None, null);
+            Assert.That(card.FindControl<Button>("CopyReading")!.IsFocused, Is.True);
+            string? copied = null; card.CopyRequested += text => copied = text;
+            session.Record(sample with { Timestamp = sample.Timestamp.AddSeconds(1), MonotonicTimestamp = sample.MonotonicTimestamp + 1, TotalCpuPercent = 99 });
+            typeof(MainWindow).GetMethod("UpdateCaptureCard", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(main, null);
+            card.FindControl<Button>("CopyReading")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.That(copied, Does.Contain(sample.Timestamp.ToString("O")));
+            Assert.That(card.IsOpen, Is.True);
+            window.KeyPress(Avalonia.Input.Key.End, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.None, null);
+            window.KeyRelease(Avalonia.Input.Key.End, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.None, null);
+            Assert.That(card.IsOpen, Is.False);
+            Assert.That(Field<HistoryInspection>(main, "_inspection").IsHistorical, Is.False);
         }
         finally { window.Close(); }
     }
