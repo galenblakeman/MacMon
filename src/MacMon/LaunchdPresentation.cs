@@ -65,22 +65,39 @@ public static class LaunchdPresentation
             .ThenBy(row => row.Label, StringComparer.Ordinal);
         var maximum = TablePresentation.NormalizeLimit(limit);
         var shown = (maximum == 0 ? sorted.AsEnumerable() : sorted.Take(maximum)).ToArray();
-        if (history is null || history.Count == 0) return shown;
-        // Index each observation once; identity includes the PID generation and lifetime domain.
-        var instants = new List<(MonitorSample Sample, Dictionary<ProcessLifetimeIdentity, ProcessUsage> Processes)>();
+        if (history is null || history.Count == 0 || shown.Length == 0) return shown;
+        // Only index visible, verified lifetimes. Several jobs may refer to the same process.
+        var trails = new Dictionary<ProcessLifetimeIdentity, double?[]>();
+        var instants = new List<MonitorSample?>();
         long previous = 0;
         foreach (var sample in history)
         {
             if (previous != 0 && (sample.MonotonicTimestamp - previous) / (double)System.Diagnostics.Stopwatch.Frequency > 2.5)
-                instants.Add((sample with { IsGap = true }, []));
-            instants.Add((sample, sample.Processes.ToDictionary(p => p.Identity)));
+                instants.Add(null);
+            instants.Add(sample);
             previous = sample.MonotonicTimestamp;
         }
-        var trailed = shown.Select(row => row with { Trail = new(row.Process is not { } process ? [] :
-            instants.Select(instant => (instant.Sample.IsGap && sort != 4) || !instant.Processes.TryGetValue(process.Identity, out var observed)
-                ? (double?)null : sort switch { 4 => observed.WorkingSetBytes, 5 => observed.IoBytesPerSecond, _ => observed.ObservedCpuPercent }).ToArray()) }).ToArray();
-        var maximumTrail = sort is 4 or 5 ? Math.Max(1, trailed.SelectMany(row => row.Trail.Values).Max() ?? 1) : 100;
-        return trailed.Select(row => row with { Trail = row.Trail with { Maximum = maximumTrail } }).ToArray();
+        foreach (var row in shown)
+            if (row.Process is { } process && !trails.ContainsKey(process.Identity))
+                trails.Add(process.Identity, new double?[instants.Count]);
+        // A small row limit should not hash full lifetime keys for every unrelated process.
+        // PID is only a prefilter: association still requires the complete lifetime below.
+        var visiblePids = live is not null && trails.Count < live.Processes.Count / 4
+            ? trails.Keys.Select(identity => identity.ProcessId).ToHashSet() : null;
+        if (trails.Count > 0)
+            for (var instant = 0; instant < instants.Count; instant++)
+            {
+                if (instants[instant] is not { } sample || (sample.IsGap && sort != 4)) continue;
+                foreach (var process in sample.Processes)
+                    if ((visiblePids is null || visiblePids.Contains(process.ProcessId)) &&
+                        trails.TryGetValue(process.Identity, out var values))
+                        values[instant] = sort switch
+                        { 4 => process.WorkingSetBytes, 5 => process.IoBytesPerSecond, _ => process.ObservedCpuPercent };
+            }
+        var maximumTrail = sort is 4 or 5 ? Math.Max(1, trails.Values.SelectMany(values => values).Max() ?? 1) : 100;
+        for (var i = 0; i < shown.Length; i++)
+            shown[i] = shown[i] with { Trail = new(shown[i].Process is { } process ? trails[process.Identity] : [], maximumTrail) };
+        return shown;
     }
 
     public static string Details(LaunchdJob job, DateTimeOffset observedAt, MonitorSample? live, bool fresh, bool stale)

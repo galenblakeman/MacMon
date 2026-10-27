@@ -1490,3 +1490,35 @@ Runtime regressions cover reports, unchanged CSV bytes, metadata reload, languag
 switching and narrow Spanish dialogs. Native/process names are never translated
 as labels. Additional WinMon languages remain a subsequent translation slice;
 the exposed language IDs stay System, en and es.
+
+## Jobs presentation performance — October 26, 2026
+
+Release-mode subsystem profiling used `--collector-benchmark` and
+`--presentation-benchmark` on this Apple Silicon Mac. The collector observed 472
+processes at a median 6.78 ms/capture, 7.19 CPU ms/capture and 1,125,838 allocated
+bytes/capture. Process presentation measured approximately 1.2–1.6 ms for
+individual rows and 3.5 ms for grouped rows with 850 processes and 120 samples.
+These paths were left unchanged in this pass.
+
+Jobs history previously built a complete lifetime dictionary for every retained
+observation even when a row limit or search hid most jobs. It now allocates trails
+only for visible, verified lifetimes and fills them in one pass through the
+observations. Jobs sharing a direct process reuse its values. Sparse selections
+first check visible PIDs, then require exact lifetime equality before associating
+a reading. Missing values, inserted sleep gaps, memory readings across explicit
+gap samples, shared scaling and freshness requirements remain covered by tests.
+
+The benchmark now also includes a top-20 selection and an unmatched search.
+Using 600 jobs and 31 observations (seven batches of 20 refreshes after 20 warmups):
+
+| Jobs scenario | Before ms/refresh | After ms/refresh | Before bytes/refresh | After bytes/refresh |
+| --- | ---: | ---: | ---: | ---: |
+| All 600 | 1.670 | 1.728 | 1,807,772 | 667,192 |
+| Top 20 | 0.361 | 0.309 | 1,241,696 | 209,856 |
+| No search matches | 0.321 | 0.090 | 1,204,224 | 173,264 |
+
+Allocations fell by 63%, 83% and 86%, respectively. The full-list timing is
+slightly higher; its benefit is reduced allocation, while sparse selections also
+improve latency. Timing varies with JIT and desktop activity. These synthetic
+measurements exclude Avalonia rendering and do not establish sustained whole-app
+CPU usage or resident-memory reductions.

@@ -32,6 +32,8 @@ internal static class PresentationBenchmark
         var snapshot = new LaunchdSnapshot(DateTimeOffset.UnixEpoch, context, jobs);
         var recent = history.TakeLast(31).ToArray();
         Measure("600 jobs with verified process trails", () => LaunchdPresentation.Rows(snapshot, history[^1], true, "", 0, 3, history: recent).ToArray());
+        Measure("Top 20 jobs with verified process trails", () => LaunchdPresentation.Rows(snapshot, history[^1], true, "", 0, 3, 20, history: recent).ToArray());
+        Measure("Jobs with no search matches", () => LaunchdPresentation.Rows(snapshot, history[^1], true, "no matching job", 0, 4, history: recent).ToArray());
         return 0;
     }
 

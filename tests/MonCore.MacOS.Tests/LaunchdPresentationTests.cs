@@ -71,6 +71,38 @@ public sealed class LaunchdPresentationTests
     }
 
     [Test]
+    public void VisibleJobTrailsPreserveSharedLifetimesMissingReadingsAndMemoryAcrossGaps()
+    {
+        var frequency = System.Diagnostics.Stopwatch.Frequency;
+        var sibling = Running with { Id = new(Context, "com.example.sibling") };
+        var snapshot = Snapshot with { Jobs = [Running, sibling, Idle, .. Enumerable.Range(0, 10)
+            .Select(index => Idle with { Id = new(Context, $"com.example.waiting{index}") })] };
+        var first = Frame(Process with { WorkingSetBytes = 100 }) with { MonotonicTimestamp = frequency };
+        // The same PID with a different lifetime must leave a hole in both jobs' trails.
+        var reused = Frame(Process with { CreationTicks = 999, WorkingSetBytes = 9000 }) with { MonotonicTimestamp = 2 * frequency };
+        var gap = Frame(Process with { WorkingSetBytes = 200, CpuAvailable = false }) with { MonotonicTimestamp = 8 * frequency, IsGap = true };
+        var latest = Frame(Process with { WorkingSetBytes = 300, CpuPercent = 4 }) with { MonotonicTimestamp = 9 * frequency };
+        latest = latest with { Processes = [.. latest.Processes, .. Enumerable.Range(100, 12)
+            .Select(pid => Process with { ProcessId = pid, WorkingSetBytes = 9000 })] };
+        MonitorSample[] history = [first, reused, gap, latest];
+        var memory = LaunchdPresentation.Rows(snapshot, latest, true, null, 0, 4, history: history);
+        foreach (var row in memory.Where(row => row.Process is not null))
+        {
+            Assert.That(row.Trail.Values, Is.EqualTo(new double?[] { 100, null, null, 200, 300 }));
+            Assert.That(row.Trail.Maximum, Is.EqualTo(300));
+        }
+        Assert.That(memory.Single(row => row.Job == Idle).Trail.Values, Is.Empty);
+        var cpu = LaunchdPresentation.Rows(snapshot, latest, true, null, 0, 3, 5, history);
+        Assert.That(cpu, Has.Count.EqualTo(5));
+        Assert.That(cpu[0].Trail.Values, Is.EqualTo(new double?[] { 1, null, null, null, 4 }));
+        Assert.That(cpu[0].Trail.Maximum, Is.EqualTo(100));
+        Assert.That(LaunchdPresentation.Rows(snapshot, latest, true, "no match", 0, 4, history: history), Is.Empty);
+        var idle = LaunchdPresentation.Rows(snapshot, latest, true, "com.example.idle", 2, 4, history: history).Single();
+        Assert.That(idle.Trail.Values, Is.Empty);
+        Assert.That(idle.Trail.Maximum, Is.EqualTo(1));
+    }
+
+    [Test]
     public void DiscoveryFailurePreservesLastSuccessWithExplicitErrorAndRecoveryReplacesRows()
     {
         var inventory = new LaunchdInventory();
