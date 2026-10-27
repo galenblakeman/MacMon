@@ -34,6 +34,18 @@ public sealed class DialogLayoutTests
         finally { dialog.Close(); }
     }
     [AvaloniaTest]
+    public void ExportStartsWithTheActiveViewsData()
+    {
+        foreach (var compact in new[] { false, true })
+        for (var tab = 0; tab < 3; tab++)
+        {
+            var expected = compact || tab == 1 ? CsvExportKind.ResourceHistory : tab == 2 ? CsvExportKind.UsageTotals : CsvExportKind.ProcessSamples;
+            var dialog = new ExportDialog(ExportDialog.InitialKind(compact, tab));
+            Assert.That(dialog.Selection, Is.EqualTo(new ExportSelection(expected, false)));
+            dialog.Close();
+        }
+    }
+    [AvaloniaTest]
     public void InfoRefreshReplacesTheSnapshotAndRendersLongValues()
     {
         var reads = 0;

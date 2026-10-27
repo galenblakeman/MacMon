@@ -1351,3 +1351,16 @@ worker tree containing verified descendants. Disk rules appear in resource order
 with both disabled by default; Settings was cancelled without changing rules.
 The final app is open on live Jobs with temporary search filters cleared. Strict
 ad-hoc signing, ZIP integrity and SHA-256 verification pass; native stderr is empty.
+
+## Parity slice 9: chart toolbar and contextual export — 0.13.16/build 39
+
+Auto follows Capture with an 8 DIP gap, independently of the centered Live/Capture
+switch. The selector remains 120 DIPs and time chips stay right aligned. Narrow
+English/Spanish layouts cover enabled/disabled Auto with up to 200 captures.
+Export starts with Processes, Usage, or resource history according to the active
+view (Jobs and Compact use resources); data and time choices remain independent.
+The header-layout regression now drains pending layout after changing tabs before
+looking for lazily created controls.
+
+Validation: all 223 regressions pass (222 in the ordinary host and the exhaustive
+compact appearance matrix in its own host); Release build has zero warnings/errors.

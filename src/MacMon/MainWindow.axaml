@@ -32,7 +32,12 @@
             <StackPanel Orientation="Horizontal" Spacing="6">
               <TextBlock Text="{local:Loc &quot;System&quot;}" Classes="toolbarLabel" />
               <ComboBox x:Name="ChartModeBox" Width="120" HorizontalAlignment="Left" AutomationProperties.Name="{local:Loc &quot;Chart layout or focus metric&quot;}" />
-              <Button x:Name="AutomaticCaptures" Content="{local:Loc &quot;Auto&quot;}" ContentTemplate="{x:Null}" Classes="titleAction" ToolTip.Tip="{local:Loc &quot;Automatic captures and saved reports&quot;}">
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
+              <Button x:Name="LiveMode" local:ButtonIcon.Kind="Start" Content="{local:Loc &quot;● Live&quot;}" Classes="chip" /><Button x:Name="CaptureMode" local:ButtonIcon.Kind="Capture" Content="{local:Loc &quot;◎ Capture&quot;}" Classes="chip" />
+            </StackPanel>
+            <Grid Grid.Column="2">
+              <Button HorizontalAlignment="Left" x:Name="AutomaticCaptures" Content="{local:Loc &quot;Auto&quot;}" ContentTemplate="{x:Null}" Classes="titleAction" ToolTip.Tip="{local:Loc &quot;Automatic captures and saved reports&quot;}">
                 <Button.Flyout><Flyout Placement="Bottom">
                   <StackPanel Spacing="8" Width="360">
                     <Button x:Name="ConfigureCaptures" local:ButtonIcon.Kind="Settings" Content="{local:Loc &quot;Automatic capture settings…&quot;}" HorizontalAlignment="Stretch" />
@@ -42,16 +47,13 @@
                   </StackPanel>
                 </Flyout></Button.Flyout>
               </Button>
-            </StackPanel>
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
-              <Button x:Name="LiveMode" local:ButtonIcon.Kind="Start" Content="{local:Loc &quot;● Live&quot;}" Classes="chip" /><Button x:Name="CaptureMode" local:ButtonIcon.Kind="Capture" Content="{local:Loc &quot;◎ Capture&quot;}" Classes="chip" />
-            </StackPanel>
-            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="2">
-              <RadioButton x:Name="Range2" Content="{local:Loc &quot;2m&quot;}" GroupName="HistoryRange" Classes="chip" IsChecked="True" AutomationProperties.Name="{local:Loc &quot;2 minute history&quot;}" />
-              <RadioButton x:Name="Range10" Content="{local:Loc &quot;10m&quot;}" GroupName="HistoryRange" Classes="chip" AutomationProperties.Name="{local:Loc &quot;10 minute history&quot;}" />
-              <RadioButton x:Name="Range30" Content="{local:Loc &quot;30m&quot;}" GroupName="HistoryRange" Classes="chip" AutomationProperties.Name="{local:Loc &quot;30 minute history&quot;}" />
-              <RadioButton x:Name="Range60" Content="{local:Loc &quot;60m&quot;}" GroupName="HistoryRange" Classes="chip" AutomationProperties.Name="{local:Loc &quot;60 minute history&quot;}" />
-            </StackPanel>
+              <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="2">
+                <RadioButton x:Name="Range2" Content="{local:Loc &quot;2m&quot;}" GroupName="HistoryRange" Classes="chip" IsChecked="True" AutomationProperties.Name="{local:Loc &quot;2 minute history&quot;}" />
+                <RadioButton x:Name="Range10" Content="{local:Loc &quot;10m&quot;}" GroupName="HistoryRange" Classes="chip" AutomationProperties.Name="{local:Loc &quot;10 minute history&quot;}" />
+                <RadioButton x:Name="Range30" Content="{local:Loc &quot;30m&quot;}" GroupName="HistoryRange" Classes="chip" AutomationProperties.Name="{local:Loc &quot;30 minute history&quot;}" />
+                <RadioButton x:Name="Range60" Content="{local:Loc &quot;60m&quot;}" GroupName="HistoryRange" Classes="chip" AutomationProperties.Name="{local:Loc &quot;60 minute history&quot;}" />
+              </StackPanel>
+            </Grid>
           </Grid>
         </Border>
         <local:CpuChart Grid.Row="2" x:Name="Chart" MinHeight="80" AutomationProperties.Name="{local:Loc &quot;Resource history&quot;}" />

@@ -42,7 +42,7 @@ public sealed partial class MainWindow
     }
     private async Task ShowExportDialog()
     {
-        var dialog = new ExportDialog();
+        var dialog = new ExportDialog(ExportDialog.InitialKind(CompactMode, DataTabs.SelectedIndex));
         if (CompactMode) dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
         if (await dialog.ShowDialog<ExportSelection?>(this) is { } selection)
             await Export(selection.Kind, selection.ChartRange);

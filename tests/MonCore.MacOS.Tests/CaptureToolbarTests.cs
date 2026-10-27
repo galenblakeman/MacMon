@@ -39,9 +39,13 @@ public sealed class CaptureToolbarTests
                 var selectorRight = choice.TranslatePoint(new(choice.Bounds.Width, 0), window)!.Value;
                 var autoLeft = auto.TranslatePoint(default, window)!.Value;
                 Assert.That(choice.Width, Is.EqualTo(120));
-                Assert.That(autoLeft.X - selectorRight.X, Is.EqualTo(6).Within(1));
+                var capture = main.FindControl<Button>("CaptureMode")!;
+                var captureRight = capture.TranslatePoint(new(capture.Bounds.Width, 0), window)!.Value.X;
+                Assert.That(autoLeft.X - captureRight, Is.EqualTo(8).Within(1));
+                Assert.That((live.TranslatePoint(default, window)!.Value.X + captureRight) / 2, Is.EqualTo(width / 2.0).Within(1));
+                Assert.That(selectorRight.X, Is.LessThanOrEqualTo(live.TranslatePoint(default, window)!.Value.X));
                 Assert.That(auto.TranslatePoint(new(auto.Bounds.Width, 0), window)!.Value.X,
-                    Is.LessThanOrEqualTo(live.TranslatePoint(default, window)!.Value.X));
+                    Is.LessThanOrEqualTo(main.FindControl<RadioButton>("Range2")!.TranslatePoint(default, window)!.Value.X));
             }
         }
         finally { window.Close(); UiText.Apply("en"); }

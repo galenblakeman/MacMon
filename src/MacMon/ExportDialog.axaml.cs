@@ -6,12 +6,18 @@ namespace MacMon;
 public sealed record ExportSelection(CsvExportKind Kind, bool ChartRange);
 public sealed partial class ExportDialog : Window
 {
-    public ExportDialog()
+    public static CsvExportKind InitialKind(bool compact, int tab) => compact || tab == 1 ? CsvExportKind.ResourceHistory :
+        tab == 2 ? CsvExportKind.UsageTotals : CsvExportKind.ProcessSamples;
+    public ExportDialog() : this(CsvExportKind.ResourceHistory) { }
+    public ExportDialog(CsvExportKind initialKind)
     {
         InitializeComponent();
         UsageChoice.IsCheckedChanged += (_, _) => UpdateChoice();
         CancelAction.Click += (_, _) => Close();
         ExportCsv.Click += (_, _) => Close(Selection);
+        ResourceChoice.IsChecked = initialKind == CsvExportKind.ResourceHistory;
+        ProcessChoice.IsChecked = initialKind == CsvExportKind.ProcessSamples;
+        UsageChoice.IsChecked = initialKind == CsvExportKind.UsageTotals;
         UpdateChoice();
     }
     public ExportSelection Selection => new(UsageChoice.IsChecked == true ? CsvExportKind.UsageTotals :

@@ -32,6 +32,7 @@ public sealed class ChromeLayoutTests
             {
                 window.Width = width;
                 main.FindControl<TabControl>("DataTabs")!.SelectedIndex = tab;
+                Dispatcher.UIThread.RunJobs();
                 var toggle = shell.GetVisualDescendants().OfType<ToggleButton>().Single(t =>
                     t.Name == new[] { "ShowProcessActions", "ShowJobActions", "ShowUsageActions" }[tab]);
                 var details = shell.GetVisualDescendants().OfType<TextBlock>().Single(t =>
