@@ -21,6 +21,7 @@ trap 'rm -rf "$stage_root"' EXIT
 bundle="$stage_root/MacMon.app"
 mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
 cp dependencies/winmon-ui/LICENSE "$bundle/Contents/Resources/WinMon.LICENSE"
+cp src/MacMon/Assets/MacMon.icns "$bundle/Contents/Resources/MacMon.icns"
 dotnet publish src/MacMon/MacMon.csproj -c Release -r "$runtime" --self-contained true \
     -m:1 -p:UseSharedCompilation=false -p:DebugType=None -p:DebugSymbols=false -o "$bundle/Contents/MacOS"
 app_version="$(dotnet msbuild src/MacMon/MacMon.csproj -getProperty:Version -nologo)"
@@ -29,7 +30,7 @@ python3 - "$bundle/Contents/Info.plist" "$app_version" "$bundle_build" <<'PY'
 import plistlib, sys
 with open(sys.argv[1], "wb") as stream:
     plistlib.dump(dict(CFBundleName="MacMon", CFBundleDisplayName="MacMon",
-        CFBundleIdentifier="com.galenblakeman.macmon", CFBundleExecutable="MacMon",
+        CFBundleIdentifier="com.galenblakeman.macmon", CFBundleExecutable="MacMon", CFBundleIconFile="MacMon.icns",
         CFBundlePackageType="APPL", CFBundleShortVersionString=sys.argv[2],
         CFBundleVersion=sys.argv[3], NSHighResolutionCapable=True, LSMinimumSystemVersion="13.0"), stream)
 PY

@@ -61,3 +61,16 @@ MacMon 0.13.10 adapts inactive tab text colors from WinMon
 `Preferences/ThemeFinishes.cs` (`InactiveTabText`). MacMon checks contrast
 against its solid header/window surfaces and adjusts colors when necessary.
 The existing MIT license is retained.
+
+
+MacMon's application icon reuses WinMon `Assets/WinMon.png` and the geometry,
+gradient and colors from `docs/design/icon/WinMon.xaml`. Native macOS icon
+frames (16–1024 pixels) are rendered by `tools/generate-app-icon.swift` and
+assembled with `iconutil`. Regenerate with:
+
+```sh
+swift tools/generate-app-icon.swift artifacts/MacMon.iconset
+iconutil -c icns artifacts/MacMon.iconset -o src/MacMon/Assets/MacMon.icns
+```
+
+The existing MIT license covers the shared artwork and is included in the app.

@@ -20,6 +20,8 @@ class ReleaseWorkflowTests(unittest.TestCase):
         (self.root / "tools" / "verify.sh").write_text('#!/bin/bash\necho "verify.sh" >> "$MACMON_TEST_LOG"\n')
         (self.root / "dependencies" / "winmon-ui").mkdir(parents=True)
         shutil.copy(source / "dependencies" / "winmon-ui" / "LICENSE", self.root / "dependencies" / "winmon-ui")
+        (self.root / "src/MacMon/Assets").mkdir(parents=True)
+        shutil.copy(source / "src/MacMon/Assets/MacMon.icns", self.root / "src/MacMon/Assets/MacMon.icns")
         (self.root / "packaging").mkdir()
         shutil.copy(source / "packaging" / "MacMon.entitlements", self.root / "packaging")
         (self.root / "artifacts" / "local-feed").mkdir(parents=True)

@@ -1,5 +1,5 @@
 <Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="using:MacMon" xmlns:chrome="using:Avalonia.Controls.Chrome" x:Class="MacMon.MainWindow" Title="{local:Loc &quot;MacMon&quot;}" Width="1000" Height="900" MinWidth="800" MinHeight="760" ExtendClientAreaToDecorationsHint="True" ExtendClientAreaTitleBarHeightHint="44">
+        xmlns:local="using:MacMon" xmlns:chrome="using:Avalonia.Controls.Chrome" x:Class="MacMon.MainWindow" Icon="/Assets/MacMon.png" Title="{local:Loc &quot;MacMon&quot;}" Width="1000" Height="900" MinWidth="800" MinHeight="760" ExtendClientAreaToDecorationsHint="True" ExtendClientAreaTitleBarHeightHint="44">
   <Grid>
     <Border x:Name="TitleBackground" Height="44" VerticalAlignment="Top" Background="{DynamicResource MacChromeBrush}" IsHitTestVisible="False" />
     <local:CompactView x:Name="CompactPanel" IsVisible="False" />
